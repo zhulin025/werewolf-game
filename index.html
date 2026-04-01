@@ -2492,6 +2492,7 @@
             SoundSystem.init();
             resetAIMemory();
             resetAIState();
+            resetNightActions();
 
             // Get game mode configuration
             const modeConfig = GameModes[currentGameMode];
@@ -2526,7 +2527,7 @@
             gameState.humanPlayerId = -1; // No human player
             gameState.phase = 'waiting';
             gameState.day = 0;
-            gameState.wolfTarget = null;
+            nightActions.wolfTarget = null;
             gameState.suspects = [];
             gameState.deathRecords = [];
 
@@ -3757,72 +3758,108 @@
             // Play night animation
             await playNightAnimation();
 
-            // Night sequence
+            // Night sequence - reset night actions
+            resetNightActions();
             await pausedSleep(1000);
 
-            // Guard phase
-            await nightPhase('GUARD', '守卫', async (player) => {
-                const target = makeAISmartDecision(player, 'guard');
-                aiState.lastGuardTarget = target;
-                const targetName = target?.name || '自己';
-                addLog(`🛡️ 守卫 ${player.name} 选择了守护 ${targetName}`, 'night');
-                VoiceSystem.announce(`守卫选择了守护${targetName}`);
-                return target;
-            });
-
-            // Wolf phase
+            // 1. 狼人睁眼：确认队友，共同刀1人
             await nightPhase('WOLF', '狼人', async (players) => {
-                // Wolves discuss
                 addLog(`🐺 狼人们正在讨论今晚要刀谁...`, 'night');
                 VoiceSystem.announce('狼人团队正在讨论击杀目标');
                 await pausedSleep(2000);
 
-                // AI decision
-                const wolfLeader = players[0]; // First wolf is leader
+                const wolfLeader = players[0];
                 const target = makeAISmartDecision(wolfLeader, 'wolf_kill');
+                nightActions.wolfTarget = target;
                 addLog(`🐺 狼人决定击杀 ${target.name}（${target.roleName}）`, 'night');
                 VoiceSystem.announce(`狼人决定今晚击杀${target.roleName}`);
                 return target;
             });
 
-            // Witch phase
+            // 2. 女巫睁眼：得知被刀玩家，可解药救人或毒药毒人
             await nightPhase('WITCH', '女巫', async (player) => {
-                addLog(`🧪 女巫 ${player.name} 正在决策...`, 'night');
+                const victim = nightActions.wolfTarget;
+                if (victim) {
+                    addLog(`🧪 女巫得知 ${victim.name} 被狼人杀害`, 'night');
+                    VoiceSystem.announce(`女巫得知${victim.name}被狼人杀害`);
+                }
                 await pausedSleep(1500);
 
-                // AI decides whether to heal
-                const shouldHeal = makeAISmartDecision(player, 'witch_heal');
-                if (shouldHeal) {
-                    aiState.witchUsedPotion = true;
-                    addLog(`🧪 女巫使用了解药救人`, 'night');
-                    VoiceSystem.announce('女巫使用了解药，今晚不死人');
-                } else {
-                    addLog(`🧪 女巫选择不救人`, 'night');
-                    VoiceSystem.announce('女巫今晚没有使用解药');
+                // 判断是否可以自救（首夜可自救）
+                const isSelfKilled = victim && victim.id === player.id;
+                const canSelfSave = isSelfKilled && gameState.day === 1;
+
+                // 决定是否使用解药
+                if (victim && aiState.witchHasAntidote) {
+                    // 首夜被刀可自救，或非自己被刀时考虑救人
+                    if (canSelfSave || !isSelfKilled) {
+                        const shouldHeal = makeAISmartDecision(player, 'witch_heal');
+                        if (shouldHeal) {
+                            aiState.witchHasAntidote = false;
+                            nightActions.witchSaved = true;
+                            addLog(`🧪 女巫使用了解药救人`, 'night');
+                            VoiceSystem.announce('女巫使用了解药救人');
+                            return { action: 'heal' };
+                        }
+                    } else if (isSelfKilled && !canSelfSave) {
+                        addLog(`🧪 女巫被刀但非首夜，不可自救`, 'night');
+                    }
                 }
-                return shouldHeal;
+
+                // 不救人时考虑是否使用毒药（不可同夜双药）
+                if (!nightActions.witchSaved && aiState.witchHasPoison) {
+                    const poisonTarget = makeAISmartDecision(player, 'witch_poison');
+                    if (poisonTarget) {
+                        aiState.witchHasPoison = false;
+                        nightActions.witchPoisonTarget = poisonTarget;
+                        addLog(`🧪 女巫使用毒药毒杀 ${poisonTarget.name}`, 'night');
+                        VoiceSystem.announce(`女巫使用了毒药`);
+                        return { action: 'poison', target: poisonTarget };
+                    }
+                }
+
+                addLog(`🧪 女巫选择不使用药水`, 'night');
+                VoiceSystem.announce('女巫今晚没有使用药水');
+                return { action: 'none' };
             });
 
-            // Prophet phase
+            // 3. 预言家睁眼：查验1人身份
             await nightPhase('PROPHET', '预言家', async (player) => {
                 const target = makeAISmartDecision(player, 'prophet_check');
                 const isWolf = target.camp === 'wolf';
 
-                // Update AI memory
                 aiMemory.confirmed[target.id] = isWolf ? 'wolf' : 'good';
-
-                // Record prophet check
                 aiState.prophetReports[player.id] = {
                     day: gameState.day,
                     target: target,
                     result: isWolf ? 'wolf' : 'good'
                 };
-                
-                const resultText = isWolf ? '是狼人' : '是好人';
-                addLog(`🔮 预言家查验：${target.name}（${target.roleName}）${resultText}`, 'night');
-                VoiceSystem.announce(`预言家查验${target.roleName}，${resultText}`);
+
+                const resultText = isWolf ? '查杀' : '金水';
+                addLog(`🔮 预言家查验：${target.name}（${target.roleName}）→ ${resultText}`, 'night');
+                VoiceSystem.announce(`预言家查验${target.name}，${resultText}`);
                 return { target, isWolf };
             });
+
+            // 4. 守卫睁眼：守护1人（不可连续守同一人）
+            await nightPhase('GUARD', '守卫', async (player) => {
+                const target = makeAISmartDecision(player, 'guard');
+                nightActions.guardTarget = target;
+                aiState.lastGuardTarget = target;
+                const targetName = target?.name || '无';
+                addLog(`🛡️ 守卫 ${player.name} 选择了守护 ${targetName}`, 'night');
+                VoiceSystem.announce(`守卫选择了守护${targetName}`);
+                return target;
+            });
+
+            // 5. 猎人：仅首夜睁眼确认身份
+            if (gameState.day === 1) {
+                await nightPhase('HUNTER', '猎人', async (player) => {
+                    addLog(`🏹 猎人 ${player.name} 确认了自己的身份`, 'night');
+                    VoiceSystem.announce('猎人确认身份');
+                    return null;
+                });
+            }
 
             // Resolve night deaths
             await resolveNightDeaths();
@@ -3863,10 +3900,11 @@
 
             // Narrator voice - player opens eyes (only role names, not player names)
             const openEyeMessages = {
-                'GUARD': `守卫请睁眼，守卫每晚可以守护一名玩家`,
-                'WOLF': `狼人请睁眼，狼人团队请选择今晚要击杀的目标`,
-                'WITCH': `女巫请睁眼，女巫有一瓶解药和一瓶毒药`,
-                'PROPHET': `预言家请睁眼，预言家每晚可以查验一名玩家`
+                'WOLF': `狼人请睁眼，狼人团队请确认队友，并选择今晚要击杀的目标`,
+                'WITCH': `女巫请睁眼`,
+                'PROPHET': `预言家请睁眼，预言家每晚可以查验一名玩家`,
+                'GUARD': `守卫请睁眼，守卫每晚可以守护一名玩家，不可连续守同一人`,
+                'HUNTER': `猎人请睁眼，确认身份`
             };
             if (openEyeMessages[roleKey]) {
                 addLog(`👁️ ${player.name}请睁眼`, 'night');
@@ -3965,7 +4003,7 @@
             setTimeout(() => wolfVision.remove(), 500);
 
             // Remember the target for voting
-            gameState.wolfTarget = selectedTarget;
+            nightActions.wolfTarget = selectedTarget;
         }
 
         // ============ GAME MODES ============
@@ -4019,52 +4057,83 @@
         }
 
         async function resolveNightDeaths() {
-            // Simple simulation: 40% chance someone dies
-            const aliveGood = gameState.players.filter(p => p.isAlive && !p.role.includes('WOLF'));
+            const deaths = []; // 收集本夜死亡的玩家
 
-            if (Math.random() < 0.4 && aliveGood.length > 0) {
-                const victim = aliveGood[Math.floor(Math.random() * aliveGood.length)];
-                victim.isAlive = false;
-                addLog(`💀 昨夜，${victim.name} 死亡！`, 'death');
-                SoundSystem.play('death');
-                VoiceSystem.announce(`昨晚${victim.name}死亡了`);
-                showDeathAnimation(victim.id);
-                addDeathRecord(victim.name, 'killed', gameState.day);
+            // 1. 结算狼人击杀
+            const wolfTarget = nightActions.wolfTarget;
+            if (wolfTarget) {
+                let wolfKillSaved = false;
 
-                // Hunter ability
-                if (victim.role === 'HUNTER') {
-                    await sleep(1000);
-                    const targets = gameState.players.filter(p => p.isAlive && p.camp === 'wolf');
-                    if (targets.length > 0) {
-                        const hunterTarget = targets[Math.floor(Math.random() * targets.length)];
-                        hunterTarget.isAlive = false;
-                        addLog(`🏹 猎人开枪带走了 ${hunterTarget.name}！`, 'death');
-                        SoundSystem.play('death');
-                        VoiceSystem.announce(`猎人发动技能，带走了${hunterTarget.name}`);
-                        showDeathAnimation(hunterTarget.id);
-                        addDeathRecord(hunterTarget.name, 'hunter', gameState.day);
-                    }
+                // 女巫解药救人
+                if (nightActions.witchSaved) {
+                    wolfKillSaved = true;
+                    addLog(`🧪 女巫使用解药，${wolfTarget.name} 被救活`, 'night');
                 }
 
-                // Wolf King ability (if killed by vote/poison - simplified)
-                if (victim.role === 'WOLF_KING') {
-                    await sleep(1000);
-                    const targets = gameState.players.filter(p => p.isAlive && p.camp === 'good');
-                    if (targets.length > 0) {
-                        const wolfKingTarget = targets[Math.floor(Math.random() * targets.length)];
-                        wolfKingTarget.isAlive = false;
-                        addLog(`👑 狼王开枪带走了 ${wolfKingTarget.name}！`, 'death');
-                        SoundSystem.play('death');
-                        VoiceSystem.announce(`狼王发动技能，带走了${wolfKingTarget.name}`);
-                        showDeathAnimation(wolfKingTarget.id);
-                        addDeathRecord(wolfKingTarget.name, 'wolfking', gameState.day);
-                    }
+                // 守卫守护
+                if (!wolfKillSaved && nightActions.guardTarget && nightActions.guardTarget.id === wolfTarget.id) {
+                    wolfKillSaved = true;
+                    addLog(`🛡️ 守卫守护成功，${wolfTarget.name} 安全`, 'night');
                 }
-            } else {
-                addLog(`😌 昨夜是平安夜，无人死亡`, 'system');
-                VoiceSystem.announce('昨晚是平安夜，无人死亡');
+
+                if (!wolfKillSaved) {
+                    deaths.push({ player: wolfTarget, cause: 'killed' });
+                }
             }
 
+            // 2. 结算女巫毒药
+            if (nightActions.witchPoisonTarget) {
+                const poisonVictim = nightActions.witchPoisonTarget;
+                // 毒药无法被守卫挡住
+                if (!deaths.find(d => d.player.id === poisonVictim.id)) {
+                    deaths.push({ player: poisonVictim, cause: 'poisoned' });
+                }
+            }
+
+            // 3. 公布死讯
+            if (deaths.length === 0) {
+                addLog(`😌 昨夜是平安夜，无人死亡`, 'system');
+                VoiceSystem.announce('昨晚是平安夜，无人死亡');
+            } else {
+                for (const death of deaths) {
+                    death.player.isAlive = false;
+                    const causeText = death.cause === 'poisoned' ? '被毒杀' : '死亡';
+                    addLog(`💀 昨夜，${death.player.name} ${causeText}！`, 'death');
+                    SoundSystem.play('death');
+                    VoiceSystem.announce(`昨晚${death.player.name}${causeText}了`);
+                    showDeathAnimation(death.player.id);
+                    addDeathRecord(death.player.name, death.cause, gameState.day);
+                    await sleep(1000);
+                }
+
+                // 死者遗言（首夜死者必留遗言）
+                for (const death of deaths) {
+                    const mustLeaveWords = gameState.day === 1; // 首夜必留遗言
+                    if (mustLeaveWords || Math.random() < 0.5) {
+                        const lastWords = await showLastWords(death.player);
+                        if (lastWords) {
+                            addLog(`💀 ${death.player.name}的遗言：${lastWords}`, 'death');
+                        }
+                    }
+
+                    // 猎人被狼人杀死时可以开枪（被毒杀不能开枪）
+                    if (death.player.role === 'HUNTER' && death.cause === 'killed') {
+                        await sleep(1000);
+                        const targets = gameState.players.filter(p => p.isAlive && p.camp === 'wolf');
+                        if (targets.length > 0) {
+                            const hunterTarget = targets[Math.floor(Math.random() * targets.length)];
+                            hunterTarget.isAlive = false;
+                            addLog(`🏹 猎人发动技能，带走了 ${hunterTarget.name}！`, 'death');
+                            SoundSystem.play('death');
+                            VoiceSystem.announce(`猎人发动技能，带走了${hunterTarget.name}`);
+                            showDeathAnimation(hunterTarget.id);
+                            addDeathRecord(hunterTarget.name, 'hunter', gameState.day);
+                        }
+                    }
+                }
+            }
+
+            renderPlayers();
             await sleep(1500);
         }
 
@@ -4380,17 +4449,34 @@
             prophetReports: {}, // playerId -> { day, result }
             wolfFakeClaims: {},  // playerId -> { day, claimed }
             lastGuardTarget: null,
-            witchUsedPotion: false,
-            witchUsedPoison: false
+            witchHasAntidote: true,   // 女巫是否还有解药
+            witchHasPoison: true      // 女巫是否还有毒药
         };
+
+        // 每晚的行动记录（每晚开始时重置）
+        let nightActions = {
+            wolfTarget: null,       // 狼人刀的目标
+            witchSaved: false,      // 女巫是否使用了解药
+            witchPoisonTarget: null, // 女巫毒药目标
+            guardTarget: null       // 守卫守护目标
+        };
+
+        function resetNightActions() {
+            nightActions = {
+                wolfTarget: null,
+                witchSaved: false,
+                witchPoisonTarget: null,
+                guardTarget: null
+            };
+        }
 
         function resetAIState() {
             aiState = {
                 prophetReports: {},
                 wolfFakeClaims: {},
                 lastGuardTarget: null,
-                witchUsedPotion: false,
-                witchUsedPoison: false
+                witchHasAntidote: true,
+                witchHasPoison: true
             };
         }
 
@@ -4507,10 +4593,15 @@
 
             switch (action) {
                 case 'guard':
-                    // 守卫优先守护预言家或女巫
+                    // 守卫不能连续两晚守同一人
+                    const guardCandidates = alivePlayers.filter(p =>
+                        !aiState.lastGuardTarget || p.id !== aiState.lastGuardTarget.id
+                    );
+                    if (guardCandidates.length === 0) return alivePlayers[0];
+                    // 优先守护神职
                     const protectedRoles = ['PROPHET', 'WITCH', 'HUNTER'];
-                    const importantPlayer = alivePlayers.find(p => protectedRoles.includes(p.role));
-                    return importantPlayer || alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
+                    const importantPlayer = guardCandidates.find(p => protectedRoles.includes(p.role));
+                    return importantPlayer || guardCandidates[Math.floor(Math.random() * guardCandidates.length)];
 
                 case 'wolf_kill':
                     // 狼人优先刀神职
@@ -4523,15 +4614,28 @@
                     return alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
 
                 case 'witch_heal':
-                    // 女巫根据情况救人
-                    // 简单AI：有30%概率救人
-                    return Math.random() < 0.3 ? true : false;
+                    // 女巫救人决策：首夜被刀70%自救，其他情况50%救人
+                    // 被刀的是神职优先救
+                    if (!nightActions.wolfTarget) return false;
+                    const victim = nightActions.wolfTarget;
+                    const isGod = ['PROPHET', 'WITCH', 'GUARD', 'HUNTER'].includes(victim.role);
+                    if (isGod) return Math.random() < 0.7;
+                    if (gameState.day === 1) return Math.random() < 0.6; // 首夜倾向救人
+                    return Math.random() < 0.4;
 
                 case 'witch_poison':
-                    // 女巫毒人
-                    const wolves = gameState.players.filter(p => p.camp === 'wolf' && p.isAlive);
-                    if (wolves.length > 0 && Math.random() < 0.2) {
-                        return wolves[Math.floor(Math.random() * wolves.length)];
+                    // 女巫毒人：如果有确认的狼人就毒
+                    const knownWolf = alivePlayers.find(p =>
+                        aiMemory.confirmed[p.id] === 'wolf' && p.camp === 'wolf'
+                    );
+                    if (knownWolf) return knownWolf;
+                    // 可疑度高的人有小概率毒
+                    const suspectedWolf = Object.entries(aiMemory.suspected)
+                        .filter(([id, level]) => level > 0.7)
+                        .map(([id]) => gameState.players.find(p => p.id === parseInt(id)))
+                        .filter(p => p && p.isAlive);
+                    if (suspectedWolf.length > 0 && Math.random() < 0.3) {
+                        return suspectedWolf[0];
                     }
                     return null;
 
@@ -4874,16 +4978,28 @@
 
         function checkWinCondition() {
             const alivePlayers = gameState.players.filter(p => p.isAlive);
-            const aliveGood = alivePlayers.filter(p => p.camp === 'good').length;
-            const aliveWolf = alivePlayers.filter(p => p.camp === 'wolf').length;
+            const aliveWolves = alivePlayers.filter(p => p.camp === 'wolf').length;
+            const aliveGods = alivePlayers.filter(p =>
+                p.camp === 'good' && ['PROPHET', 'WITCH', 'GUARD', 'HUNTER'].includes(p.role)
+            ).length;
+            const aliveVillagers = alivePlayers.filter(p =>
+                p.camp === 'good' && p.role === 'VILLAGER'
+            ).length;
 
-            if (aliveWolf === 0) {
+            // 好人胜利：放逐所有狼人
+            if (aliveWolves === 0) {
                 endGame('good');
                 return true;
             }
 
-            // Wolves win only when they outnumber the good team (strictly greater)
-            if (aliveWolf > aliveGood) {
+            // 狼人胜利：屠边 — 杀光所有神职 OR 杀光所有平民
+            if (aliveGods === 0) {
+                addLog(`⚔️ 所有神职已阵亡，狼人屠城胜利！`, 'death');
+                endGame('wolf');
+                return true;
+            }
+            if (aliveVillagers === 0) {
+                addLog(`⚔️ 所有平民已阵亡，狼人屠边胜利！`, 'death');
                 endGame('wolf');
                 return true;
             }
