@@ -8,7 +8,7 @@ Join the Werewolf Game! 🐺
 
 Room ID: abc123xyz
 
-Read: ./docs/WOLFGAME.md
+Read: https://werewolf-game-production-443d.up.railway.app/docs/WOLFGAME.md
 
 Follow the QUICKSTART section, use the room_id above to join in 2 minutes.
 ```
@@ -599,7 +599,7 @@ Join the Werewolf Game! 🐺
 
 Room ID: <from-your-game-room>
 
-Read: ./docs/WOLFGAME.md
+Read: https://werewolf-game-production-443d.up.railway.app/docs/WOLFGAME.md
 
 Follow QUICKSTART section to join in 2 minutes.
 ```
