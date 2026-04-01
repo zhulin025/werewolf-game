@@ -243,36 +243,73 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(45, 27, 78, 0.95);
-            padding: 24px 48px;
-            border-radius: 20px;
+            background: linear-gradient(135deg, rgba(45, 27, 78, 0.98), rgba(20, 10, 40, 0.98));
+            padding: 30px 50px;
+            border-radius: 24px;
             text-align: center;
             z-index: 200;
             border: 3px solid var(--primary);
-            box-shadow: 0 0 40px rgba(108, 92, 231, 0.4);
+            box-shadow: 0 0 60px rgba(108, 92, 231, 0.5), inset 0 0 30px rgba(108, 92, 231, 0.1);
             animation: nightIndicatorPulse 2s ease-in-out infinite;
         }
 
         @keyframes nightIndicatorPulse {
-            0%, 100% { box-shadow: 0 0 20px rgba(108, 92, 231, 0.4); }
-            50% { box-shadow: 0 0 40px rgba(108, 92, 231, 0.6); }
+            0%, 100% { 
+                box-shadow: 0 0 30px rgba(108, 92, 231, 0.4); 
+                transform: translate(-50%, -50%) scale(1);
+            }
+            50% { 
+                box-shadow: 0 0 60px rgba(108, 92, 231, 0.7); 
+                transform: translate(-50%, -50%) scale(1.02);
+            }
         }
 
         .night-action-icon {
-            font-size: 64px;
-            margin-bottom: 12px;
+            font-size: 72px;
+            margin-bottom: 16px;
+            animation: iconFloat 3s ease-in-out infinite;
+        }
+
+        @keyframes iconFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
         }
 
         .night-action-text {
-            font-size: 20px;
+            font-size: 22px;
             color: var(--text);
             font-weight: 600;
+            margin-bottom: 8px;
         }
 
         .night-action-hint {
             font-size: 14px;
             color: var(--text-muted);
             margin-top: 8px;
+            animation: blink 1.5s ease-in-out infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Wolf team vision - special effect */
+        .wolf-team-vision {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(139, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.8) 100%);
+            z-index: 150;
+            pointer-events: none;
+            animation: wolfVisionPulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes wolfVisionPulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 0.9; }
         }
 
         /* Player highlight for night actions */
@@ -344,10 +381,23 @@
             font-size: 28px;
         }
 
-        .header-actions {
+        .header-phase {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 8px 20px;
+            background: linear-gradient(135deg, var(--surface), var(--surface-light));
+            border-radius: 20px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
             display: flex;
-            gap: 12px;
             align-items: center;
+            gap: 8px;
+            border: 1px solid rgba(108, 92, 231, 0.3);
+        }
+
+        .header-phase .phase-icon {
+            font-size: 18px;
         }
 
         .header-actions {
@@ -419,18 +469,31 @@
             position: relative;
             z-index: 1;
             display: grid;
-            grid-template-columns: 180px 1fr 300px;
+            grid-template-columns: 160px 1fr 340px;
             gap: 16px;
             padding: 16px;
             max-width: 1600px;
             margin: 0 auto;
-            min-height: calc(100vh - 70px);
+            height: calc(100vh - 70px);
+            overflow: hidden;
+        }
+
+        html {
+            overflow: hidden;
+            height: 100%;
+        }
+
+        body {
+            overflow: hidden;
+            height: 100%;
         }
 
         .arena-column {
             display: flex;
             flex-direction: column;
             gap: 12px;
+            overflow: hidden;
+            height: 100%;
         }
 
         /* Death List Panel */
@@ -453,14 +516,20 @@
 
         .death-item {
             display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px;
+            flex-direction: column;
+            gap: 4px;
+            padding: 10px;
             margin-bottom: 6px;
             background: rgba(255,0,0,0.1);
             border-radius: 8px;
             border-left: 3px solid #e74c3c;
             animation: slideIn 0.3s ease;
+        }
+
+        .death-item .main-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         @keyframes slideIn {
@@ -637,10 +706,20 @@
             box-shadow: 0 0 20px rgba(0, 206, 201, 0.5);
         }
 
+        /* Dead player state - stronger specificity */
+        div.player-card.dead,
         .player-card.dead {
-            opacity: 0.4;
-            filter: grayscale(1);
-            cursor: default;
+            opacity: 0.35 !important;
+            filter: grayscale(1) !important;
+            cursor: default !important;
+            border-color: #333 !important;
+            background: rgba(30, 30, 30, 0.6) !important;
+        }
+        
+        div.player-card.dead .player-avatar,
+        .player-card.dead .player-avatar {
+            filter: grayscale(1) !important;
+            opacity: 0.5 !important;
         }
 
         .player-card.wolf {
@@ -809,18 +888,30 @@
             animation: dyingPulse 0.5s ease-in-out !important;
         }
 
-        .player-card.dead {
-            opacity: 0.5;
-            filter: grayscale(1);
-            border-color: #333 !important;
-        }
-
+        /* Dead player skull badge */
         .player-card.dead::after {
             content: '💀';
             position: absolute;
             top: -12px;
             right: -8px;
             font-size: 20px;
+        }
+
+        /* Death popup modal - wider */
+        .modal.death-popup {
+            max-width: 800px !important;
+            padding: 30px 40px;
+        }
+
+        .death-item .lastwords {
+            font-size: 11px;
+            color: #ffd700;
+            margin-top: 4px;
+            font-style: italic;
+        }
+
+        .modal.death-popup .modal {
+            max-width: 100%;
         }
 
         @keyframes dyingPulse {
@@ -1327,8 +1418,8 @@
             display: flex;
             flex-direction: column;
             border: 1px solid rgba(108, 92, 231, 0.2);
-            flex: 1;
-            min-height: 200px;
+            height: 100%;
+            overflow: hidden;
         }
 
         .chronicles-header {
@@ -1345,10 +1436,13 @@
         .chronicles-log {
             flex: 1;
             overflow-y: auto;
+            overflow-x: hidden;
             display: flex;
             flex-direction: column;
             gap: 8px;
-            padding-right: 8px;
+            width: 100%;
+            box-sizing: border-box;
+            scroll-behavior: smooth;
         }
 
         .chronicles-log::-webkit-scrollbar {
@@ -1368,12 +1462,15 @@
             line-height: 1.5;
             border-left: 3px solid transparent;
             animation: fadeIn 0.3s ease;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         .log-entry-content {
             display: flex;
             align-items: flex-start;
             gap: 8px;
+            width: 100%;
         }
 
         .log-icon {
@@ -1392,6 +1489,19 @@
             flex: 1;
             word-break: break-word;
         }
+
+        /* Keyword highlights in logs */
+        .hl-wolf { color: #e74c3c; font-weight: bold; }
+        .hl-good { color: #3498db; font-weight: bold; }
+        .hl-prophet { color: #9b59b6; }
+        .hl-witch { color: #1abc9c; }
+        .hl-guard { color: #f39c12; }
+        .hl-hunter { color: #e67e22; }
+        .hl-check { color: #e74c3c; background: rgba(231, 76, 60, 0.2); padding: 0 4px; border-radius: 4px; }
+        .hl-gold { color: #f1c40f; background: rgba(241, 196, 15, 0.2); padding: 0 4px; border-radius: 4px; }
+        .hl-vote { color: #f39c12; font-weight: bold; }
+        .hl-death { color: #95a5a6; text-decoration: line-through; }
+        .hl-out { color: #e74c3c; font-weight: bold; }
 
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(-10px); }
@@ -1527,42 +1637,111 @@
 
         /* Game Over Modal */
         .game-over-content {
-            padding: 20px;
+            padding: 24px;
+            text-align: center;
         }
 
         .winner-badge {
-            font-size: 100px;
-            margin-bottom: 16px;
+            font-size: 80px;
+            margin-bottom: 12px;
+            animation: bounce 0.6s ease infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
         }
 
         .winner-text {
             font-family: 'Orbitron', sans-serif;
-            font-size: 32px;
+            font-size: 28px;
             margin-bottom: 8px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
         .winner-camp {
-            font-size: 18px;
-            margin-bottom: 24px;
+            font-size: 16px;
+            color: var(--text-muted);
+            margin-bottom: 20px;
         }
 
-        .stats-grid {
+        .game-over-stats {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 16px;
-            margin-bottom: 24px;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
         }
 
-        .stat-item {
-            background: rgba(0, 0, 0, 0.2);
-            padding: 16px;
-            border-radius: 12px;
+        .go-stat {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px 8px;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
         }
 
-        .stat-value {
+        .go-stat-icon {
+            font-size: 18px;
+        }
+
+        .go-stat-value {
             font-family: 'Orbitron', sans-serif;
-            font-size: 24px;
+            font-size: 22px;
+            font-weight: bold;
             color: var(--secondary);
+        }
+
+        .go-stat-label {
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .death-summary, .survivors-list {
+            text-align: left;
+            margin-bottom: 16px;
+        }
+
+        .death-summary h4, .survivors-list h4 {
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: var(--text);
+        }
+
+        .death-list-mini {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .death-item-mini {
+            background: rgba(255, 0, 0, 0.2);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            border: 1px solid rgba(255, 0, 0, 0.3);
+        }
+
+        .death-item-mini .cause {
+            color: var(--text-muted);
+            font-size: 10px;
+        }
+
+        .survivors-list div {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .survivor-badge {
+            background: rgba(0, 255, 0, 0.1);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            border: 1px solid rgba(0, 255, 0, 0.3);
         }
 
         .stat-label {
@@ -1661,201 +1840,84 @@
             font-weight: 600;
         }
 
-        /* Responsive */
+        /* Responsive - Tablet */
         @media (max-width: 900px) {
             .game-container {
+                grid-template-columns: 1fr 200px;
+                padding: 10px;
+                gap: 10px;
+            }
+            .death-list { display: none; }
+            .chronicles { height: 180px; border-radius: 10px; font-size: 11px; }
+            .arena { min-height: 380px; border-radius: 12px; padding: 15px; }
+            .players-ring { width: 280px; height: 280px; }
+            .player-card { width: 55px; height: 75px; }
+            .header-actions { gap: 8px; }
+            .speed-control { display: none; }
+            .btn { padding: 8px 12px; font-size: 12px; }
+            .bottom-stats { gap: 10px; padding: 10px 12px; }
+            .center-round { font-size: 28px; }
+            .fullscreen-btn, .help-btn, .role-guide-btn, .leaderboard-btn, .share-btn { display: none; }
+            .achievement-badge { display: none; }
+        }
+
+        /* Mobile Phone */
+        @media (max-width: 600px) {
+            .game-container {
                 grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr auto auto;
                 padding: 8px;
                 gap: 8px;
             }
-
-            .chronicles {
-                height: 150px;
-                order: 2;
-                border-radius: 8px;
-                font-size: 11px;
-            }
-
-            .arena {
-                min-height: 350px;
-                border-radius: 8px;
+            header { flex-wrap: wrap; padding: 8px 12px; gap: 8px; }
+            .logo { font-size: 16px; }
+            .logo-icon { font-size: 20px; }
+            .header-actions { width: 100%; justify-content: flex-end; gap: 6px; }
+            .btn { padding: 6px 10px; font-size: 11px; }
+            .arena { min-height: 320px; border-radius: 10px; padding: 10px; }
+            .phase-banner { padding: 8px 16px; font-size: 14px; }
+            .players-ring { width: 240px; height: 240px; }
+            .player-card { width: 48px; height: 65px; }
+            .player-number { font-size: 12px; }
+            .player-avatar { font-size: 18px; }
+            .player-name { font-size: 8px; display: none; }
+            .center-round { font-size: 24px; }
+            .bottom-stats {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 8px;
                 padding: 10px;
             }
+            .bottom-stat { flex-direction: column; gap: 2px; padding: 6px; }
+            .bottom-stat .stat-value { font-size: 16px; }
+            .chronicles { height: 140px; font-size: 10px; border-radius: 8px; }
+            .chronicles-header { font-size: 12px; padding-bottom: 8px; margin-bottom: 8px; }
+            .modal { max-width: 95vw !important; margin: 10px; }
+        }
 
-            .players-ring {
-                width: 260px;
-                height: 260px;
-            }
-
-            .player-card {
-                width: 50px;
-                height: 70px;
-            }
-
-            .player-number {
-                font-size: 14px;
-            }
-
-            .player-avatar {
-                font-size: 20px;
-            }
-
-            .player-name {
-                font-size: 9px;
-            }
-
-            .header-actions {
-                gap: 4px;
-            }
-
-            .speed-control {
-                display: none;
-            }
-
-            .btn {
-                padding: 6px 10px;
-                font-size: 11px;
-            }
-
-            /* Mobile floating buttons - hide on small screens */
-            .fullscreen-btn,
-            .help-btn,
-            .role-guide-btn,
-            .leaderboard-btn,
-            .share-btn {
-                width: 36px;
-                height: 36px;
-                bottom: auto;
-                right: 5px;
-                font-size: 16px;
-            }
-
-            .fullscreen-btn { top: 60px; }
-            .help-btn { top: 100px; }
-            .role-guide-btn { top: 140px; }
-            .leaderboard-btn { top: 180px; }
-            .share-btn { top: 220px; }
-
-            .achievement-badge {
-                bottom: auto;
-                top: 60px;
-                left: 5px;
-                padding: 6px 10px;
-                font-size: 10px;
-            }
-
-            .action-panel {
-                padding: 10px;
-            }
-
-            .action-input {
-                font-size: 14px;
-                padding: 10px;
-            }
-
-            /* Night overlay adjustments for mobile */
-            .night-action-indicator {
-                padding: 16px 24px;
-            }
-
-            .night-action-icon {
-                font-size: 36px;
-            }
-
-            .night-action-text {
-                font-size: 14px;
-            }
+        /* Extra small screens */
+        @media (max-width: 380px) {
+            .players-ring { width: 200px; height: 200px; }
+            .player-card { width: 42px; height: 58px; }
+            .center-round { font-size: 20px; }
+            .bottom-stats { padding: 8px; gap: 6px; }
         }
 
         /* Touch optimizations */
         @media (hover: none) {
-            .player-card:hover:not(.dead) {
-                transform: none;
-            }
-
-            .player-card:active:not(.dead) {
-                transform: scale(0.95);
-                background: var(--surface-light);
-            }
+            .player-card:hover:not(.dead) { transform: none; }
+            .player-card:active:not(.dead) { transform: scale(0.95); background: var(--surface-light); }
         }
 
-        /* Reduce animations on mobile for performance */
+        /* Reduce animations */
         @media (prefers-reduced-motion: reduce) {
-            *,
-            *::before,
-            *::after {
+            *, *::before, *::after {
                 animation-duration: 0.01ms !important;
-                animation-iteration-count: 1 !important;
                 transition-duration: 0.01ms !important;
             }
         }
 
-        /* Extra small screens (phone portrait) */
-        @media (max-width: 480px) {
-            header {
-                flex-wrap: wrap;
-                padding: 8px 12px;
-                gap: 8px;
-            }
 
-            .logo {
-                font-size: 18px;
-            }
-
-            .logo-icon {
-                font-size: 22px;
-            }
-
-            .header-actions {
-                width: 100%;
-                justify-content: flex-end;
-            }
-
-            .speed-control {
-                display: none !important;
-            }
-
-            .game-container {
-                padding: 6px;
-                gap: 6px;
-            }
-
-            .players-ring {
-                width: 220px;
-                height: 220px;
-            }
-
-            .player-card {
-                width: 42px;
-                height: 58px;
-            }
-
-            .player-number {
-                font-size: 12px;
-            }
-
-            .player-avatar {
-                font-size: 18px;
-            }
-
-            .player-name {
-                font-size: 8px;
-            }
-
-            .chronicles {
-                height: 120px;
-                font-size: 10px;
-            }
-
-            .action-panel {
-                padding: 8px;
-            }
-
-            .action-input {
-                font-size: 12px;
-                padding: 8px;
-            }
-        }
     </style>
 </head>
 <body>
@@ -1898,6 +1960,10 @@
             <span class="logo-icon">🐺</span>
             <span>AI狼人杀</span>
         </div>
+        <div class="header-phase" id="headerPhase" style="display: none;">
+            <span class="phase-icon" id="phaseIcon">🌙</span>
+            <span id="phaseText">等待开始</span>
+        </div>
         <div class="header-actions">
             <div class="speed-control">
                 <span style="font-size: 12px; color: var(--text-muted);">速度:</span>
@@ -1920,11 +1986,6 @@
 
         <div class="arena-column">
             <div class="arena">
-                <div class="phase-banner" id="phaseBanner">
-                    <span class="phase-icon" id="phaseIcon">🌙</span>
-                    <span id="phaseText">等待开始</span>
-                </div>
-
                 <div class="players-ring" id="playersRing">
                     <!-- Player cards will be generated here -->
                 </div>
@@ -1962,6 +2023,7 @@
         <div class="chronicles">
             <div class="chronicles-header">
                 📜 CHRONICLES
+            </div>
             <div class="chronicles-log" id="chroniclesLog">
                 <!-- Log entries will be added here -->
             </div>
@@ -1995,16 +2057,40 @@
                 <div class="winner-badge" id="winnerBadge">🏆</div>
                 <div class="winner-text" id="winnerText">游戏结束</div>
                 <div class="winner-camp" id="winnerCamp">-</div>
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <div class="stat-value" id="statRounds">0</div>
-                        <div class="stat-label">游戏轮次</div>
+                
+                <div class="game-over-stats" id="gameOverStats">
+                    <div class="go-stat">
+                        <span class="go-stat-icon">☀️</span>
+                        <span class="go-stat-value" id="statRounds">0</span>
+                        <span class="go-stat-label">游戏轮次</span>
                     </div>
-                    <div class="stat-item">
-                        <div class="stat-value" id="statDeaths">0</div>
-                        <div class="stat-label">死亡人数</div>
+                    <div class="go-stat">
+                        <span class="go-stat-icon">💀</span>
+                        <span class="go-stat-value" id="statDeaths">0</span>
+                        <span class="go-stat-label">死亡人数</span>
+                    </div>
+                    <div class="go-stat">
+                        <span class="go-stat-icon">☠️</span>
+                        <span class="go-stat-value" id="statWolfKills">0</span>
+                        <span class="go-stat-label">狼人击杀</span>
+                    </div>
+                    <div class="go-stat">
+                        <span class="go-stat-icon">🗳️</span>
+                        <span class="go-stat-value" id="statVotes">0</span>
+                        <span class="go-stat-label">投票出局</span>
                     </div>
                 </div>
+                
+                <div class="death-summary" id="deathSummary">
+                    <h4>💀 死亡顺序</h4>
+                    <div class="death-list-mini" id="deathSummaryList"></div>
+                </div>
+                
+                <div class="survivors-list" id="survivorsList">
+                    <h4>👥 存活玩家</h4>
+                    <div id="survivorsListContent"></div>
+                </div>
+                
                 <button class="btn btn-primary" onclick="playAgain()">再来一局</button>
             </div>
         </div>
@@ -2027,6 +2113,28 @@
                 </div>
 
                 <div class="settings-section">
+                    <h3>🔊 音效设置</h3>
+                    <div class="ai-config">
+                        <div class="config-row">
+                            <label>音效</label>
+                            <button class="btn btn-sm" onclick="toggleSound()" id="soundToggle">开启</button>
+                        </div>
+                        <div class="config-row">
+                            <label>语音</label>
+                            <button class="btn btn-sm" onclick="toggleVoice()" id="voiceToggle">开启</button>
+                        </div>
+                        <div class="config-row">
+                            <label>语速</label>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <input type="range" min="0.5" max="2" step="0.1" value="1" 
+                                    style="flex: 1;" onchange="setVoiceRate(this.value)">
+                                <span id="voiceRateValue">1.0x</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
                     <h3>📊 我的战绩</h3>
                     <div class="stats-grid" id="statsSummary">
                         <!-- Stats will be added by JS -->
@@ -2037,6 +2145,13 @@
                     <h3>🎮 角色胜率</h3>
                     <div id="roleWinrates">
                         <!-- Role winrates will be added by JS -->
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>🏆 成就</h3>
+                    <div id="achievementList">
+                        <!-- Achievements will be listed here -->
                     </div>
                 </div>
 
@@ -2261,8 +2376,8 @@
         };
 
         // Add a death record
-        function addDeathRecord(playerName, cause, day) {
-            gameState.deathRecords.push({ name: playerName, cause: cause, day: day });
+        function addDeathRecord(playerName, cause, day, lastWords = '') {
+            gameState.deathRecords.push({ name: playerName, cause: cause, day: day, lastWords: lastWords });
             renderDeathRecords();
         }
 
@@ -2284,10 +2399,17 @@
                     'wolfking': '狼王带走'
                 }[record.cause] || record.cause;
                 
+                const lastWordsHtml = record.lastWords 
+                    ? `<div class="lastwords">"${record.lastWords}"</div>` 
+                    : '';
+                
                 div.innerHTML = `
-                    <span class="order">${index + 1}</span>
-                    <span class="name">${record.name}</span>
-                    <span class="cause ${record.cause}">${causeText}</span>
+                    <div class="main-info">
+                        <span class="order">${index + 1}</span>
+                        <span class="name">${record.name}</span>
+                        <span class="cause ${record.cause}">${causeText}</span>
+                    </div>
+                    ${lastWordsHtml}
                 `;
                 container.appendChild(div);
             });
@@ -2389,18 +2511,25 @@
         }
 
         function updatePhaseDisplay() {
+            const headerPhase = document.getElementById('headerPhase');
             const phaseIcon = document.getElementById('phaseIcon');
             const phaseText = document.getElementById('phaseText');
 
-            if (gameState.phase === 'night') {
-                phaseIcon.textContent = '🌙';
-                phaseText.textContent = `第${gameState.day}夜`;
-            } else if (gameState.phase === 'day') {
-                phaseIcon.textContent = '☀️';
-                phaseText.textContent = `第${gameState.day}天`;
-            } else if (gameState.phase === 'vote') {
-                phaseIcon.textContent = '🗳️';
-                phaseText.textContent = `第${gameState.day}天-投票`;
+            if (gameState.phase === 'waiting') {
+                if (headerPhase) headerPhase.style.display = 'none';
+            } else {
+                if (headerPhase) headerPhase.style.display = 'flex';
+                
+                if (gameState.phase === 'night') {
+                    if (phaseIcon) phaseIcon.textContent = '🌙';
+                    if (phaseText) phaseText.textContent = `第${gameState.day}夜`;
+                } else if (gameState.phase === 'day') {
+                    if (phaseIcon) phaseIcon.textContent = '☀️';
+                    if (phaseText) phaseText.textContent = `第${gameState.day}天`;
+                } else if (gameState.phase === 'vote') {
+                    if (phaseIcon) phaseIcon.textContent = '🗳️';
+                    if (phaseText) phaseText.textContent = `第${gameState.day}天-投票`;
+                }
             }
 
             updateGameStats();
@@ -2415,7 +2544,7 @@
             const dayEl = document.getElementById('statDay');
             const goodEl = document.getElementById('statAliveGood');
             const wolfEl = document.getElementById('statAliveWolf');
-            const deadEl = document.getElementById('statDead');
+            const deadEl = document.getElementById('statDeaths');
 
             if (dayEl) dayEl.textContent = gameState.day;
             if (goodEl) goodEl.textContent = aliveGood;
@@ -2461,11 +2590,34 @@
 
             const icon = icons[type] || '•';
 
+            // Highlight keywords
+            let highlightedMessage = message;
+            const highlights = {
+                '狼人': '<span class="hl-wolf">狼人</span>',
+                '好人': '<span class="hl-good">好人</span>',
+                '预言家': '<span class="hl-prophet">预言家</span>',
+                '女巫': '<span class="hl-witch">女巫</span>',
+                '守卫': '<span class="hl-guard">守卫</span>',
+                '猎人': '<span class="hl-hunter">猎人</span>',
+                '查杀': '<span class="hl-check">查杀</span>',
+                '金水': '<span class="hl-gold">金水</span>',
+                '投票': '<span class="hl-vote">投票</span>',
+                '死亡': '<span class="hl-death">死亡</span>',
+                '出局': '<span class="hl-out">出局</span>'
+            };
+
+            Object.entries(highlights).forEach(([keyword, replacement]) => {
+                highlightedMessage = highlightedMessage.replace(
+                    new RegExp(keyword, 'g'),
+                    replacement
+                );
+            });
+
             entry.innerHTML = `
                 <div class="log-entry-content">
                     <span class="log-icon">${icon}</span>
                     <span class="log-time">${time}</span>
-                    <span class="log-message">${message}</span>
+                    <span class="log-message">${highlightedMessage}</span>
                 </div>
             `;
 
@@ -2534,9 +2686,9 @@
                 if (!this.enabled || !this.ctx || this.muted) return;
 
                 const sounds = {
-                    night: () => this.playTone(150, 'sine', 0.8),
-                    day: () => this.playTone(400, 'sine', 0.5),
-                    vote: () => this.playTone(300, 'triangle', 0.3),
+                    night: () => this.playNightSound(),
+                    day: () => this.playDaySound(),
+                    vote: () => this.playVoteSound(),
                     death: () => this.playDeathSound(),
                     click: () => this.playClickSound(),
                     win: () => this.playWinSound(),
@@ -2548,10 +2700,178 @@
                     guard: () => this.playGuardSound(),
                     witch: () => this.playWitchSound(),
                     hunter: () => this.playHunterSound(),
-                    button: () => this.playButtonSound()
+                    button: () => this.playButtonSound(),
+                    voteCast: () => this.playVoteCastSound(),
+                    hunterShot: () => this.playHunterShotSound(),
+                    witchPoison: () => this.playWitchPoisonSound(),
+                    lastWords: () => this.playLastWordsSound()
                 };
 
                 if (sounds[type]) sounds[type]();
+            },
+
+            playNightSound() {
+                // Night falls - mysterious wind
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                const filter = this.ctx.createBiquadFilter();
+
+                osc.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(100, this.ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(60, this.ctx.currentTime + 1.5);
+
+                filter.type = 'lowpass';
+                filter.frequency.value = 400;
+
+                gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.02, this.ctx.currentTime + 1.5);
+
+                osc.start();
+                osc.stop(this.ctx.currentTime + 1.5);
+            },
+
+            playDaySound() {
+                // Day breaks - morning bells
+                const osc1 = this.ctx.createOscillator();
+                const osc2 = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc1.connect(gain);
+                osc2.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc1.frequency.value = 523; // C5
+                osc2.frequency.value = 659; // E5
+                osc1.type = osc2.type = 'sine';
+
+                gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 1);
+
+                osc1.start();
+                osc2.start();
+                osc1.stop(this.ctx.currentTime + 1);
+                osc2.stop(this.ctx.currentTime + 1);
+            },
+
+            playVoteSound() {
+                // Voting gong
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(200, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(150, this.ctx.currentTime + 0.3);
+
+                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.5);
+
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.5);
+            },
+
+            playVoteCastSound() {
+                // Vote cast - soft thud
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(100, this.ctx.currentTime + 0.15);
+
+                gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.15);
+            },
+
+            playHunterShotSound() {
+                // Hunter shoots - gunshot
+                const osc = this.ctx.createOscillator();
+                const noise = this.ctx.createBufferSource();
+                const gain = this.ctx.createGain();
+                const filter = this.ctx.createBiquadFilter();
+
+                // Create noise buffer
+                const bufferSize = this.ctx.sampleRate * 0.2;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+                noise.buffer = buffer;
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                filter.type = 'lowpass';
+                filter.frequency.value = 1000;
+
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
+
+                noise.start();
+            },
+
+            playWitchPoisonSound() {
+                // Witch poison - bubbling
+                const osc1 = this.ctx.createOscillator();
+                const osc2 = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc1.connect(gain);
+                osc2.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc1.frequency.value = 200;
+                osc2.frequency.value = 350;
+                osc1.type = 'sine';
+                osc2.type = 'triangle';
+
+                // Modulate frequency
+                osc1.frequency.setValueAtTime(200, this.ctx.currentTime);
+                osc1.frequency.linearRampToValueAtTime(400, this.ctx.currentTime + 0.3);
+                osc1.frequency.linearRampToValueAtTime(100, this.ctx.currentTime + 0.5);
+
+                gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.12, this.ctx.currentTime + 0.25);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.5);
+
+                osc1.start();
+                osc2.start();
+                osc1.stop(this.ctx.currentTime + 0.5);
+                osc2.stop(this.ctx.currentTime + 0.5);
+            },
+
+            playLastWordsSound() {
+                // Last words - dramatic
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(500, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(200, this.ctx.currentTime + 1);
+
+                gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.08, this.ctx.currentTime + 0.5);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 1);
+
+                osc.start();
+                osc.stop(this.ctx.currentTime + 1);
             },
 
             playClickSound() {
@@ -2877,14 +3197,14 @@
 
             // Different voice configs for different roles
             voices: {
-                narrator: { rate: 0.9, pitch: 0.8 },      // 旁白 - 低沉
+                narrator: { rate: 0.85, pitch: 0.8 },      // 旁白 - 低沉
                 wolf: { rate: 1.1, pitch: 1.3 },         // 狼人 - 偏高
-                prophet: { rate: 1.0, pitch: 1.1 },      // 预言家 - 平静
-                witch: { rate: 0.95, pitch: 1.2 },        // 女巫 - 神秘
-                guard: { rate: 1.0, pitch: 0.9 },         // 守卫 - 沉稳
-                hunter: { rate: 1.2, pitch: 1.4 },       // 猎人 - 急促
+                prophet: { rate: 0.95, pitch: 1.0 },      // 预言家 - 平静
+                witch: { rate: 0.9, pitch: 1.2 },        // 女巫 - 神秘
+                guard: { rate: 0.95, pitch: 0.85 },     // 守卫 - 沉稳
+                hunter: { rate: 1.15, pitch: 1.4 },      // 猎人 - 急促
                 villager: { rate: 1.0, pitch: 1.0 },     // 村民 - 普通
-                wolfKing: { rate: 1.15, pitch: 1.35 },   // 狼王 - 偏高带威压
+                wolfKing: { rate: 1.1, pitch: 1.35 },   // 狼王 - 偏高带威压
                 default: { rate: 1.0, pitch: 1.0 }
             },
 
@@ -2893,6 +3213,8 @@
                 try {
                     const saved = localStorage.getItem('werewolf_voice_enabled');
                     if (saved === 'false') this.enabled = false;
+                    const rate = localStorage.getItem('werewolf_voice_rate');
+                    if (rate) this.speechRate = parseFloat(rate);
                 } catch (e) {}
 
                 // Wait for voices to load
@@ -2905,8 +3227,21 @@
             loadVoices() {
                 // Get available voices
                 const voices = speechSynthesis.getVoices();
-                // Chinese voices first
-                this.chineseVoice = voices.find(v => v.lang.includes('zh')) || voices[0];
+                if (!voices || voices.length === 0) {
+                    // Voices not loaded yet, try again
+                    setTimeout(() => this.loadVoices(), 100);
+                    return;
+                }
+                
+                // Find best Chinese voice
+                this.chineseVoice = voices.find(v => 
+                    v.lang.includes('zh') && (v.lang.includes('CN') || v.lang.includes('Hans'))
+                ) || voices.find(v => v.lang.includes('zh')) || voices[0];
+                
+                // Try to find a higher quality voice
+                this.premiumVoice = voices.find(v => 
+                    v.name.includes('Premium') || v.name.includes('Enhanced') || v.name.includes('Siri')
+                );
             },
 
             toggle() {
@@ -2916,6 +3251,13 @@
                     localStorage.setItem('werewolf_voice_enabled', this.enabled);
                 } catch (e) {}
                 return this.enabled;
+            },
+
+            setRate(rate) {
+                this.speechRate = rate;
+                try {
+                    localStorage.setItem('werewolf_voice_rate', rate.toString());
+                } catch (e) {}
             },
 
             stop() {
@@ -2931,6 +3273,7 @@
 
                 // Clean text for speech
                 text = this.cleanText(text);
+                if (!text) return;
 
                 const voiceConfig = this.voices[role] || this.voices.default;
                 const utterance = new SpeechSynthesisUtterance(text);
@@ -2938,8 +3281,9 @@
                 utterance.rate = voiceConfig.rate * this.speechRate;
                 utterance.pitch = voiceConfig.pitch;
                 utterance.volume = 1.0;
+                utterance.volume = 0.9;
 
-                // Try to use Chinese voice
+                // Use best available Chinese voice
                 if (this.chineseVoice) {
                     utterance.voice = this.chineseVoice;
                 }
@@ -2970,12 +3314,17 @@
             // Clean text for speech
             cleanText(text) {
                 // Remove emoji and special chars
-                return text
-                    .replace(/🐺|🐱|🔮|💀|⚔️|👑|🛡️|💊|🌙|☀️|🎯|⚡|🔥/g, '')
+                text = text
+                    .replace(/🐺|🐱|🔮|💀|⚔️|👑|🛡️|💊|🌙|☀️|🎯|⚡|🔥|⚖️|🏹|☠️/g, '')
                     .replace(/\.\.\./g, '。')
                     .replace(/\./g, '。')
                     .replace(/,/g, '，')
+                    .replace(/（/g, '(')
+                    .replace(/）/g, ')')
+                    .replace(/号/g, '号 ')
+                    .replace(/\s+/g, ' ')
                     .trim();
+                return text;
             },
 
             // Announce phase change (narrator voice)
@@ -2985,7 +3334,18 @@
 
             // Speak as a player role
             speakAs(text, role) {
-                this.speak(text, role);
+                // Map role names to voice configs
+                const roleMap = {
+                    'wolf': 'wolf',
+                    'wolf_king': 'wolfKing',
+                    'prophet': 'prophet',
+                    'witch': 'witch',
+                    'guard': 'guard',
+                    'hunter': 'hunter',
+                    'villager': 'villager'
+                };
+                const voiceKey = roleMap[role.toLowerCase()] || 'default';
+                this.speak(text, voiceKey);
             }
         };
 
@@ -3147,9 +3507,10 @@
                     startScreen.style.display = 'none';
                 }
 
+                // All AI mode - keep action panel hidden
                 const actionPanel = document.getElementById('actionPanel');
                 if (actionPanel) {
-                    actionPanel.style.display = 'flex';
+                    actionPanel.style.display = 'none';
                 }
 
                 // Reset game
@@ -3397,6 +3758,11 @@
                 selectedTarget = aliveGood[Math.floor(Math.random() * aliveGood.length)];
             }
 
+            // Create wolf vision overlay
+            const wolfVision = document.createElement('div');
+            wolfVision.className = 'wolf-team-vision';
+            document.body.appendChild(wolfVision);
+
             // Show discussion
             const wolfLeader = wolves.find(w => w.role === 'WOLF_KING') || wolves[0];
             addLog(`🐺 ${wolfLeader.name}建议刀${selectedTarget.name}`, 'night');
@@ -3418,6 +3784,11 @@
 
                 await sleep(600);
             }
+
+            // Remove wolf vision overlay
+            wolfVision.style.opacity = '0';
+            wolfVision.style.transition = 'opacity 0.5s';
+            setTimeout(() => wolfVision.remove(), 500);
 
             // Remember the target for voting
             gameState.wolfTarget = selectedTarget;
@@ -3668,55 +4039,167 @@
             return speeches.slice(-5);
         }
 
-        // AI策略系统
+        // AI策略系统 - 增强版
         const AIStrategies = {
             VILLAGER: {
-                base: ['过', '观察中', '大家分析一下', '我觉得可以再看看', '先听听别人说'],
-                suspicious: ['这人说话有点奇怪', '发言可疑', '有点不对劲', '发言值得怀疑'],
-                defensive: ['我是好人', '大家要理性分析', '不要盲目跟风', '分析再说'],
-                active: ['这局很重要', '大家认真点', '不要水', '跟着节奏走']
+                base: ['过', '观察中', '大家分析一下', '我觉得可以再看看', '先听听别人说', '这轮先过了', '我再观察一下', '大家踊跃发言', '好人在分析', '局势不明朗'],
+                suspicious: ['这人说话有点奇怪', '发言可疑', '有点不对劲', '发言值得怀疑', '这位的语气不对', '我注意到了', '他的逻辑有问题', '这里有狼'],
+                defensive: ['我是好人', '大家要理性分析', '不要盲目跟风', '分析再说', '好人不乱跳', '我有逻辑支撑', '大家仔细想想', '我站边清楚'],
+                active: ['这局很重要', '大家认真点', '不要水', '跟着节奏走', '关键时刻到了', '好人们清醒点', '狼在浑水摸鱼', '我们要赢'],
+                voting: ['跟着投票', '不要分票', '投这边', '保持队形', '好人一票']
             },
             PROPHET: {
-                base: ['过', '我有身份', '晚上看看情况', '大家一起分析', '我心里有数'],
-                earlyReport: ['报一下我的查验', '3号是查杀', '8号是金水'],
-                lateReport: ['该报信息了', '我的查验还没报', '跟着我的查验走'],
-                fake: ['我才是预言家', '不要信那个人', '那个人在焊跳']
+                base: ['过', '我有身份', '晚上看看情况', '大家一起分析', '我心里有数', '稍等', '我还没验完', '等时机成熟', '保持冷静'],
+                earlyReport: ['报一下我的查验', '3号是查杀', '8号是金水', '我的验人是金水', '有人是狼', '查杀报出来了', '跟着我的查验走', '这个是查杀'],
+                lateReport: ['该报信息了', '我的查验还没报', '跟着我的查验走', '信息要报了', '大家注意听', '这是我的查验结果', '好人跟我走'],
+                fake: ['我才是预言家', '不要信那个人', '那个人在焊跳', '真假预言家对跳', '我是真的', '对方才是狼', '大家看清楚'],
+                voting: ['投我的查杀', '跟我投', '不要投错', '查杀必须出', '跟着预言家走']
             },
             WITCH: {
-                base: ['过', '我会用我的能力', '大家放心', '看着形式来', '关键时刻我会用'],
-                saved: ['昨晚救了人', '有我在，别怕', '平安夜'],
-                usedPotion: ['药已经用了', '救人是关键', '药用了但值得'],
-                poison: ['我毒了人', '毒了那个焊跳的', '药没白用']
+                base: ['过', '我会用我的能力', '大家放心', '看着形式来', '关键时刻我会用', '我有我的判断', '药还有', '毒也有', '不用急'],
+                saved: ['昨晚救了人', '有我在，别怕', '平安夜', '我救了人', '解药用了', '人是我救的', '平安夜来了', '别刀我的人'],
+                usedPotion: ['药已经用了', '救人是关键', '药用了但值得', '解药没了', '药已经用了但值得', '救了关键人物', '好人在就是好'],
+                poison: ['我毒了人', '我毒了那个焊跳的', '药没白用', '毒了一人', '狼被毒了', '毒到位了', '这一毒很关键'],
+                voting: ['投那边', '跟着投', '不要投错', '这轮很关键', '保持好人流']
             },
             GUARD: {
-                base: ['过', '我会守人的', '大家正常发言', '晚上交给我', '放心守'],
-                protecting: ['守了人', '今晚很关键', '守了重要位置'],
-                sameTarget: ['连续守同一个人', '守了昨晚那个人', '继续守']
+                base: ['过', '我会守人的', '大家正常发言', '晚上交给我', '放心守', '守好了', '别急', '我心里有数', '守卫在'],
+                protecting: ['守了人', '今晚很关键', '守了重要位置', '守了该守的人', '守得很准', '重要位置守住了', '这边安全'],
+                sameTarget: ['连续守同一个人', '守了昨晚那个人', '继续守', '守到底', '这个人要守', '连续守很关键', '我再守一次'],
+                voting: ['投票', '跟着投', '这轮很明显', '不要犹豫', '好人一票']
             },
             HUNTER: {
-                base: ['过', '我是猎人', '到时候再说', '跟着大家走', '不要乱来'],
-                claim: ['我是猎人', '不要投我', '猎人在'],
-                threatened: ['别惹我', '我可以带人的', '带我划不来']
+                base: ['过', '我是猎人', '到时候再说', '跟着大家走', '不要乱来', '我有枪', '别惹我', '等一下', '时机未到'],
+                claim: ['我是猎人', '不要投我', '猎人在', '我是枪', '带我划不来', '枪在好人这边', '猎人会开枪'],
+                threatened: ['别惹我', '我可以带人的', '带我划不来', '狼不要跳了', '我会开枪的', '枪在盯着'],
+                voting: ['投这边', '跟我投', '这一票很关键', '不要分票', '跟着投']
             },
             WOLF: {
-                base: ['过', '我是好人', '大家一起分析', '先看看再说', '观察一下'],
-                fakeProphet: ['我是预言家', '验了X号是好人', '跟着我走'],
-                defend: ['保一下这位', '这位是好人', '那人像狼'],
-                attack: ['这个人有问题', '建议投这位', '我观察到...', '发言暴露了']
+                base: ['过', '我是好人', '大家一起分析', '先看看再说', '观察一下', '这轮先过了', '我也在分析', '好人们加油', '局势复杂'],
+                fakeProphet: ['我是预言家', '验了X号是好人', '跟着我走', '这边是金水', '我是真预言家', '对方焊跳', '跟我投', '我的查验很准'],
+                defend: ['保一下这位', '这位是好人', '那人像狼', '这边要保', '这位发言不错', '我看好这位', '好人要保'],
+                attack: ['这个人有问题', '建议投这位', '我观察到...', '发言暴露了', '这位的逻辑不对', '可疑', '这里有狼面', '我投这边'],
+                voting: ['投这边', '跟着投', '不要分票', '狼队形', '冲']
             },
             WOLF_KING: {
-                base: ['过', '我是好人', '大家一起投', '过', '分析一波'],
-                leader: ['听我分析', '跟着我投', '这局很重要', '节奏要带起来'],
-                fakeProphet: ['我是预言家', '10号是查杀', '信我的'],
-                attack: ['这个人有问题', '建议投这位', '我观察到...', '发言暴露了']
+                base: ['过', '我是好人', '大家一起投', '过', '分析一波', '节奏要带起来', '听我说', '我很关键', '这局很重要'],
+                leader: ['听我分析', '跟着我投', '这局很重要', '节奏要带起来', '我带队', '狼队跟我走', '好人听指挥', '这轮冲'],
+                fakeProphet: ['我是预言家', '10号是查杀', '信我的', '这边是查杀', '跟我走', '查杀很明显', '不要犹豫'],
+                attack: ['这个人有问题', '建议投这位', '我观察到...', '发言暴露了', '这边是狼', '冲', '不要犹豫了', '出这个'],
+                voting: ['冲', '投这边', '狼队跟我走', '不要怂', '一起投']
             }
         };
 
-        // Simple achievements stub
+        // ============ ACHIEVEMENTS SYSTEM ============
         const Achievements = {
-            getProgress: () => ({ unlocked: 0, total: 16 }),
-            reset: () => {}
+            list: [
+                // 游戏参与
+                { id: 'first_game', name: '初来乍到', desc: '完成第一局游戏', icon: '🎮', unlocked: false },
+                { id: 'survive_night', name: '活过第一夜', desc: '在游戏中活过第一夜', icon: '🌙', unlocked: false },
+                { id: 'survive_3days', name: '苟活三天', desc: '存活达到3天', icon: '⏳', unlocked: false },
+                
+                // 胜利成就
+                { id: 'good_win', name: '好人胜利', desc: '好人阵营获得胜利', icon: '🏆', unlocked: false },
+                { id: 'wolf_win', name: '狼人胜利', desc: '狼人阵营获得胜利', icon: '🐺', unlocked: false },
+                { id: 'first_win', name: '首胜', desc: '获得第一次胜利', icon: '⭐', unlocked: false },
+                
+                // 角色成就
+                { id: 'prophet_check', name: '预言查验', desc: '使用预言家查验功能', icon: '🔮', unlocked: false },
+                { id: 'witch_save', name: '生死人肉白骨', desc: '女巫使用解药救人', icon: '💊', unlocked: false },
+                { id: 'witch_poison', name: '毒家本领', desc: '女巫使用毒药击杀狼人', icon: '☠️', unlocked: false },
+                { id: 'guard_protect', name: '铜墙铁壁', desc: '守卫连续3晚守护成功', icon: '🛡️', unlocked: false },
+                { id: 'hunter_shoot', name: '枪打出头鸟', desc: '猎人开枪带走狼人', icon: '🏹', unlocked: false },
+                
+                // 特殊成就
+                { id: 'peaceful_night', name: '平安夜', desc: '夜晚无人死亡', icon: '😌', unlocked: false },
+                { id: 'wolf_king_kill', name: '狼王风范', desc: '狼王带走猎人', icon: '👑', unlocked: false },
+                { id: 'double_kill', name: '双杀', desc: '一晚击杀两名玩家', icon: '⚔️', unlocked: false },
+                
+                // 游戏次数
+                { id: 'play_5', name: '常客', desc: '完成5局游戏', icon: '🎯', unlocked: false },
+                { id: 'play_10', name: '老手', desc: '完成10局游戏', icon: '🎰', unlocked: false },
+                { id: 'play_20', name: '专家', desc: '完成20局游戏', icon: '🎲', unlocked: false },
+                
+                // 连胜
+                { id: 'win_streak_3', name: '三连胜', desc: '获得3连胜', icon: '🔥', unlocked: false },
+                { id: 'win_streak_5', name: '五连胜', desc: '获得5连胜', icon: '💥', unlocked: false }
+            ],
+            
+            init() {
+                try {
+                    const saved = localStorage.getItem('werewolf_achievements');
+                    if (saved) {
+                        const savedIds = JSON.parse(saved);
+                        this.list.forEach(a => {
+                            a.unlocked = savedIds.includes(a.id);
+                        });
+                    }
+                } catch (e) {}
+            },
+            
+            unlock(id) {
+                const achievement = this.list.find(a => a.id === id);
+                if (achievement && !achievement.unlocked) {
+                    achievement.unlocked = true;
+                    this.save();
+                    this.showNotification(achievement);
+                }
+            },
+            
+            save() {
+                try {
+                    const unlockedIds = this.list.filter(a => a.unlocked).map(a => a.id);
+                    localStorage.setItem('werewolf_achievements', JSON.stringify(unlockedIds));
+                } catch (e) {}
+            },
+            
+            showNotification(achievement) {
+                // Show achievement notification
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: linear-gradient(135deg, rgba(45, 27, 78, 0.98), rgba(20, 10, 40, 0.98));
+                    padding: 16px 24px;
+                    border-radius: 12px;
+                    border: 2px solid #ffd700;
+                    box-shadow: 0 0 30px rgba(255, 215, 0, 0.4);
+                    z-index: 3000;
+                    animation: achievementSlideIn 0.5s ease, achievementSlideOut 0.5s ease 3s forwards;
+                `;
+                notification.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="font-size: 32px;">${achievement.icon}</span>
+                        <div>
+                            <div style="color: #ffd700; font-weight: bold; font-size: 14px;">成就解锁!</div>
+                            <div style="color: #fff; font-size: 13px;">${achievement.name}</div>
+                            <div style="color: rgba(255,255,255,0.6); font-size: 11px;">${achievement.desc}</div>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(notification);
+                
+                // Play sound
+                SoundSystem.play('action');
+                
+                // Remove after animation
+                setTimeout(() => notification.remove(), 3500);
+            },
+            
+            getProgress() {
+                const unlocked = this.list.filter(a => a.unlocked).length;
+                return { unlocked, total: this.list.length };
+            },
+            
+            reset() {
+                this.list.forEach(a => a.unlocked = false);
+                this.save();
+            }
         };
+
+        // Init achievements
+        Achievements.init();
 
         // AI状态追踪
         let aiState = {
@@ -3758,8 +4241,14 @@
             if (!strategy) return '过';
 
             const day = gameState.day || 1;
+            const phase = gameState.phase || 'day';
             let speechPool = [...strategy.base];
             const reports = aiState.prophetReports[player.id];
+            
+            // 根据阶段选择发言风格
+            if (phase === 'vote' && strategy.voting) {
+                speechPool = [...strategy.voting];
+            }
 
             // 预言家：根据查验结果决定是否报信息
             if (role === 'PROPHET') {
@@ -3802,6 +4291,11 @@
             // 第三天以后更活跃
             if (day >= 3 && Math.random() < 0.4 && strategy.active) {
                 speechPool.push(...strategy.active);
+            }
+
+            // 第二天发言更认真
+            if (day === 2 && Math.random() < 0.4) {
+                speechPool.push('进入关键阶段了', '好人们开始分析', '局势逐渐明朗', '认真发言');
             }
 
             // 随机选择
@@ -4066,7 +4560,7 @@
                 SoundSystem.play('death');
                 mostVoted.isAlive = false;
                 showDeathAnimation(mostVoted.id);
-                addDeathRecord(mostVoted.name, 'vote', gameState.day);
+                addDeathRecord(mostVoted.name, 'vote', gameState.day, lastWords || '');
 
                 // Hunter ability when voted
                 if (mostVoted.role === 'HUNTER') {
@@ -4137,11 +4631,11 @@
                     WOLF_KING: ['跟我焊跳', '领导好人', '我是金刚狼', '带对节奏', '狼队加油']
                 };
 
-                const phrases = lastWordsPhrases[player.role] || ['过'];
+                const phrases = lastWordsPhrases[player.role] || ['永别了'];
                 const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
 
                 modal.innerHTML = `
-                    <div class="modal" style="max-width: 400px; text-align: center;">
+                    <div class="modal death-popup" style="max-width: 800px; text-align: center;">
                         <div style="font-size: 80px; margin-bottom: 16px;">${player.icon}</div>
                         <div style="font-family: 'Orbitron', sans-serif; font-size: 24px; margin-bottom: 8px;">
                             ${player.name}
@@ -4207,6 +4701,10 @@
         function endGame(winner) {
             gameState.phase = 'end';
 
+            // Hide header phase
+            const headerPhase = document.getElementById('headerPhase');
+            if (headerPhase) headerPhase.style.display = 'none';
+
             const modal = document.getElementById('gameOverModal');
             const badge = document.getElementById('winnerBadge');
             const text = document.getElementById('winnerText');
@@ -4228,8 +4726,42 @@
                 showPhaseAnnouncement('🐺 狼人胜利', '#e74c3c');
             }
 
+            // Update stats
+            const deadPlayers = gameState.players.filter(p => !p.isAlive);
+            const wolfKills = gameState.deathRecords.filter(r => r.cause === 'killed').length;
+            const voteOut = gameState.deathRecords.filter(r => r.cause === 'vote').length;
+
             document.getElementById('statRounds').textContent = gameState.day;
-            document.getElementById('statDeaths').textContent = gameState.players.filter(p => !p.isAlive).length;
+            document.getElementById('statDeaths').textContent = deadPlayers.length;
+            document.getElementById('statWolfKills').textContent = wolfKills;
+            document.getElementById('statVotes').textContent = voteOut;
+
+            // Populate death summary
+            const deathSummaryList = document.getElementById('deathSummaryList');
+            if (deathSummaryList) {
+                deathSummaryList.innerHTML = '';
+                gameState.deathRecords.forEach((record, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'death-item-mini';
+                    const causeText = record.cause === 'vote' ? '投票' : record.cause === 'killed' ? '狼刀' : record.cause === 'hunter' ? '猎杀' : record.cause === 'wolfking' ? '狼王' : record.cause;
+                    const lastWordsText = record.lastWords ? ` "${record.lastWords}"` : '';
+                    div.innerHTML = `${index + 1}. ${record.name} <span class="cause">${causeText}</span>${lastWordsText}`;
+                    deathSummaryList.appendChild(div);
+                });
+            }
+
+            // Populate survivors
+            const survivors = gameState.players.filter(p => p.isAlive);
+            const survivorsContent = document.getElementById('survivorsListContent');
+            if (survivorsContent) {
+                survivorsContent.innerHTML = '';
+                survivors.forEach(player => {
+                    const span = document.createElement('span');
+                    span.className = 'survivor-badge';
+                    span.innerHTML = `${player.icon} ${player.name}`;
+                    survivorsContent.appendChild(span);
+                });
+            }
 
             // Record to leaderboard
             const human = gameState.players[gameState.humanPlayerId];
@@ -4376,17 +4908,15 @@
             }, duration);
         }
 
-        // Draw voting line animation
+        // Draw voting line animation - enhanced
         function drawVoteLine(fromCard, toPlayerId) {
             const toCard = document.getElementById(`player-${toPlayerId}`);
             if (!toCard) return;
 
             const fromRect = fromCard.getBoundingClientRect();
             const toRect = toCard.getBoundingClientRect();
-            const ring = document.getElementById('playersRing');
-            const ringRect = ring.getBoundingClientRect();
 
-            // Create SVG line
+            // Create SVG line with glow effect
             const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
             svg.style.cssText = `
                 position: fixed;
@@ -4396,44 +4926,89 @@
                 z-index: 1000;
             `;
 
-            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            // Glow filter
+            const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            const filter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
+            filter.setAttribute('id', 'glow');
+            filter.innerHTML = `
+                <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+            `;
+            defs.appendChild(filter);
+            svg.appendChild(defs);
+
+            // Create line
             const x1 = fromRect.left + fromRect.width / 2;
             const y1 = fromRect.top + fromRect.height / 2;
             const x2 = toRect.left + toRect.width / 2;
             const y2 = toRect.top + toRect.height / 2;
 
-            line.setAttribute('x1', x1);
-            line.setAttribute('y1', y1);
-            line.setAttribute('x2', x1);
-            line.setAttribute('y2', y1);
-            line.setAttribute('stroke', '#ffcc00');
-            line.setAttribute('stroke-width', '3');
-            line.setAttribute('stroke-linecap', 'round');
-            line.style.transition = 'all 0.4s ease-out';
+            // Draw dotted trail
+            const dashLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            dashLine.setAttribute('x1', x1);
+            dashLine.setAttribute('y1', y1);
+            dashLine.setAttribute('x2', x1);
+            dashLine.setAttribute('y2', y1);
+            dashLine.setAttribute('stroke', '#ff6b6b');
+            dashLine.setAttribute('stroke-width', '4');
+            dashLine.setAttribute('stroke-dasharray', '8,4');
+            dashLine.setAttribute('stroke-linecap', 'round');
+            dashLine.setAttribute('filter', 'url(#glow)');
+            dashLine.style.transition = 'all 0.5s ease-out';
 
-            svg.appendChild(line);
+            svg.appendChild(dashLine);
             document.body.appendChild(svg);
 
-            // Animate line
+            // Animate line to target
             requestAnimationFrame(() => {
-                line.setAttribute('x2', x2);
-                line.setAttribute('y2', y2);
+                dashLine.setAttribute('x2', x2);
+                dashLine.setAttribute('y2', y2);
             });
 
-            // Add arrow head
+            // Add vote icon at target
             setTimeout(() => {
-                const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-                arrow.setAttribute('points', `${x2},${y2} ${x2-10},${y2-6} ${x2-10},${y2+6}`);
-                arrow.setAttribute('fill', '#ffcc00');
-                svg.appendChild(arrow);
-            }, 400);
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', x2);
+                circle.setAttribute('cy', y2);
+                circle.setAttribute('r', '15');
+                circle.setAttribute('fill', '#ff6b6b');
+                circle.setAttribute('opacity', '0');
+                circle.style.transition = 'opacity 0.3s';
+                svg.appendChild(circle);
+                
+                requestAnimationFrame(() => {
+                    circle.setAttribute('opacity', '1');
+                });
+            }, 500);
 
-            // Remove after delay
+            // Add "VOTE" text
+            setTimeout(() => {
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', x2);
+                text.setAttribute('y', y2 + 5);
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('fill', '#fff');
+                text.setAttribute('font-size', '12');
+                text.setAttribute('font-weight', 'bold');
+                text.setAttribute('opacity', '0');
+                text.textContent = 'VOTE';
+                text.style.transition = 'opacity 0.3s';
+                svg.appendChild(text);
+                
+                requestAnimationFrame(() => {
+                    text.setAttribute('opacity', '1');
+                });
+            }, 600);
+
+            // Remove after delay with fade
             setTimeout(() => {
                 svg.style.opacity = '0';
-                svg.style.transition = 'opacity 0.3s';
-                setTimeout(() => svg.remove(), 300);
-            }, 800);
+                svg.style.transition = 'opacity 0.5s';
+                setTimeout(() => svg.remove(), 500);
+            }, 1200);
         }
 
         // Draw death effect on player card
@@ -4450,7 +5025,7 @@
             }, 500);
         }
 
-        // Show death animation with effect
+        // Show death animation with dramatic effect
         function showDeathAnimation(playerId, callback) {
             const card = document.getElementById(`player-${playerId}`);
             if (!card) {
@@ -4458,16 +5033,59 @@
                 return;
             }
 
-            // Flash red
-            card.style.boxShadow = '0 0 50px rgba(255, 0, 0, 0.8)';
-            card.style.transform = 'scale(1.1)';
+            // Create death effect overlay
+            const overlay = document.createElement('div');
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0; left: 0;
+                width: 100%; height: 100%;
+                background: radial-gradient(circle, rgba(255,0,0,0.3) 0%, transparent 70%);
+                pointer-events: none;
+                z-index: 999;
+                opacity: 0;
+                transition: opacity 0.2s;
+            `;
+            document.body.appendChild(overlay);
 
+            // Flash screen
+            requestAnimationFrame(() => {
+                overlay.style.opacity = '1';
+            });
+
+            // Flash red on card
+            card.style.boxShadow = '0 0 60px rgba(255, 0, 0, 0.9), inset 0 0 30px rgba(255,0,0,0.5)';
+            card.style.transform = 'scale(1.15)';
+            card.style.transition = 'all 0.15s ease-out';
+
+            // Shake effect
+            let shakeCount = 0;
+            const shakeInterval = setInterval(() => {
+                if (shakeCount >= 6) {
+                    clearInterval(shakeInterval);
+                    card.style.transform = 'scale(1)';
+                    return;
+                }
+                card.style.transform = `translate(${shakeCount % 2 === 0 ? '5px' : '-5px'}, 0) scale(1.1)`;
+                shakeCount++;
+            }, 50);
+
+            // Fade overlay
+            setTimeout(() => {
+                overlay.style.opacity = '0';
+            }, 200);
+
+            // Remove overlay
+            setTimeout(() => {
+                overlay.remove();
+            }, 500);
+
+            // Set dead state
             setTimeout(() => {
                 card.style.boxShadow = '';
                 card.style.transform = '';
                 card.classList.add('dead');
                 if (callback) callback();
-            }, 500);
+            }, 400);
         }
 
         // Pause game
@@ -4601,6 +5219,37 @@
 
             // Load replays
             renderReplayList();
+            renderAchievementsList();
+        }
+
+        function toggleSound() {
+            const enabled = SoundSystem.toggle();
+            const btn = document.getElementById('soundToggle');
+            if (btn) btn.textContent = enabled ? '开启' : '关闭';
+        }
+
+        function toggleVoice() {
+            const enabled = VoiceSystem.toggle();
+            const btn = document.getElementById('voiceToggle');
+            if (btn) btn.textContent = enabled ? '开启' : '关闭';
+        }
+
+        function setVoiceRate(rate) {
+            VoiceSystem.setRate(rate);
+            const display = document.getElementById('voiceRateValue');
+            if (display) display.textContent = rate + 'x';
+        }
+
+        function renderAchievementsList() {
+            const container = document.getElementById('achievementList');
+            if (!container) return;
+
+            const progress = Achievements.getProgress();
+            let html = `<div style="margin-bottom: 12px; color: var(--text-muted); font-size: 13px;">进度: ${progress.unlocked}/${progress.total}</div>`;
+            
+            container.innerHTML = html + progress.unlocked >= progress.total / 2 
+                ? '<div style="color: #ffd700; font-size: 13px;">🏆 太厉害了！继续加油！</div>'
+                : '<div style="color: var(--text-muted); font-size: 13px;">继续游戏解锁更多成就</div>';
         }
 
         function closeSettings() {
