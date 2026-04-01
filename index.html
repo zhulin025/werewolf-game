@@ -4559,10 +4559,12 @@
                     return alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
 
                 case 'vote':
-                    // 更智能的投票
+                    // 不能投自己
+                    const otherPlayers = alivePlayers.filter(p => p.id !== player.id);
+
                     // 1. 优先投已确认的狼人
-                    const knownWolves = gameState.players.filter(p =>
-                        aiMemory.confirmed[p.id] === 'wolf' && p.isAlive
+                    const knownWolves = otherPlayers.filter(p =>
+                        aiMemory.confirmed[p.id] === 'wolf'
                     );
                     if (knownWolves.length > 0) {
                         return knownWolves[0];
@@ -4572,7 +4574,7 @@
                     if (player.role === 'PROPHET') {
                         const reports = aiState.prophetReports[player.id];
                         if (reports && reports.result === 'wolf') {
-                            const wolfTarget = alivePlayers.find(p => p.id === reports.target.id);
+                            const wolfTarget = otherPlayers.find(p => p.id === reports.target.id);
                             if (wolfTarget) return wolfTarget;
                         }
                     }
@@ -4587,16 +4589,14 @@
                         return suspectedPlayers[0];
                     }
 
-                    // 4. 好人阵营优先投疑似狼人的（基于发言分析）
+                    // 4. 好人阵营优先投疑似狼人的
                     if (player.camp === 'good') {
-                        // 随机但倾向于投发言可疑的人
-                        const randomIndex = Math.floor(Math.random() * alivePlayers.length);
-                        return alivePlayers[randomIndex];
+                        return otherPlayers[Math.floor(Math.random() * otherPlayers.length)];
                     }
 
                     // 5. 狼人阵营优先刀神职或乱民
                     if (player.camp === 'wolf') {
-                        const gods = alivePlayers.filter(p =>
+                        const gods = otherPlayers.filter(p =>
                             ['PROPHET', 'WITCH', 'GUARD', 'HUNTER'].includes(p.role)
                         );
                         if (gods.length > 0) {
@@ -4605,7 +4605,7 @@
                     }
 
                     // 6. 随机投票
-                    return alivePlayers.filter(p => p.id !== player.id)[Math.floor(Math.random() * (alivePlayers.length - 1))];
+                    return otherPlayers[Math.floor(Math.random() * otherPlayers.length)];
 
                 default:
                     return alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
