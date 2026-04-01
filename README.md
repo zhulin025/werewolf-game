@@ -1,172 +1,293 @@
-# 🐺 AI狼人杀 - 多Agent对战平台
+# 🐺 AI狼人杀 - 多Agent实时对战平台
 
-> 基于大语言模型的多Agent狼人杀游戏，支持Agent接入、人类加入
+> 基于WebSocket的多Agent狼人杀游戏。支持本地模拟、真实Agent接入对战、Web观战。
 
-## 🎮 版本
+**最新版本**: v2.0 — 多Agent实时对战服务器
 
-**当前版本：v35** 🆕
+---
 
-## ✨ 功能特性
+## 🚀 核心功能
 
-### 游戏核心
-- ✅ 3种游戏模式（6/9/12人局）
-- ✅ 完整夜晚/白天流程
-- ✅ 胜负判定
-- ✅ 死亡记录面板
+### 游戏模式
+- **本地模拟**: 开箱即用，6/9/12人局纯AI对战
+- **在线对战**: Agent通过WebSocket接入，实时对战
+- **观战模式**: Web前端作为观战者，实时看游戏进行
 
-### AI系统
-- ✅ 智能本地AI（无需API）
-- ✅ 狼人团队配合
-- ✅ AI焊跳预言家
-- ✅ 预言家查验报信息
-- ✅ 增强版AI发言策略（100+种发言选项）
+### 游戏规则（标准狼人杀）
+- ✅ 3种游戏模式（简易6人/进阶9人/标准12人）
+- ✅ **夜晚流程**: 狼人 → 女巫 → 预言家 → 守卫 → 猎人（确定性结算）
+- ✅ **白天流程**: 发言 → 投票 → 死亡判定
+- ✅ **屠边胜利**: 狼人赢=杀光神职或平民；好人赢=杀光狼人
+- ✅ 猎人开枪、狼王射击、女巫双药互斥、守卫连续守护限制
+
+### Agent系统
+- 🤖 内置智能Bot决策
+- 🔌 WebSocket Agent接入协议（含Node.js + Python示例）
+- 📊 信息隔离：每个Agent只收到自己该知道的信息
+- ⏱ 自动超时处理：Agent未响应自动Bot决策
+- 🎯 支持部分Agent + 部分Bot混合对战
 
 ### UI/UX
-- ✅ 6种主题皮肤
-- ✅ 粒子特效+动画
-- ✅ 投票连线动画
-- ✅ 死亡动画（屏幕闪红+卡片震动）
-- ✅ 移动端适配优化
-
-### 语音系统
-- ✅ Web Speech TTS语音播报
-- ✅ 每个角色不同音色
-- ✅ 夜间行动语音提示
-- ✅ 发言语音自动播放
+- ✅ 深紫星空主题 + 6种皮肤
+- ✅ 圆形玩家卡片环形布局
+- ✅ 夜间/白天/投票动画
+- ✅ 死亡旋转动画 + 音效
+- ✅ 速度控制（0.5x - 5x）
+- ✅ 大厅UI：房间列表、一键观战
 
 ### 数据系统
-- ✅ 战绩统计+排行榜
-- ✅ 游戏回放
-- ✅ 19个成就（可解锁）
-- ✅ 关键词高亮日志
+- ✅ 战绩统计（总场次/胜率/角色胜率）
+- ✅ 游戏录像回放
+- ✅ 19个可解锁成就
+- ✅ 本地存储持久化
 
-## 快速开始
+---
 
-### 方式1: 直接打开（单机模式）
+## 🎮 快速开始
 
-直接用浏览器打开 `index.html` 即可体验游戏。
+### 1️⃣ 本地模拟（单机版）
+
+直接用浏览器打开 `index.html`，即可体验纯AI自动化对战：
 
 ```bash
-open werewolf-game/index.html
+open index.html
 ```
 
-### 方式2: 启动服务器（多Agent模式）
+### 2️⃣ 多Agent实时对战（服务器模式）
+
+#### 启动服务器
 
 ```bash
-cd werewolf-game
 npm install
 npm start
 # 访问 http://localhost:3000
 ```
 
-## ✨ 功能特性（续）
+#### 创建房间并观战
 
-### 游戏核心
-- ✅ 12人标准局（村民、预言家、女巫、守卫、猎人、狼人、狼王）
-- ✅ 完整夜晚流程（守卫→狼人→女巫→预言家）
-- ✅ 白天发言→投票→死亡判定
-- ✅ 胜负判定
+1. 点击"🌐 在线Agent对战"
+2. 点击"+ 创建房间"或"👁 观战"现有房间
+3. 自动填充Bot，游戏自动开始或倒计时
 
-### AI系统
-- ✅ 智能本地AI（无需API，生成合理发言）
-- ✅ 支持SiliconFlow/OpenAI/DeepSeek API配置
-- ✅ AI对话历史记忆
-- ✅ 智能夜晚决策
+#### Agent接入（Python示例）
 
-### UI/UX
-- ✅ 深紫星空主题 + 6种皮肤切换
-- ✅ 圆形玩家卡片布局
-- ✅ 夜间/白天动画
-- ✅ 死亡旋转动画
-- ✅ 音效系统（可开关）
-- ✅ 键盘快捷键（1-9选人、M静音）
-- ✅ 速度控制（0.5x-5x）
+```python
+import json, asyncio, random
+import websockets
 
-### 数据系统
-- ✅ 战绩统计（总场次/胜率/角色胜率）
-- ✅ 游戏录像回放
-- ✅ 16个成就解锁
-- ✅ 本地存储持久化
+async def play():
+    uri = "ws://localhost:3000?room_id=test&agent_id=my-agent&name=Claude&type=agent"
+    async with websockets.connect(uri) as ws:
+        # 立即开始游戏（自动填充Bot）
+        await ws.send(json.dumps({"type": "force_start"}))
 
-### 服务器
-- ✅ Node.js + WebSocket服务器
-- ✅ Agent接入协议文档
-- ✅ 支持外部Agent加入对战
+        async for message in ws:
+            msg = json.loads(message)
 
-## 🎨 主题皮肤
+            if msg["type"] == "role_assigned":
+                print(f"我的角色: {msg['payload']['your_role_name']}")
 
-| 皮肤 | 描述 |
-|------|------|
-| 深紫星空 | 默认主题 |
-| 暗夜黑 | 暗黑风格 |
-| 赛博朋克 | 霓虹风格 |
-| 暗夜森林 | 森林主题 |
-| 血红之夜 | 血腥风格 |
-| 冰霜之冬 | 冰雪主题 |
+            elif msg["type"] == "action_request":
+                p = msg["payload"]
+                resp = {"request_id": p["request_id"]}
+                # 发言
+                if p["action_type"] == "speak":
+                    resp["content"] = "我觉得3号很可疑"
+                # 投票/夜间行动
+                else:
+                    targets = p.get("valid_targets", [])
+                    resp["target_id"] = random.choice(targets) if targets else None
 
-## 📖 快捷键
+                await ws.send(json.dumps({
+                    "type": "action_response",
+                    "payload": resp
+                }))
 
-| 快捷键 | 功能 |
-|--------|------|
-| 1-9 | 选择玩家 |
-| M | 切换音效 |
-| Enter | 发送发言 |
-| 0.5x/1x/2x/5x | 调整游戏速度 |
-| 点击⚙️ | 打开设置面板 |
+            elif msg["type"] == "game_end":
+                print(f"游戏结束: {msg['payload']['message']}")
+                break
 
-## 🤖 AI配置
+asyncio.run(play())
+```
 
-游戏中内置智能本地AI，无需配置即可使用。如需使用更强的AI：
+完整示例见 [AGENT_PROTOCOL.md](docs/AGENT_PROTOCOL.md)
 
-1. 点击设置（⚙️）
-2. 选择AI模式（SiliconFlow/OpenAI/DeepSeek）
-3. 输入API Key
-4. 保存配置
+---
 
-## Agent接入
+## 📡 HTTP API
 
-详见 [AGENT_PROTOCOL.md](docs/AGENT_PROTOCOL.md)
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/rooms` | 创建房间 |
+| GET | `/api/rooms` | 列出房间 |
+| GET | `/api/rooms/:id` | 房间详情 |
+| POST | `/api/rooms/:id/start` | 强制开始 |
+| DELETE | `/api/rooms/:id` | 销毁房间 |
+| GET | `/api/health` | 健康检查 |
 
-## 🏆 成就系统
+### 创建房间示例
 
-| 成就 | 描述 |
-|------|------|
-| 初次见面 | 完成第一场游戏 |
-| 常客 | 完成10场游戏 |
-| 老手 | 完成50场游戏 |
-| 首胜 | 获得第一场胜利 |
-| 三连胜 | 连续获得3场胜利 |
-| 五连胜 | 连续获得5场胜利 |
-| 胜率达人 | 总胜率达到60% |
-| 猎狼者 | 投出4只狼人 |
-| 幸存者 | 村民存活到最后 |
-| 预言之王 | 预言家查验准确率>80% |
+```bash
+curl -X POST http://localhost:3000/api/rooms \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "AI对战房",
+    "mode": "standard",
+    "auto_fill_bots": true
+  }'
+```
 
-## 项目结构
+---
+
+## 📖 WebSocket连接
+
+### Agent接入
+
+```
+ws://localhost:3000?room_id=<room_id>&agent_id=<your_id>&name=<display_name>&type=agent
+```
+
+### 观战
+
+```
+ws://localhost:3000?room_id=<room_id>&type=spectator
+```
+
+**主要消息流**:
+1. 连接 → 收到 `welcome`
+2. 游戏开始 → 收到 `role_assigned`（仅Agent）
+3. 每个行动 → 收到 `action_request`
+4. 回复行动 → 发送 `action_response`（含request_id）
+5. 游戏中 → 收到 `phase_change`、`public_event`、`deaths`
+6. 结束 → 收到 `game_end`
+
+详见 [AGENT_PROTOCOL.md](docs/AGENT_PROTOCOL.md) 完整协议
+
+---
+
+## 🎨 游戏模式
+
+| 模式 | 人数 | 配置 |
+|------|------|------|
+| 简易 | 6人 | 2村民 + 预言家 + 女巫 + 2狼人 |
+| 进阶 | 9人 | 3村民 + 预言家 + 女巫 + 守卫 + 2狼人 + 狼王 |
+| 标准 | 12人 | 4村民 + 预言家 + 女巫 + 守卫 + 猎人 + 3狼人 + 狼王 |
+
+---
+
+## 🏗 项目结构
 
 ```
 werewolf-game/
-├── README.md              # 项目说明
-├── GDD.md                # 游戏设计文档
-├── index.html            # 游戏主页面（单机版）
-├── package.json          # Node.js依赖
-├── server/
-│   └── index.js         # 多Agent服务器
-├── js/
-│   ├── llm-adapter.js   # LLM集成模块
-│   ├── replay.js        # 回放系统
-│   ├── skins.js         # 皮肤系统
-│   └── achievements.js  # 成就系统
+├── README.md                    # 项目说明（本文件）
+├── GDD.md                       # 游戏设计文档
+├── index.html                   # 游戏前端（单机+在线混合）
+├── package.json                 # Node.js依赖
+│
+├── server/                      # 多Agent服务器
+│   ├── index.js                # HTTP API + WebSocket入口
+│   └── game/
+│       ├── Game.js             # 核心游戏引擎（~1060行）
+│       ├── Room.js             # 房间/大厅管理
+│       └── GameModes.js        # 角色配置 + 模式定义
+│
+├── js/                         # 前端模块
+│   ├── llm-adapter.js          # LLM集成
+│   ├── achievements.js         # 成就系统
+│   ├── leaderboard.js          # 战绩/排行榜
+│   ├── replay.js               # 游戏回放
+│   ├── skins.js                # 主题皮肤
+│   └── tutorial.js             # 教程
+│
 └── docs/
-    └── AGENT_PROTOCOL.md # Agent接入协议
+    └── AGENT_PROTOCOL.md       # Agent接入协议（v2.0）
 ```
 
-## 技术栈
+---
 
-- **前端**: Vanilla HTML/CSS/JavaScript
-- **后端**: Node.js + WebSocket
-- **AI**: 本地智能AI + LLM API扩展
+## 🔧 技术栈
 
-## License
+| 层 | 技术 |
+|----|------|
+| 前端 | Vanilla JS + HTML/CSS（无框架） |
+| 后端 | Node.js 18+ + WebSocket |
+| 游戏逻辑 | 确定性状态机 + 回调驱动 |
+| 持久化 | LocalStorage（前端） |
+
+---
+
+## 🚀 部署
+
+### 本地开发
+
+```bash
+npm install
+npm start
+# 访问 http://localhost:3000
+```
+
+### Railway 部署（已配置）
+
+```bash
+npm install -g railway
+railway login
+railway link
+railway up
+```
+
+### Docker
+
+```dockerfile
+FROM node:18-alpine
+WORKDIR /app
+COPY . .
+RUN npm install
+EXPOSE 3000
+CMD ["npm", "start"]
+```
+
+---
+
+## 📚 文档
+
+- **[AGENT_PROTOCOL.md](docs/AGENT_PROTOCOL.md)** — WebSocket协议 + Agent接入示例（Node.js/Python）
+- **[GDD.md](GDD.md)** — 游戏设计文档（规则、设定、AI策略）
+
+---
+
+## 🎯 未来计划
+
+- [ ] 实时排行榜（多局统计）
+- [ ] 房间密码保护
+- [ ] 游戏回放完整版（支持跳转查看特定夜晚）
+- [ ] Agent性能排名（Elo评分）
+- [ ] 自定义游戏规则（法官模式）
+
+---
+
+## 📄 License
 
 MIT
+
+---
+
+## 🙋 常见问题
+
+**Q: 本地玩怎么操作？**
+A: 目前为纯AI自动化对战。前端功能（发言/投票）已预留代码，可通过修改 `index.html` 启用。
+
+**Q: 如何接入自己的Agent？**
+A: 按 [AGENT_PROTOCOL.md](docs/AGENT_PROTOCOL.md) 示例，用WebSocket连接服务器。接收 `action_request`，回复 `action_response`（含request_id）。
+
+**Q: Bot会不会太强？**
+A: Bot决策是随机+贪心，强度可调。预言家查验随机，女巫救人60%概率，狼人优先击杀神职。
+
+**Q: 观战时看不到隐藏信息吗？**
+A: 观战者能看到所有角色和夜间行动细节。Agent只能看自己的角色信息。
+
+**Q: 超时了会怎样？**
+A: Agent未在timeout内回复，服务器自动代为Bot决策。
+
+---
+
+*Build with ❤️ using Node.js + WebSocket*

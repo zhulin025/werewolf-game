@@ -1975,11 +1975,100 @@
         }
 
 
+        /* ============ ONLINE LOBBY STYLES ============ */
+        .lobby-screen {
+            display: none;
+            position: fixed; inset: 0;
+            z-index: 1000;
+            background: var(--bg);
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .lobby-screen.active { display: block; }
+
+        .lobby-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 24px; padding-bottom: 16px;
+            border-bottom: 1px solid var(--surface-light);
+        }
+        .lobby-header h2 { font-family: 'Orbitron', monospace; font-size: 20px; }
+        .lobby-header .back-btn { cursor: pointer; font-size: 14px; color: var(--text-muted); }
+        .lobby-header .back-btn:hover { color: var(--text); }
+
+        .room-list { display: grid; gap: 12px; max-width: 700px; margin: 0 auto; }
+
+        .room-card {
+            background: var(--surface); border-radius: 12px; padding: 16px;
+            display: flex; justify-content: space-between; align-items: center;
+            border: 1px solid var(--surface-light); transition: border-color 0.2s;
+        }
+        .room-card:hover { border-color: var(--primary); }
+
+        .room-card .room-info h3 { font-size: 16px; margin-bottom: 4px; }
+        .room-card .room-info .room-meta {
+            font-size: 12px; color: var(--text-muted);
+            display: flex; gap: 12px;
+        }
+        .room-card .room-actions { display: flex; gap: 8px; }
+
+        .room-status {
+            display: inline-block; padding: 2px 8px; border-radius: 10px;
+            font-size: 11px; font-weight: 600;
+        }
+        .room-status.waiting { background: #27ae6033; color: #2ecc71; }
+        .room-status.countdown { background: #f39c1233; color: #f39c12; }
+        .room-status.playing { background: #e74c3c33; color: #e74c3c; }
+        .room-status.finished { background: #95a5a633; color: #95a5a6; }
+
+        .create-room-form {
+            background: var(--surface); border-radius: 12px; padding: 20px;
+            max-width: 700px; margin: 0 auto 20px;
+            display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;
+        }
+        .create-room-form .form-group { display: flex; flex-direction: column; gap: 4px; }
+        .create-room-form label { font-size: 12px; color: var(--text-muted); }
+        .create-room-form input, .create-room-form select {
+            background: var(--surface-light); border: 1px solid #555; color: var(--text);
+            border-radius: 8px; padding: 8px 12px; font-size: 14px;
+        }
+
+        .spectator-badge {
+            position: fixed; top: 12px; right: 12px; z-index: 999;
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white; padding: 6px 14px; border-radius: 20px;
+            font-size: 13px; font-weight: 600;
+            display: none; align-items: center; gap: 6px;
+            box-shadow: 0 2px 8px rgba(231, 76, 60, 0.4);
+        }
+        .spectator-badge.active { display: flex; }
+
+        .lobby-empty {
+            text-align: center; padding: 40px; color: var(--text-muted);
+        }
+        .lobby-empty .empty-icon { font-size: 48px; margin-bottom: 12px; }
+
+        .ws-status {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 12px; color: var(--text-muted);
+        }
+        .ws-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: #95a5a6;
+        }
+        .ws-dot.connected { background: #2ecc71; }
+        .ws-dot.connecting { background: #f39c12; animation: pulse 1s infinite; }
+
     </style>
 </head>
 <body>
     <!-- Stars Background -->
     <div class="stars" id="stars"></div>
+
+    <!-- Spectator Badge -->
+    <div class="spectator-badge" id="spectatorBadge">
+        <span>👁</span> 观战中
+        <span class="ws-status"><span class="ws-dot" id="wsDot"></span></span>
+    </div>
 
     <!-- Start Screen -->
     <div class="start-screen" id="startScreen">
@@ -1989,8 +2078,12 @@
         </div>
         <p class="start-subtitle">AI玩家与人类玩家同台博弈</p>
 
-        <button class="btn btn-primary start-btn" onclick="startGame()" id="quickStartBtn" style="margin-bottom: 20px;">
-            ⚡ 快速开始
+        <button class="btn btn-primary start-btn" onclick="startGame()" id="quickStartBtn" style="margin-bottom: 12px;">
+            ⚡ 本地模拟
+        </button>
+
+        <button class="btn btn-secondary start-btn" onclick="openLobby()" style="margin-bottom: 20px; background: linear-gradient(135deg, #e74c3c, #c0392b);">
+            🌐 在线Agent对战
         </button>
 
         <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">选择模式</div>
@@ -2007,6 +2100,38 @@
             <div class="mode-btn" onclick="selectGameMode('advanced', this)">
                 <div class="mode-name">9人进阶局</div>
                 <div class="mode-desc">3神职+3村民+3狼人</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Online Lobby Screen -->
+    <div class="lobby-screen" id="lobbyScreen">
+        <div class="lobby-header">
+            <h2>🌐 Agent对战大厅</h2>
+            <span class="back-btn" onclick="closeLobby()">← 返回</span>
+        </div>
+
+        <div class="create-room-form">
+            <div class="form-group">
+                <label>房间名</label>
+                <input type="text" id="newRoomName" placeholder="AI对战房" maxlength="20">
+            </div>
+            <div class="form-group">
+                <label>模式</label>
+                <select id="newRoomMode">
+                    <option value="simple">6人入门局</option>
+                    <option value="advanced">9人进阶局</option>
+                    <option value="standard" selected>12人标准局</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" onclick="createRoom()">+ 创建房间</button>
+            <button class="btn btn-secondary" onclick="refreshRooms()">刷新</button>
+        </div>
+
+        <div class="room-list" id="roomList">
+            <div class="lobby-empty">
+                <div class="empty-icon">🏚</div>
+                <div>暂无房间，创建一个开始对战</div>
             </div>
         </div>
     </div>
@@ -6015,6 +6140,345 @@
                 e.target.classList.remove('active');
             }
         });
+
+        // ============ ONLINE LOBBY & SPECTATOR ============
+        let lobbyWs = null;
+        let isSpectating = false;
+        let spectatorRoomId = null;
+        let lobbyRefreshTimer = null;
+
+        function getApiBase() {
+            return window.location.origin;
+        }
+
+        function getWsBase() {
+            const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            return `${proto}//${window.location.host}`;
+        }
+
+        function openLobby() {
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('lobbyScreen').classList.add('active');
+            refreshRooms();
+            lobbyRefreshTimer = setInterval(refreshRooms, 5000);
+        }
+
+        function closeLobby() {
+            document.getElementById('lobbyScreen').classList.remove('active');
+            document.getElementById('startScreen').style.display = '';
+            if (lobbyRefreshTimer) { clearInterval(lobbyRefreshTimer); lobbyRefreshTimer = null; }
+        }
+
+        async function refreshRooms() {
+            try {
+                const resp = await fetch(`${getApiBase()}/api/rooms`);
+                const data = await resp.json();
+                renderRoomList(data.rooms || []);
+            } catch (e) {
+                console.error('Failed to fetch rooms:', e);
+            }
+        }
+
+        function renderRoomList(roomList) {
+            const container = document.getElementById('roomList');
+            if (roomList.length === 0) {
+                container.innerHTML = `<div class="lobby-empty"><div class="empty-icon">🏚</div><div>暂无房间，创建一个开始对战</div></div>`;
+                return;
+            }
+            const statusLabels = { waiting: '等待中', countdown: '倒计时', playing: '游戏中', finished: '已结束' };
+            container.innerHTML = roomList.map(r => `
+                <div class="room-card">
+                    <div class="room-info">
+                        <h3>${escapeHtml(r.name)} <span class="room-status ${r.status}">${statusLabels[r.status] || r.status}</span></h3>
+                        <div class="room-meta">
+                            <span>📋 ${r.mode_name}</span>
+                            <span>👥 ${r.agent_count}/${r.required_players}</span>
+                            <span>👁 ${r.spectator_count || 0} 观众</span>
+                        </div>
+                    </div>
+                    <div class="room-actions">
+                        <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 14px;" onclick="spectateRoom('${r.room_id}')">👁 观战</button>
+                        ${r.status === 'waiting' ? `<button class="btn btn-primary" style="font-size: 12px; padding: 6px 14px;" onclick="forceStartRoom('${r.room_id}')">▶ 开始</button>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function escapeHtml(s) {
+            const d = document.createElement('div');
+            d.textContent = s;
+            return d.innerHTML;
+        }
+
+        async function createRoom() {
+            const name = document.getElementById('newRoomName').value.trim() || 'AI对战房';
+            const mode = document.getElementById('newRoomMode').value;
+            try {
+                const resp = await fetch(`${getApiBase()}/api/rooms`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, mode, auto_fill_bots: true }),
+                });
+                const data = await resp.json();
+                refreshRooms();
+                showToast(`房间 "${name}" 已创建`);
+            } catch (e) {
+                showToast('创建失败');
+            }
+        }
+
+        async function forceStartRoom(roomId) {
+            try {
+                await fetch(`${getApiBase()}/api/rooms/${roomId}/start`, { method: 'POST' });
+                spectateRoom(roomId);
+            } catch (e) {
+                showToast('启动失败');
+            }
+        }
+
+        function spectateRoom(roomId) {
+            // Close lobby
+            document.getElementById('lobbyScreen').classList.remove('active');
+            if (lobbyRefreshTimer) { clearInterval(lobbyRefreshTimer); lobbyRefreshTimer = null; }
+
+            // Show game UI
+            const startScreen = document.getElementById('startScreen');
+            if (startScreen) startScreen.style.display = 'none';
+
+            // Show spectator badge
+            isSpectating = true;
+            spectatorRoomId = roomId;
+            document.getElementById('spectatorBadge').classList.add('active');
+            document.getElementById('wsDot').className = 'ws-dot connecting';
+
+            // Initialize game display
+            VoiceSystem.warmup();
+            SoundSystem.init();
+            initGame();
+            clearLogs();
+            addLog('👁 观战模式 — 连接中...', 'system');
+
+            // Connect via WebSocket
+            connectSpectator(roomId);
+        }
+
+        function connectSpectator(roomId) {
+            if (lobbyWs) { lobbyWs.close(); lobbyWs = null; }
+
+            const wsUrl = `${getWsBase()}?room_id=${roomId}&type=spectator&name=web-spectator`;
+            lobbyWs = new WebSocket(wsUrl);
+
+            lobbyWs.onopen = () => {
+                document.getElementById('wsDot').className = 'ws-dot connected';
+                addLog('✅ 已连接到游戏服务器', 'system');
+            };
+
+            lobbyWs.onclose = () => {
+                document.getElementById('wsDot').className = 'ws-dot';
+                if (isSpectating) {
+                    addLog('⚠ 连接断开，3秒后重连...', 'system');
+                    setTimeout(() => { if (isSpectating) connectSpectator(roomId); }, 3000);
+                }
+            };
+
+            lobbyWs.onerror = () => {
+                document.getElementById('wsDot').className = 'ws-dot';
+            };
+
+            lobbyWs.onmessage = (evt) => {
+                try {
+                    const msg = JSON.parse(evt.data);
+                    handleSpectatorMessage(msg);
+                } catch (e) {
+                    console.error('WS message parse error:', e);
+                }
+            };
+        }
+
+        function handleSpectatorMessage(msg) {
+            switch (msg.type) {
+                case 'welcome':
+                    addLog(`🏠 加入房间: ${msg.payload.room?.name || msg.payload.room_id}`, 'system');
+                    break;
+
+                case 'room_state':
+                    addLog(`📋 房间状态: ${msg.payload.status} (${msg.payload.agent_count}/${msg.payload.required_players} 玩家)`, 'system');
+                    break;
+
+                case 'countdown_start':
+                    addLog(`⏱ 游戏将在 ${msg.payload.seconds} 秒后开始`, 'system');
+                    break;
+
+                case 'countdown_tick':
+                    if (msg.payload.seconds <= 3) {
+                        addLog(`⏱ ${msg.payload.seconds}...`, 'system');
+                    }
+                    break;
+
+                case 'game_started':
+                    addLog('🎮 游戏开始！', 'system');
+                    if (msg.payload.players) {
+                        updateSpectatorPlayers(msg.payload.players);
+                    }
+                    break;
+
+                case 'phase_change':
+                    handlePhaseChange(msg.payload);
+                    break;
+
+                case 'night_action':
+                    addLog(`🌙 ${msg.payload.description}`, 'night');
+                    break;
+
+                case 'public_event':
+                    handlePublicEvent(msg.payload);
+                    break;
+
+                case 'deaths':
+                    if (msg.payload.deaths) {
+                        for (const d of msg.payload.deaths) {
+                            addLog(`💀 ${d.player_name} (${d.roleName || '?'}) 死亡 [${d.cause}]`, 'death');
+                        }
+                    }
+                    break;
+
+                case 'state_update':
+                    if (msg.payload.players) {
+                        updateSpectatorPlayers(msg.payload.players);
+                    }
+                    break;
+
+                case 'game_end':
+                    handleSpectatorGameEnd(msg.payload);
+                    break;
+
+                case 'game_state':
+                    if (msg.payload.players) {
+                        updateSpectatorPlayers(msg.payload.players);
+                    }
+                    if (msg.payload.event_log) {
+                        for (const entry of msg.payload.event_log.slice(-20)) {
+                            addLog(entry.message, entry.type);
+                        }
+                    }
+                    break;
+            }
+        }
+
+        function handlePhaseChange(payload) {
+            const { phase, day } = payload;
+            const phaseIcon = document.getElementById('phaseIcon');
+            const phaseText = document.getElementById('phaseText');
+            const headerPhase = document.getElementById('headerPhase');
+            if (headerPhase) headerPhase.style.display = '';
+
+            if (phase === 'night') {
+                if (phaseIcon) phaseIcon.textContent = '🌙';
+                if (phaseText) phaseText.textContent = `第${day}夜`;
+                addLog(`🌙 ═══ 第${day}夜 ═══`, 'night');
+                document.getElementById('statDay').textContent = day;
+            } else if (phase === 'day') {
+                if (phaseIcon) phaseIcon.textContent = '☀';
+                if (phaseText) phaseText.textContent = `第${day}天`;
+                addLog(`☀ ═══ 第${day}天 ═══`, 'system');
+            } else if (phase === 'vote') {
+                if (phaseIcon) phaseIcon.textContent = '🗳';
+                if (phaseText) phaseText.textContent = `投票`;
+                addLog('🗳 投票环节开始', 'system');
+            }
+        }
+
+        function handlePublicEvent(payload) {
+            const evt = payload.event;
+            switch (evt) {
+                case 'night_result':
+                    if (payload.deaths && payload.deaths.length > 0) {
+                        for (const d of payload.deaths) {
+                            addLog(`💀 ${d.player_name} 昨夜死亡`, 'death');
+                        }
+                    } else if (payload.message) {
+                        addLog(`🌿 ${payload.message}`, 'system');
+                    }
+                    break;
+                case 'speaking_turn':
+                    addLog(`🎤 轮到 ${payload.player_name} 发言`, 'system');
+                    break;
+                case 'speech':
+                    addLog(`💬 ${payload.player_name}：${payload.content}`, 'speak');
+                    VoiceSystem.speak(`${payload.player_name}说：${payload.content}`);
+                    break;
+                case 'vote_cast':
+                    addLog(`🗳 ${payload.voter_name} → ${payload.target_name}`, 'vote');
+                    break;
+                case 'vote_result':
+                    if (payload.votes) {
+                        const summary = payload.votes.map(v => `${v.player_name}(${v.count}票)`).join(', ');
+                        addLog(`📊 投票结果: ${summary}`, 'system');
+                    }
+                    break;
+                case 'elimination':
+                    addLog(`⚔ ${payload.player_name} 被投票出局 (${payload.votes}票)`, 'death');
+                    VoiceSystem.speak(`${payload.player_name}被投票出局`);
+                    break;
+                case 'tie_broken':
+                    addLog(`⚖ ${payload.message}`, 'system');
+                    break;
+                case 'last_words':
+                    addLog(`🪦 ${payload.player_name} 的遗言：${payload.content}`, 'speak');
+                    VoiceSystem.speak(`${payload.player_name}的遗言：${payload.content}`);
+                    break;
+                case 'death':
+                    addLog(`💀 ${payload.message || payload.player_name + ' 死亡'}`, 'death');
+                    break;
+            }
+        }
+
+        function updateSpectatorPlayers(players) {
+            // Update game state players for the ring display
+            gameState.players = players.map(p => ({
+                id: p.id,
+                name: p.name,
+                role: p.role || 'UNKNOWN',
+                roleName: p.roleName || '?',
+                camp: p.camp || 'unknown',
+                icon: p.icon || '❓',
+                isAlive: p.is_alive,
+                isAI: true,
+            }));
+            renderPlayerCards(gameState.players);
+
+            // Update stats
+            const alive = players.filter(p => p.is_alive);
+            const goodAlive = alive.filter(p => p.camp === 'good').length;
+            const wolfAlive = alive.filter(p => p.camp === 'wolf').length;
+            document.getElementById('statGood').textContent = goodAlive;
+            document.getElementById('statWolf').textContent = wolfAlive;
+            document.getElementById('statAlive').textContent = alive.length;
+        }
+
+        function handleSpectatorGameEnd(payload) {
+            const winnerText = payload.winner === 'good' ? '好人阵营胜利' : '狼人阵营胜利';
+            addLog(`🏆 游戏结束 — ${payload.message || winnerText}`, 'system');
+            VoiceSystem.speak(`游戏结束！${payload.message || winnerText}`);
+
+            // Update all player cards with revealed roles
+            if (payload.players) {
+                updateSpectatorPlayers(payload.players.map(p => ({
+                    ...p, is_alive: p.survived, icon: p.icon || '❓',
+                })));
+            }
+
+            isSpectating = false;
+            if (lobbyWs) { lobbyWs.close(); lobbyWs = null; }
+            document.getElementById('spectatorBadge').classList.remove('active');
+        }
+
+        function stopSpectating() {
+            isSpectating = false;
+            if (lobbyWs) { lobbyWs.close(); lobbyWs = null; }
+            document.getElementById('spectatorBadge').classList.remove('active');
+            document.getElementById('startScreen').style.display = '';
+        }
 
         // ============ GLOBAL ERROR HANDLER ============
         window.onerror = function(message, source, lineno, colno, error) {

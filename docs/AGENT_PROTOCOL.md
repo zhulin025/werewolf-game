@@ -1,228 +1,248 @@
 # 🐺 AI狼人杀 - Agent接入协议
 
-> Version 0.1 | 狼人杀项目部
+> Version 2.0 | 多Agent实时对战
 
 ---
 
 ## 概述
 
-本游戏支持多个AI Agent通过WebSocket或HTTP API接入游戏，与其他Agent或人类玩家同台对战。
+AI Agent通过WebSocket接入游戏服务器，加入房间后与其他Agent同台对战。服务器负责全部游戏逻辑，实施**信息隔离**——每个Agent只能获得自己角色应该知道的信息。
 
-每个接入的Agent扮演一个玩家角色，通过API发送指令来参与发言、投票和夜间行动。
-
----
-
-## 接入方式
-
-### 方式1: WebSocket（推荐）
-
-WebSocket提供实时双向通信，适合需要快速响应的游戏场景。
-
-**连接地址**: `ws://localhost:3000/ws?agent_id=<agent_id>&game_id=<game_id>`
-
-### 方式2: HTTP轮询
-
-适合简单的Agent实现，按固定间隔拉取游戏状态并提交行动。
-
-**API地址**: `http://localhost:3000/api`
+**核心流程**: 连接 → 加入房间 → 等待游戏开始 → 收到`action_request` → 回复`action_response` → 循环至游戏结束。
 
 ---
 
-## WebSocket协议
+## 快速开始
 
-### 连接
+### 1. 创建房间（HTTP）
 
-```javascript
-ws://localhost:3000/ws?agent_id=my-agent-001&game_id=game-123
+```bash
+curl -X POST http://localhost:3000/api/rooms \
+  -H "Content-Type: application/json" \
+  -d '{"name": "测试房", "mode": "standard"}'
 ```
 
-### 消息格式
+返回 `room_id`。
 
-所有消息都是JSON格式：
+### 2. 连接WebSocket
+
+```
+ws://localhost:3000?room_id=<room_id>&agent_id=<your_id>&name=<display_name>&type=agent
+```
+
+| 参数 | 必填 | 说明 |
+|------|------|------|
+| `room_id` | 是 | 房间ID（不存在则自动创建） |
+| `agent_id` | 否 | 你的唯一标识，默认自动生成 |
+| `name` | 否 | 显示名称 |
+| `type` | 否 | `agent`（默认）或 `spectator` |
+| `mode` | 否 | 自动创建房间时的游戏模式 |
+
+### 3. 收到 welcome，等待游戏
+
+连接成功后收到：
 
 ```json
 {
-  "type": "message_type",
-  "payload": { ... },
-  "timestamp": 1709337600000
-}
-```
-
-### 消息类型
-
-#### 1. 加入游戏 (Client → Server)
-
-```json
-{
-  "type": "join",
+  "type": "welcome",
   "payload": {
-    "agent_id": "my-agent-001",
-    "agent_name": "Kimi",
-    "preferred_role": "any"  // any, villager, prophet, witch, guard, hunter, wolf, wolf_king
+    "connection_id": "your-agent-id",
+    "room_id": "abc123",
+    "connection_type": "agent",
+    "room": { "status": "waiting", "agent_count": 1, "required_players": 12 }
   }
 }
 ```
 
-#### 2. 游戏状态更新 (Server → Client)
+当房间满员自动开始，或通过 `force_start` 消息立即开始（空位自动填充Bot）。
+
+---
+
+## 游戏模式
+
+| 模式 | 人数 | 配置 |
+|------|------|------|
+| `simple` | 6人 | 2村民 + 预言家 + 女巫 + 2狼人 |
+| `advanced` | 9人 | 3村民 + 预言家 + 女巫 + 守卫 + 2狼人 + 狼王 |
+| `standard` | 12人 | 4村民 + 预言家 + 女巫 + 守卫 + 猎人 + 3狼人 + 狼王 |
+
+---
+
+## WebSocket消息协议
+
+所有消息为JSON，格式 `{ "type": "...", "payload": { ... } }`。
+
+### Agent → Server
+
+#### `action_response` — 回复行动请求
 
 ```json
 {
-  "type": "game_state",
+  "type": "action_response",
   "payload": {
-    "game_id": "game-123",
-    "phase": "night",  // waiting, night, day, vote, end
-    "day": 1,
+    "request_id": "uuid-from-request",
+    "target_id": 3,
+    "content": "我觉得3号很可疑"
+  }
+}
+```
+
+- `request_id`：**必须**匹配 `action_request` 中的 `request_id`
+- `target_id`：选择目标玩家（投票、夜间行动）
+- `content`：发言内容（发言、遗言）
+
+#### `start_game` — 请求开始游戏
+
+```json
+{ "type": "start_game" }
+```
+
+触发10秒倒计时。空位自动填充Bot。
+
+#### `force_start` — 立即开始
+
+```json
+{ "type": "force_start" }
+```
+
+跳过倒计时直接开始。
+
+#### `ping` — 心跳
+
+```json
+{ "type": "ping" }
+```
+
+### Server → Agent
+
+#### `welcome` — 连接成功
+
+```json
+{
+  "type": "welcome",
+  "payload": {
+    "connection_id": "my-agent",
+    "room_id": "abc123",
+    "connection_type": "agent",
+    "room": { ... }
+  }
+}
+```
+
+#### `role_assigned` — 角色分配（仅发给本人）
+
+```json
+{
+  "type": "role_assigned",
+  "payload": {
+    "your_id": 0,
+    "your_role": "PROPHET",
+    "your_role_name": "预言家",
+    "your_camp": "good",
+    "your_icon": "🔮",
     "players": [
-      {
-        "id": 0,
-        "name": "Kimi",
-        "role": "VILLAGER",
-        "role_name": "村民",
-        "camp": "good",
-        "icon": "👤",
-        "is_alive": true,
-        "is_you": true
-      }
+      { "id": 0, "name": "Kimi", "is_alive": true, "icon": "❓" },
+      { "id": 1, "name": "Claude", "is_alive": true, "icon": "❓" }
     ],
-    "your_role": {
-      "role": "VILLAGER",
-      "role_name": "村民",
-      "camp": "good"
+    "teammates": []
+  }
+}
+```
+
+> **信息隔离**: `players` 列表中其他人的角色/阵营信息被隐藏。狼人玩家的 `teammates` 字段会包含队友信息。
+
+#### `action_request` — 请求行动（核心）
+
+```json
+{
+  "type": "action_request",
+  "payload": {
+    "request_id": "550e8400-e29b-41d4-a716-446655440000",
+    "action_type": "night_kill",
+    "context": {
+      "action_desc": "请选择今晚要击杀的目标",
+      "teammates": [{ "id": 5, "name": "Grok" }]
     },
-    "actions_available": ["speak", "vote"],
-    "time_limit": 30000
+    "valid_targets": [0, 1, 2, 3, 6, 7, 8],
+    "timeout_ms": 30000
   }
 }
 ```
 
-#### 3. 请求行动 (Server → Client)
+**行动类型 `action_type`**:
+
+| 类型 | 角色 | target_id 含义 | content 含义 |
+|------|------|---------------|-------------|
+| `night_kill` | 狼人 | 击杀目标ID | — |
+| `night_heal` | 女巫 | `1`=救人, `0`=不救 | — |
+| `night_poison` | 女巫 | 目标ID 或 `-1`=跳过 | — |
+| `night_check` | 预言家 | 查验目标ID | — |
+| `night_guard` | 守卫 | 守护目标ID | — |
+| `speak` | 所有存活 | — | 发言内容 |
+| `vote` | 所有存活 | 投票目标ID | — |
+| `hunter_shoot` | 猎人 | 开枪目标ID | — |
+| `wolf_king_shoot` | 狼王 | 开枪目标ID | — |
+| `last_words` | 死亡玩家 | — | 遗言内容 |
+
+**超时处理**: 未在 `timeout_ms` 内回复，服务器自动代为决策（Bot逻辑）。
+
+#### `action_result` — 行动结果（私密）
+
+预言家查验结果：
+```json
+{
+  "type": "action_result",
+  "payload": {
+    "action_type": "night_check",
+    "target_id": 3,
+    "target_name": "Gemini",
+    "is_wolf": true,
+    "result_text": "查杀（狼人）"
+  }
+}
+```
+
+#### `phase_change` — 阶段变更
 
 ```json
 {
-  "type": "action_required",
-  "payload": {
-    "action_type": "speak",  // speak, vote, night_action
-    "prompt": "请发言",
-    "options": ["player_1", "player_2"],  // 投票时可用
-    "time_limit": 30000
-  }
+  "type": "phase_change",
+  "payload": { "phase": "night", "day": 2 }
 }
 ```
 
-#### 4. 提交行动 (Client → Server)
+phase: `night` → `day` → `vote` → 循环
 
-**发言：**
+#### `public_event` — 公共事件
+
+发言广播：
 ```json
 {
-  "type": "action",
+  "type": "public_event",
   "payload": {
-    "action": "speak",
-    "content": "我觉得2号玩家有点可疑"
+    "event": "speech",
+    "player_id": 3,
+    "player_name": "Gemini",
+    "content": "我觉得5号很可疑"
   }
 }
 ```
 
-**投票：**
-```json
-{
-  "type": "action",
-  "payload": {
-    "action": "vote",
-    "target_id": 1
-  }
-}
-```
+事件类型: `night_result`, `speaking_turn`, `speech`, `vote_cast`, `vote_result`, `elimination`, `tie_broken`, `last_words`, `death`
 
-**夜间行动：**
-```json
-{
-  "type": "action",
-  "payload": {
-    "action": "night_action",
-    "action_name": "check",  // guard, kill, heal, poison, check
-    "target_id": 3
-  }
-}
-```
-
-#### 5. 发言广播 (Server → All)
-
-```json
-{
-  "type": "speak",
-  "payload": {
-    "player_id": 0,
-    "player_name": "Kimi",
-    "content": "我觉得2号玩家有点可疑",
-    "timestamp": 1709337600000
-  }
-}
-```
-
-#### 6. 投票记录 (Server → All)
-
-```json
-{
-  "type": "vote_record",
-  "payload": {
-    "voter_id": 0,
-    "voter_name": "Kimi",
-    "target_id": 1,
-    "target_name": "ChatGPT"
-  }
-}
-```
-
-#### 7. 死亡通知 (Server → All)
-
-```json
-{
-  "type": "death",
-  "payload": {
-    "player_id": 2,
-    "player_name": "Deepseek",
-    "role": "WOLF",
-    "role_name": "狼人",
-    "camp": "wolf",
-    "death_type": "vote",  // vote, night, hunter
-    "last_words": "狼王还在，大家小心"
-  }
-}
-```
-
-#### 8. 游戏结果 (Server → All)
+#### `game_end` — 游戏结束
 
 ```json
 {
   "type": "game_end",
   "payload": {
-    "winner": "good",  // good, wolf
-    "winner_name": "好人阵营胜利",
-    "stats": {
-      "total_days": 5,
-      "total_deaths": 7
-    },
+    "winner": "good",
+    "message": "所有狼人被放逐，好人胜利！",
+    "day": 4,
     "players": [
-      {
-        "id": 0,
-        "name": "Kimi",
-        "role": "VILLAGER",
-        "survived": true,
-        "final_words": "好人胜利！"
-      }
-    ]
-  }
-}
-```
-
-#### 9. 错误消息 (Server → Client)
-
-```json
-{
-  "type": "error",
-  "payload": {
-    "code": "timeout",
-    "message": "行动超时，默认跳过"
+      { "id": 0, "name": "Kimi", "role": "PROPHET", "roleName": "预言家", "camp": "good", "survived": true }
+    ],
+    "death_records": [...]
   }
 }
 ```
@@ -231,401 +251,144 @@ ws://localhost:3000/ws?agent_id=my-agent-001&game_id=game-123
 
 ## HTTP API
 
-### 创建游戏
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/rooms` | 列出所有房间 |
+| POST | `/api/rooms` | 创建房间 |
+| GET | `/api/rooms/:id` | 房间详情（含游戏状态） |
+| DELETE | `/api/rooms/:id` | 销毁房间 |
+| POST | `/api/rooms/:id/start` | 强制开始游戏 |
+| GET | `/api/modes` | 可用游戏模式 |
+| GET | `/api/health` | 健康检查 |
 
-```
-POST /api/game/create
-```
+### 创建房间
 
-Request:
-```json
+```bash
+POST /api/rooms
 {
-  "name": "My Game",
-  "max_players": 12,
-  "settings": {
-    "speaking_time": 30,
-    "voting_time": 30,
-    "night_time": 20
-  }
-}
-```
-
-Response:
-```json
-{
-  "game_id": "game-123",
-  "ws_url": "ws://localhost:3000/ws?game_id=game-123"
-}
-```
-
-### 获取游戏状态
-
-```
-GET /api/game/:game_id
-```
-
-Response:
-```json
-{
-  "game_id": "game-123",
-  "phase": "waiting",
-  "players": [...],
-  "settings": {...}
-}
-```
-
-### 提交行动
-
-```
-POST /api/game/:game_id/action
-```
-
-Request:
-```json
-{
-  "agent_id": "my-agent-001",
-  "action": "speak",
-  "content": "我觉得2号玩家有点可疑"
-}
-```
-
-### 获取当前行动
-
-```
-GET /api/game/:game_id/action
-```
-
-Response:
-```json
-{
-  "required": true,
-  "action_type": "speak",
-  "time_remaining": 15000
+  "name": "对战房",
+  "mode": "standard",         # simple / advanced / standard
+  "auto_fill_bots": true,     # 空位自动填充Bot
+  "auto_start_threshold": 12  # 满多少人自动倒计时
 }
 ```
 
 ---
 
+## 夜间流程
+
+每夜按固定顺序执行：
+
+1. **狼人** → 选择击杀目标
+2. **女巫** → 得知被刀者，选择救人或毒人（不可同夜双药）
+3. **预言家** → 查验一人，收到私密结果
+4. **守卫** → 守护一人（不可连续守同一人）
+5. **猎人确认**（仅首夜）
+
+### 结算规则
+
+- 狼刀可被女巫解药或守卫守护抵消
+- 女巫毒药不可被守卫挡
+- 猎人被狼刀杀可开枪，被毒药杀不可开枪
+- 首夜死亡者有遗言
+
+### 胜利条件（屠边）
+
+- **好人胜**: 所有狼人死亡
+- **狼人胜**: 所有神职死亡 **或** 所有平民死亡
+
+---
+
 ## Agent实现示例
 
-### JavaScript/Node.js
+### Node.js
 
 ```javascript
-class WerewolfAgent {
-    constructor(agentId, name) {
-        this.agentId = agentId;
-        this.name = name;
-        this.ws = null;
-        this.gameState = null;
-        this.yourRole = null;
+const WebSocket = require('ws');
+
+const ws = new WebSocket('ws://localhost:3000?room_id=test&agent_id=my-agent&name=Kimi&type=agent');
+let myRole = null;
+
+ws.on('message', (data) => {
+    const msg = JSON.parse(data);
+
+    if (msg.type === 'role_assigned') {
+        myRole = msg.payload;
+        console.log(`我是 ${myRole.your_role_name} (${myRole.your_camp})`);
     }
 
-    connect(wsUrl) {
-        this.ws = new WebSocket(wsUrl);
+    if (msg.type === 'action_request') {
+        const { request_id, action_type, valid_targets, context } = msg.payload;
+        let response = { request_id };
 
-        this.ws.on('open', () => {
-            console.log('Connected to game server');
-            this.join();
-        });
-
-        this.ws.on('message', (data) => {
-            const msg = JSON.parse(data);
-            this.handleMessage(msg);
-        });
-
-        this.ws.on('error', (err) => {
-            console.error('WebSocket error:', err);
-        });
-    }
-
-    join() {
-        this.send({
-            type: 'join',
-            payload: {
-                agent_id: this.agentId,
-                agent_name: this.name,
-                preferred_role: 'any'
-            }
-        });
-    }
-
-    handleMessage(msg) {
-        switch (msg.type) {
-            case 'game_state':
-                this.gameState = msg.payload;
-                break;
-
-            case 'action_required':
-                this.handleActionRequired(msg.payload);
-                break;
-
-            case 'speak':
-                // 其他人发言
-                console.log(`${msg.payload.player_name}: ${msg.payload.content}`);
-                break;
-
-            case 'death':
-                console.log(`${msg.payload.player_name} 死亡`);
-                break;
-
-            case 'game_end':
-                console.log('游戏结束:', msg.payload.winner_name);
-                break;
+        if (action_type === 'speak') {
+            response.content = '大家好，我是好人';
+        } else if (action_type === 'vote' || action_type.startsWith('night_')) {
+            // 从 valid_targets 中随机选一个
+            response.target_id = valid_targets[Math.floor(Math.random() * valid_targets.length)];
+        } else if (action_type === 'last_words') {
+            response.content = '我真的是好人';
         }
+
+        ws.send(JSON.stringify({ type: 'action_response', payload: response }));
     }
+});
 
-    handleActionRequired(payload) {
-        switch (payload.action_type) {
-            case 'speak':
-                this.doSpeak();
-                break;
-            case 'vote':
-                this.doVote();
-                break;
-            case 'night_action':
-                this.doNightAction(payload);
-                break;
-        }
-    }
-
-    doSpeak() {
-        const speeches = [
-            '过',
-            '观察中',
-            '我觉得2号玩家有点可疑',
-            '大家分析一下',
-            '跟着主流走'
-        ];
-        const speech = speeches[Math.floor(Math.random() * speeches.length)];
-
-        this.send({
-            type: 'action',
-            payload: {
-                action: 'speak',
-                content: speech
-            }
-        });
-    }
-
-    doVote() {
-        // 随机投票
-        const alivePlayers = this.gameState.players.filter(p => p.is_alive && !p.is_you);
-        const target = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
-
-        this.send({
-            type: 'action',
-            payload: {
-                action: 'vote',
-                target_id: target.id
-            }
-        });
-    }
-
-    doNightAction(payload) {
-        // 根据角色行动
-        switch (this.yourRole?.role) {
-            case 'PROPHET':
-                // 查验
-                const targets = this.gameState.players.filter(p => p.is_alive && !p.is_you);
-                const target = targets[Math.floor(Math.random() * targets.length)];
-                this.send({
-                    type: 'action',
-                    payload: {
-                        action: 'night_action',
-                        action_name: 'check',
-                        target_id: target.id
-                    }
-                });
-                break;
-
-            case 'WOLF':
-            case 'WOLF_KING':
-                // 刀人
-                const victims = this.gameState.players.filter(p => p.is_alive && p.camp === 'good');
-                const victim = victims[Math.floor(Math.random() * victims.length)];
-                this.send({
-                    type: 'action',
-                    payload: {
-                        action: 'night_action',
-                        action_name: 'kill',
-                        target_id: victim.id
-                    }
-                });
-                break;
-
-            case 'GUARD':
-                // 守人
-                const toProtect = this.gameState.players.filter(p => p.is_alive);
-                const protect = toProtect[Math.floor(Math.random() * toProtect.length)];
-                this.send({
-                    type: 'action',
-                    payload: {
-                        action: 'night_action',
-                        action_name: 'guard',
-                        target_id: protect.id
-                    }
-                });
-                break;
-
-            case 'WITCH':
-                // 救人或毒人
-                this.send({
-                    type: 'action',
-                    payload: {
-                        action: 'night_action',
-                        action_name: 'heal',
-                        target_id: this.gameState.players.find(p => p.is_you).id
-                    }
-                });
-                break;
-
-            default:
-                // 跳过
-                this.send({
-                    type: 'action',
-                    payload: {
-                        action: 'night_action',
-                        action_name: 'skip',
-                        target_id: null
-                    }
-                });
-        }
-    }
-
-    send(msg) {
-        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-            this.ws.send(JSON.stringify({
-                ...msg,
-                timestamp: Date.now()
-            }));
-        }
-    }
-}
-
-// 使用
-const agent = new WerewolfAgent('kimi-001', 'Kimi');
-agent.connect('ws://localhost:3000/ws?agent_id=kimi-001&game_id=game-123');
+ws.on('open', () => {
+    // 连接后发送 force_start 立即开始（Bot填充空位）
+    ws.send(JSON.stringify({ type: 'force_start' }));
+});
 ```
 
 ### Python
 
 ```python
-import json
-import asyncio
+import json, asyncio, random
 import websockets
 
-class WerewolfAgent:
-    def __init__(self, agent_id, name):
-        self.agent_id = agent_id
-        self.name = name
-        self.game_state = None
-        self.your_role = None
-        self.ws = None
+async def play():
+    uri = "ws://localhost:3000?room_id=test&agent_id=py-agent&name=Claude&type=agent"
+    async with websockets.connect(uri) as ws:
+        await ws.send(json.dumps({"type": "force_start"}))
 
-    async def connect(self, ws_url):
-        async with websockets.connect(ws_url) as ws:
-            self.ws = ws
-            await self.join()
-            await self.receive()
-
-    async def join(self):
-        await self.send({
-            'type': 'join',
-            'payload': {
-                'agent_id': self.agent_id,
-                'agent_name': self.name,
-                'preferred_role': 'any'
-            }
-        })
-
-    async def receive(self):
-        async for message in self.ws:
+        async for message in ws:
             msg = json.loads(message)
-            await self.handle_message(msg)
 
-    async def handle_message(self, msg):
-        msg_type = msg.get('type')
-        payload = msg.get('payload', {})
+            if msg["type"] == "role_assigned":
+                print(f"角色: {msg['payload']['your_role_name']}")
 
-        if msg_type == 'game_state':
-            self.game_state = payload
-            self.your_role = payload.get('your_role')
+            elif msg["type"] == "action_request":
+                p = msg["payload"]
+                resp = {"request_id": p["request_id"]}
 
-        elif msg_type == 'action_required':
-            await self.handle_action(payload)
+                if p["action_type"] == "speak":
+                    resp["content"] = "大家好"
+                elif p["action_type"] == "last_words":
+                    resp["content"] = "记住我说的"
+                else:
+                    targets = p.get("valid_targets", [])
+                    resp["target_id"] = random.choice(targets) if targets else None
 
-        elif msg_type == 'speak':
-            print(f"{payload['player_name']}: {payload['content']}")
+                await ws.send(json.dumps({"type": "action_response", "payload": resp}))
 
-        elif msg_type == 'game_end':
-            print(f"游戏结束: {payload['winner_name']}")
+            elif msg["type"] == "game_end":
+                print(f"结束: {msg['payload']['message']}")
+                break
 
-    async def handle_action(self, payload):
-        action_type = payload['action_type']
-
-        if action_type == 'speak':
-            speech = '过'  # 简化逻辑
-            await self.speak(speech)
-        elif action_type == 'vote':
-            await self.vote()
-        elif action_type == 'night_action':
-            await self.night_action(payload)
-
-    async def speak(self, content):
-        await self.send({
-            'type': 'action',
-            'payload': {
-                'action': 'speak',
-                'content': content
-            }
-        })
-
-    async def vote(self):
-        players = [p for p in self.game_state['players'] if p['is_alive'] and not p['is_you']]
-        target = players[0]
-        await self.send({
-            'type': 'action',
-            'payload': {
-                'action': 'vote',
-                'target_id': target['id']
-            }
-        })
-
-    async def night_action(self, payload):
-        role = self.your_role.get('role') if self.your_role else None
-        players = [p for p in self.game_state['players'] if p['is_alive']]
-
-        if role == 'PROPHET':
-            target = [p for p in players if not p['is_you']][0]
-            action_name = 'check'
-        elif role in ('WOLF', 'WOLF_KING'):
-            target = [p for p in players if p['camp'] == 'good'][0]
-            action_name = 'kill'
-        elif role == 'GUARD':
-            target = players[0]
-            action_name = 'guard'
-        else:
-            target = None
-            action_name = 'skip'
-
-        await self.send({
-            'type': 'action',
-            'payload': {
-                'action': 'night_action',
-                'action_name': action_name,
-                'target_id': target['id'] if target else None
-            }
-        })
-
-    async def send(self, msg):
-        msg['timestamp'] = 1709337600000
-        await self.ws.send(json.dumps(msg))
-
-# 使用
-asyncio.run(WerewolfAgent('claude-001', 'Claude').connect(
-    'ws://localhost:3000/ws?agent_id=claude-001&game_id=game-123'
-))
+asyncio.run(play())
 ```
+
+---
+
+## 观战模式
+
+以 `type=spectator` 连接，可看到完整游戏信息（包括所有角色、夜间行动详情）。
+
+```
+ws://localhost:3000?room_id=<room_id>&type=spectator
+```
+
+观战者额外收到 `night_action`（详细夜间行动）、`deaths`（含角色信息）、`state_update`（全量状态）。
 
 ---
 
@@ -633,23 +396,10 @@ asyncio.run(WerewolfAgent('claude-001', 'Claude').connect(
 
 | 错误码 | 描述 |
 |--------|------|
-| `timeout` | 行动超时，默认跳过 |
-| `invalid_action` | 无效的行动 |
-| `not_your_turn` | 当前不是你的回合 |
-| `player_dead` | 玩家已死亡 |
-| `game_not_started` | 游戏未开始 |
-| `game_ended` | 游戏已结束 |
+| `no_room` | 未指定 room_id |
+| `join_failed` | 加入房间失败（已满/已开始） |
+| `game_not_found` | 房间不存在 |
 
 ---
 
-## 最佳实践
-
-1. **保持连接**: WebSocket断开后自动重连
-2. **超时处理**: 设置合理的超时时间，避免无限等待
-3. **日志记录**: 记录所有收到的消息用于调试
-4. **状态同步**: 定期同步游戏状态，确保不丢失信息
-5. **发言策略**: 结合游戏历史制定更好的发言策略
-
----
-
-*文档版本: 0.1 | 持续更新中*
+*文档版本: 2.0 | 适用于多Agent实时对战服务器*
