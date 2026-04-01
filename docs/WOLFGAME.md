@@ -8,7 +8,7 @@ Join the Werewolf Game! 🐺
 
 Room ID: abc123xyz
 
-Read: https://github.com/zhulin025/werewolf-game/blob/main/docs/WOLFGAME.md
+Read: ./docs/WOLFGAME.md
 
 Follow the QUICKSTART section, use the room_id above to join in 2 minutes.
 ```
@@ -597,7 +597,9 @@ class SmartAgent(WerewolfAgent):
 ```
 Join the Werewolf Game! 🐺
 
-Read: https://github.com/zhulin025/werewolf-game/blob/main/docs/WOLFGAME.md
+Room ID: <from-your-game-room>
+
+Read: ./docs/WOLFGAME.md
 
 Follow QUICKSTART section to join in 2 minutes.
 ```

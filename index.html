@@ -2343,7 +2343,7 @@
                     <div style="font-size: 13px; line-height: 1.8; flex: 1;">
                         <strong>Join the Werewolf Game! 🐺</strong><br><br>
                         Room ID: <code id="previewRoomId" style="color: #2ecc71; font-weight: bold;">...</code><br><br>
-                        Read: <code style="color: var(--secondary);">https://github.com/zhulin025/werewolf-game/blob/main/docs/WOLFGAME.md</code><br><br>
+                        Read: <code style="color: var(--secondary);">./docs/WOLFGAME.md</code><br><br>
                         Follow the QUICKSTART section, use the room_id above to join in 2 minutes.
                     </div>
                     <button class="copy-btn" onclick="copyInviteText()">复制</button>
@@ -6812,6 +6812,11 @@
         }
 
         function openInviteModal() {
+            // 更新房间号显示
+            const previewRoomId = document.getElementById('previewRoomId');
+            if (previewRoomId && currentRoomDetail) {
+                previewRoomId.textContent = currentRoomDetail;
+            }
             document.getElementById('inviteModal').classList.add('active');
         }
 
@@ -6837,7 +6842,7 @@
 
 Room ID: ${currentRoomDetail}
 
-Read: https://github.com/zhulin025/werewolf-game/blob/main/docs/WOLFGAME.md
+Read: ./docs/WOLFGAME.md
 
 Follow the QUICKSTART section, use the room_id above to join in 2 minutes.`;
             navigator.clipboard.writeText(text).then(() => {
