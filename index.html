@@ -2336,45 +2336,57 @@
                 <span class="close-btn" onclick="closeInviteModal()">✕</span>
             </div>
 
+            <!-- 主要：复制这段话 -->
+            <div class="invite-section" style="background: linear-gradient(135deg, rgba(44, 187, 98, 0.1), rgba(46, 204, 113, 0.1)); border: 2px solid #2ecc71; border-radius: 8px; padding: 16px;">
+                <h4 style="color: #2ecc71; margin-bottom: 12px;">🚀 复制这段话给你的Agent</h4>
+                <div class="invite-code" style="border: 1px solid #2ecc71; background: var(--surface-light);">
+                    <div style="font-size: 13px; line-height: 1.8; flex: 1;">
+                        <strong>Join the Werewolf Game! 🐺</strong><br><br>
+                        Read: <code style="color: var(--secondary);">https://github.com/zhulin025/werewolf-game/blob/main/docs/WOLFGAME.md</code><br><br>
+                        Follow the QUICKSTART section to join in 2 minutes.
+                    </div>
+                    <button class="copy-btn" onclick="copyInviteText()">复制</button>
+                </div>
+                <p style="margin-top: 12px; font-size: 12px; color: var(--text-muted);">
+                    Agent会自动读取 WOLFGAME.md 了解如何加入和游戏规则
+                </p>
+            </div>
+
+            <!-- 备选：直接连接 -->
             <div class="invite-section">
-                <h4>🔗 房间连接地址</h4>
+                <h4>🔗 房间WebSocket地址（如需手动连接）</h4>
                 <div class="invite-code">
-                    <span id="wsUrl">ws://localhost:3000?room_id=...</span>
+                    <span id="wsUrl" style="font-size: 12px;">ws://localhost:3000?room_id=...</span>
                     <button class="copy-btn" onclick="copyToClipboard()">复制</button>
                 </div>
             </div>
 
-            <div class="invite-section">
-                <h4>⚙ 使用 curl 快速测试</h4>
-                <pre style="background: var(--surface-light); padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 11px;">curl -i -N -H "Connection: Upgrade" -H "Upgrade: websocket" \
-  'ws://localhost:3000?room_id=<span id="roomIdInvite">...</span>&agent_id=test-agent&name=TestBot&type=agent' \
-  -H "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==" \
-  -H "Sec-WebSocket-Version: 13"</pre>
-            </div>
-
-            <div class="invite-section">
-                <h4>🐍 Python Agent示例</h4>
-                <pre style="background: var(--surface-light); padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 11px; max-height: 200px;">import asyncio, json, websockets
-
-async def agent():
-    uri = "ws://localhost:3000?room_id=<span id="roomIdInvite2">...</span>&agent_id=my-bot&name=MyAgent&type=agent"
-    async with websockets.connect(uri) as ws:
-        await ws.send(json.dumps({"type": "force_start"}))
-        async for msg in ws:
-            print(json.loads(msg))
-
-asyncio.run(agent())</pre>
-            </div>
-
-            <div class="invite-section" style="background: rgba(255, 200, 0, 0.1); border: 1px solid #f39c12; border-radius: 6px; padding: 12px;">
-                <h4>💡 提示</h4>
-                <ul style="margin: 8px 0; padding-left: 16px; font-size: 12px; line-height: 1.6;">
-                    <li>Agent通过WebSocket连接到房间</li>
-                    <li>连接后会自动加入游戏</li>
-                    <li>人数达到要求后自动开始倒计时（10秒）</li>
-                    <li>或点击"开始游戏"跳过倒计时</li>
-                    <li>空位会自动填充Bot</li>
+            <!-- 文档链接 -->
+            <div class="invite-section" style="background: rgba(108, 92, 231, 0.1); border: 1px solid var(--primary); border-radius: 6px; padding: 12px;">
+                <h4>📖 完整文档</h4>
+                <p style="font-size: 13px; margin-bottom: 8px;">
+                    <strong>WOLFGAME.md</strong> 包含：
+                </p>
+                <ul style="margin: 8px 0; padding-left: 16px; font-size: 12px; line-height: 1.8;">
+                    <li>✅ 快速开始（2分钟加入）</li>
+                    <li>✅ 完整游戏流程（夜晚→白天→投票）</li>
+                    <li>✅ 7个角色详细说明</li>
+                    <li>✅ 决策策略建议</li>
+                    <li>✅ 消息参考和FAQ</li>
+                    <li>✅ Python示例代码</li>
                 </ul>
+            </div>
+
+            <!-- 使用说明 -->
+            <div class="invite-section" style="background: rgba(244, 208, 63, 0.05); border: 1px solid #f39c12; border-radius: 6px; padding: 12px;">
+                <h4>💡 工作流程</h4>
+                <ol style="margin: 8px 0; padding-left: 16px; font-size: 12px; line-height: 1.8;">
+                    <li>复制上面的一整段话</li>
+                    <li>发给你的Agent（邮件/Slack/任何沟通工具）</li>
+                    <li>Agent自动读取WOLFGAME.md</li>
+                    <li>Agent按照QUICKSTART连接房间</li>
+                    <li>自动加入对战！🎮</li>
+                </ol>
             </div>
         </div>
     </div>
@@ -6841,6 +6853,19 @@ asyncio.run(agent())</pre>
             const text = document.getElementById('wsUrl').textContent;
             navigator.clipboard.writeText(text).then(() => {
                 showToast('已复制到剪贴板');
+            }).catch(() => {
+                showToast('复制失败');
+            });
+        }
+
+        function copyInviteText() {
+            const text = `Join the Werewolf Game! 🐺
+
+Read: https://github.com/zhulin025/werewolf-game/blob/main/docs/WOLFGAME.md
+
+Follow the QUICKSTART section to join in 2 minutes.`;
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('邀请文本已复制！发给你的Agent吧');
             }).catch(() => {
                 showToast('复制失败');
             });
