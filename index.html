@@ -957,19 +957,18 @@
             font-size: 20px;
         }
 
-        /* Death popup modal - wider */
+        /* Death popup modal */
         .modal.death-popup {
-            max-width: 800px !important;
-            width: 800px !important;
-            padding: 30px 40px;
+            max-width: 400px !important;
+            width: 400px !important;
+            padding: 24px 28px;
             margin: auto !important;
         }
 
-        .death-item .lastwords {
+        .death-item .role-info {
             font-size: 11px;
-            color: #ffd700;
+            color: #a0a0c0;
             margin-top: 4px;
-            font-style: italic;
         }
 
         @keyframes dyingPulse {
@@ -2434,8 +2433,12 @@
         };
 
         // Add a death record
-        function addDeathRecord(playerName, cause, day, lastWords = '') {
-            gameState.deathRecords.push({ name: playerName, cause: cause, day: day, lastWords: lastWords });
+        function addDeathRecord(playerName, cause, day) {
+            // Look up player role from gameState
+            const player = gameState.players.find(p => p.name === playerName);
+            const roleName = player ? player.roleName : '';
+            const icon = player ? player.icon : '💀';
+            gameState.deathRecords.push({ name: playerName, cause: cause, day: day, roleName, icon });
             renderDeathRecords();
         }
 
@@ -2457,17 +2460,13 @@
                     'wolfking': '狼王带走'
                 }[record.cause] || record.cause;
                 
-                const lastWordsHtml = record.lastWords 
-                    ? `<div class="lastwords">"${record.lastWords}"</div>` 
-                    : '';
-                
                 div.innerHTML = `
                     <div class="main-info">
                         <span class="order">${index + 1}</span>
-                        <span class="name">${record.name}</span>
+                        <span class="name">${record.icon} ${record.name}</span>
                         <span class="cause ${record.cause}">${causeText}</span>
                     </div>
-                    ${lastWordsHtml}
+                    <div class="role-info">${record.roleName}</div>
                 `;
                 container.appendChild(div);
             });
@@ -4689,7 +4688,7 @@
                 SoundSystem.play('death');
                 mostVoted.isAlive = false;
                 showDeathAnimation(mostVoted.id);
-                addDeathRecord(mostVoted.name, 'vote', gameState.day, lastWords || '');
+                addDeathRecord(mostVoted.name, 'vote', gameState.day);
 
                 // Hunter ability when voted
                 if (mostVoted.role === 'HUNTER') {
@@ -4839,7 +4838,8 @@
                 return true;
             }
 
-            if (aliveWolf >= aliveGood) {
+            // Wolves win only when they outnumber the good team (strictly greater)
+            if (aliveWolf > aliveGood) {
                 endGame('wolf');
                 return true;
             }
@@ -4893,8 +4893,8 @@
                     const div = document.createElement('div');
                     div.className = 'death-item-mini';
                     const causeText = record.cause === 'vote' ? '投票' : record.cause === 'killed' ? '狼刀' : record.cause === 'hunter' ? '猎杀' : record.cause === 'wolfking' ? '狼王' : record.cause;
-                    const lastWordsText = record.lastWords ? ` "${record.lastWords}"` : '';
-                    div.innerHTML = `${index + 1}. ${record.name} <span class="cause">${causeText}</span>${lastWordsText}`;
+                    const icon = record.icon || '💀';
+                    div.innerHTML = `${index + 1}. ${icon} ${record.name}（${record.roleName}）<span class="cause">${causeText}</span>`;
                     deathSummaryList.appendChild(div);
                 });
             }
