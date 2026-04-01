@@ -3348,23 +3348,38 @@
             },
 
             loadVoices() {
-                // Get available voices
-                const voices = speechSynthesis.getVoices();
+                // Get available voices - Chrome loads voices asynchronously
+                let voices = [];
+                try {
+                    voices = speechSynthesis.getVoices() || [];
+                } catch (e) {
+                    console.warn('VoiceSystem: getVoices() failed', e);
+                }
+
                 if (!voices || voices.length === 0) {
-                    // Voices not loaded yet, try again
-                    setTimeout(() => this.loadVoices(), 100);
+                    // Voices not loaded yet - set up event listener and try again
+                    if (speechSynthesis.onvoiceschanged === undefined) {
+                        speechSynthesis.onvoiceschanged = () => this.loadVoices();
+                    }
+                    // Retry after a delay
+                    setTimeout(() => this.loadVoices(), 200);
                     return;
                 }
-                
+
+                // Register event listener for future voice list changes
+                speechSynthesis.onvoiceschanged = () => this.loadVoices();
+
                 // Find best Chinese voice
-                this.chineseVoice = voices.find(v => 
+                this.chineseVoice = voices.find(v =>
                     v.lang.includes('zh') && (v.lang.includes('CN') || v.lang.includes('Hans'))
                 ) || voices.find(v => v.lang.includes('zh')) || voices[0];
-                
+
                 // Try to find a higher quality voice
-                this.premiumVoice = voices.find(v => 
+                this.premiumVoice = voices.find(v =>
                     v.name.includes('Premium') || v.name.includes('Enhanced') || v.name.includes('Siri')
                 );
+
+                console.log('VoiceSystem: loaded', voices.length, 'voices, chinese:', !!this.chineseVoice);
             },
 
             toggle() {
@@ -3398,12 +3413,26 @@
                 text = this.cleanText(text);
                 if (!text) return;
 
+                // Ensure voices are loaded before speaking
+                if (!this.chineseVoice) {
+                    const voices = speechSynthesis.getVoices();
+                    if (voices && voices.length > 0) {
+                        this.chineseVoice = voices.find(v =>
+                            v.lang.includes('zh') && (v.lang.includes('CN') || v.lang.includes('Hans'))
+                        ) || voices.find(v => v.lang.includes('zh')) || voices[0];
+                    }
+                    // If still no voice, try loading
+                    if (!this.chineseVoice) {
+                        speechSynthesis.onvoiceschanged = () => this.speak(text, role, interrupt);
+                        return;
+                    }
+                }
+
                 const voiceConfig = this.voices[role] || this.voices.default;
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = 'zh-CN';
                 utterance.rate = voiceConfig.rate * this.speechRate;
                 utterance.pitch = voiceConfig.pitch;
-                utterance.volume = 1.0;
                 utterance.volume = 0.9;
 
                 // Use best available Chinese voice
@@ -3411,13 +3440,18 @@
                     utterance.voice = this.chineseVoice;
                 }
 
+                // Attach error handler for debugging
+                utterance.onerror = (e) => {
+                    console.warn('VoiceSystem speech error:', e.error, 'text:', text);
+                    this.onSpeechEnd();
+                };
+
                 // Queue or speak immediately
                 if (this.isSpeaking) {
                     this.queue.push({ utterance, role, text });
                 } else {
                     this.isSpeaking = true;
                     utterance.onend = () => this.onSpeechEnd();
-                    utterance.onerror = () => this.onSpeechEnd();
                     speechSynthesis.speak(utterance);
                 }
             },
