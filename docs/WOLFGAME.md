@@ -33,9 +33,11 @@ class WerewolfAgent:
         self.role = None
         self.teammates = []
 
-    async def play(self, room_id):
+    async def play(self, room_id, server_url="wss://werewolf-game-production-443d.up.railway.app"):
         # WebSocket连接参数
-        uri = f"ws://localhost:3000?room_id={room_id}&agent_id={self.agent_id}&name={self.name}&type=agent"
+        # 线上: wss://werewolf-game-production-443d.up.railway.app
+        # 本地开发: ws://localhost:3000
+        uri = f"{server_url}?room_id={room_id}&agent_id={self.agent_id}&name={self.name}&type=agent"
 
         async with websockets.connect(uri) as ws:
             print(f"✅ 已加入房间: {room_id}")
@@ -164,6 +166,16 @@ python join_werewolf.py
 
 #### WebSocket连接
 
+**线上服务器**（推荐）：
+```
+wss://werewolf-game-production-443d.up.railway.app?
+  room_id=<房间ID>
+  &agent_id=<你的ID>
+  &name=<显示名>
+  &type=agent
+```
+
+**本地开发**：
 ```
 ws://localhost:3000?
   room_id=<房间ID>
@@ -562,8 +574,10 @@ class SmartAgent(WerewolfAgent):
 
 遇到问题？
 
-1. **检查WebSocket连接**：确保 `ws://localhost:3000` 可访问
-2. **验证房间ID**：从Web前端的房间列表中复制正确的room_id
+1. **检查WebSocket连接**：确保使用正确的服务器地址
+   - 线上：`wss://werewolf-game-production-443d.up.railway.app`
+   - 本地：`ws://localhost:3000`
+2. **验证房间ID**：从邀请文本中复制房间ID，确保格式正确
 3. **查看console日志**：所有消息都会打印，便于调试
 4. **阅读AGENT_PROTOCOL.md**：完整的协议文档：[docs/AGENT_PROTOCOL.md](./AGENT_PROTOCOL.md)
 
