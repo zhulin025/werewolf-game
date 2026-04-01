@@ -872,6 +872,7 @@
         .player-card.speaking {
             border-color: #ffd700 !important;
             box-shadow: 0 0 30px rgba(255, 215, 0, 0.6) !important;
+            animation: speakingPulse 1s ease-in-out infinite;
         }
 
         .player-card.speaking::after {
@@ -881,6 +882,58 @@
             right: -10px;
             font-size: 24px;
             animation: pulse 0.5s ease-in-out infinite;
+        }
+
+        @keyframes speakingPulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.4); }
+            50% { box-shadow: 0 0 40px rgba(255, 215, 0, 0.8); }
+        }
+
+        /* Speech bubble */
+        .speech-bubble {
+            position: absolute;
+            bottom: calc(100% + 15px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, rgba(45, 27, 78, 0.98), rgba(30, 15, 60, 0.98));
+            border: 2px solid rgba(255, 215, 0, 0.6);
+            border-radius: 16px;
+            padding: 12px 16px;
+            max-width: 280px;
+            min-width: 200px;
+            text-align: center;
+            z-index: 100;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            animation: bubbleAppear 0.3s ease-out;
+        }
+
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 10px solid transparent;
+            border-top-color: rgba(45, 27, 78, 0.98);
+        }
+
+        .speech-bubble-text {
+            color: #fff;
+            font-size: 13px;
+            line-height: 1.4;
+            word-break: break-word;
+        }
+
+        .speech-bubble-role {
+            color: #ffd700;
+            font-size: 11px;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        @keyframes bubbleAppear {
+            from { opacity: 0; transform: translateX(-50%) translateY(10px) scale(0.8); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
         }
 
         /* Death animation */
@@ -900,7 +953,9 @@
         /* Death popup modal - wider */
         .modal.death-popup {
             max-width: 800px !important;
+            width: 800px !important;
             padding: 30px 40px;
+            margin: auto !important;
         }
 
         .death-item .lastwords {
@@ -908,10 +963,6 @@
             color: #ffd700;
             margin-top: 4px;
             font-style: italic;
-        }
-
-        .modal.death-popup .modal {
-            max-width: 100%;
         }
 
         @keyframes dyingPulse {
@@ -2634,6 +2685,33 @@
             document.getElementById('chroniclesLog').innerHTML = '';
         }
 
+        // ============ SPEECH BUBBLE ============
+        let currentSpeechBubble = null;
+
+        function showSpeechBubble(card, player, text) {
+            hideSpeechBubble(); // Remove any existing bubble
+
+            const bubble = document.createElement('div');
+            bubble.className = 'speech-bubble';
+            bubble.id = 'currentSpeechBubble';
+            bubble.innerHTML = `
+                <div class="speech-bubble-role">${player.icon} ${player.name}（${player.roleName}）</div>
+                <div class="speech-bubble-text">"${text}"</div>
+            `;
+
+            // Position relative to the player card
+            card.style.position = 'relative';
+            card.appendChild(bubble);
+            currentSpeechBubble = bubble;
+        }
+
+        function hideSpeechBubble() {
+            if (currentSpeechBubble) {
+                currentSpeechBubble.remove();
+                currentSpeechBubble = null;
+            }
+        }
+
         // ============ GAME SPEED CONTROL ============
         let gameSpeed = 1;
 
@@ -3964,13 +4042,18 @@
                 addLog(`💬 ${player.name}（${player.roleName}）：${aiText}`, 'speak');
                 SoundSystem.play('speak');
 
+                // Show speech bubble above player card
+                showSpeechBubble(speakerCard, player, aiText);
+
                 // AI speaks with voice
                 VoiceSystem.speakAs(`${player.name}说：${aiText}`, player.role.toLowerCase());
 
-                if (speakerCard) speakerCard.classList.remove('speaking');
-
                 // Wait for speech + voice
                 await pausedSleep(3000);
+
+                // Remove speech bubble and speaking highlight
+                hideSpeechBubble();
+                if (speakerCard) speakerCard.classList.remove('speaking');
             }
 
             // All AI have spoken, move to voting
@@ -4634,6 +4717,12 @@
                 const phrases = lastWordsPhrases[player.role] || ['永别了'];
                 const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
 
+                // For AI players, use random phrase; for human players, show input
+                const isHuman = !player.isAI;
+                const lastWordsContent = isHuman
+                    ? `<input type="text" id="lastWordsInput" class="lastwords-input" placeholder="输入你的遗言..." value="${randomPhrase}" style="width:100%;padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:rgba(0,0,0,0.3);color:#ffd700;font-size:16px;text-align:center;" />`
+                    : `<div style="font-size: 18px; color: #ffd700;">"${randomPhrase}"</div>`;
+
                 modal.innerHTML = `
                     <div class="modal death-popup" style="max-width: 800px; text-align: center;">
                         <div style="font-size: 80px; margin-bottom: 16px;">${player.icon}</div>
@@ -4645,11 +4734,24 @@
                         </div>
                         <div style="background: rgba(0,0,0,0.3); padding: 16px; border-radius: 12px; margin-bottom: 20px;">
                             <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">遗言</div>
-                            <div style="font-size: 18px; color: #ffd700;">"${randomPhrase}"</div>
+                            ${lastWordsContent}
                         </div>
-                        <button class="btn btn-primary" onclick="closeLastWordsModal()">我记住了</button>
+                        <button class="btn btn-primary" onclick="closeLastWordsModal()">${isHuman ? '发表遗言' : '我记住了'}</button>
                     </div>
                 `;
+
+                // For human players, focus the input and handle Enter key
+                if (isHuman) {
+                    setTimeout(() => {
+                        const input = document.getElementById('lastWordsInput');
+                        if (input) {
+                            input.focus();
+                            input.addEventListener('keydown', (e) => {
+                                if (e.key === 'Enter') closeLastWordsModal();
+                            });
+                        }
+                    }, 100);
+                }
 
                 document.body.appendChild(modal);
                 SoundSystem.playLastWords();
@@ -4675,7 +4777,8 @@
             }
             if (window.lastWordsResolve) {
                 const input = document.getElementById('lastWordsInput');
-                window.lastWordsResolve(input ? input.value : '过');
+                const lastWords = input ? (input.value.trim() || '过') : '过';
+                window.lastWordsResolve(lastWords);
                 window.lastWordsResolve = null;
             }
         }
