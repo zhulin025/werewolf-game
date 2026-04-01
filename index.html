@@ -2159,6 +2159,46 @@
         .game-return-btn.active { display: block; }
         .game-return-btn:hover { opacity: 0.9; }
 
+        /* ============ COUNTDOWN DISPLAY ============ */
+        .countdown-overlay {
+            display: none;
+            position: fixed; inset: 0;
+            z-index: 2000;
+            background: rgba(0, 0, 0, 0.8);
+            align-items: center; justify-content: center;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .countdown-overlay.active { display: flex; }
+
+        .countdown-timer {
+            font-family: 'Orbitron', monospace;
+            font-size: 120px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #e74c3c, #f39c12);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: countdownPulse 1s infinite;
+        }
+
+        @keyframes countdownPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .countdown-text {
+            font-size: 24px;
+            color: white;
+            text-align: center;
+        }
+
+        .countdown-subtext {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
     </style>
 </head>
 <body>
@@ -2343,6 +2383,13 @@ asyncio.run(agent())</pre>
     <button class="game-return-btn" id="gameReturnBtn" onclick="exitSpectatoring()">
         ← 返回房间
     </button>
+
+    <!-- Countdown Overlay -->
+    <div class="countdown-overlay" id="countdownOverlay">
+        <div class="countdown-text">游戏即将开始</div>
+        <div class="countdown-timer" id="countdownDisplay">10</div>
+        <div class="countdown-subtext">系统已填充Bot，准备开始...</div>
+    </div>
 
     <!-- Header -->
     <header>
@@ -6511,6 +6558,8 @@ asyncio.run(agent())</pre>
             };
         }
 
+        let countdownTimer = null;
+
         function handleSpectatorMessage(msg) {
             switch (msg.type) {
                 case 'welcome':
@@ -6528,6 +6577,7 @@ asyncio.run(agent())</pre>
                     break;
 
                 case 'countdown_start':
+                    showCountdown(msg.payload.seconds);
                     addLog(`⏱ 游戏将在 ${msg.payload.seconds} 秒后开始`, 'system');
                     break;
 
@@ -6593,6 +6643,9 @@ asyncio.run(agent())</pre>
             const phaseText = document.getElementById('phaseText');
             const headerPhase = document.getElementById('headerPhase');
             if (headerPhase) headerPhase.style.display = '';
+
+            // 隐藏倒计时
+            document.getElementById('countdownOverlay').classList.remove('active');
 
             if (phase === 'night') {
                 if (phaseIcon) phaseIcon.textContent = '🌙';
@@ -6816,6 +6869,29 @@ asyncio.run(agent())</pre>
                 if (startScreen) startScreen.style.display = '';
                 openLobby();
             }
+        }
+
+        // ============ COUNTDOWN DISPLAY ============
+
+        function showCountdown(seconds) {
+            const overlay = document.getElementById('countdownOverlay');
+            const display = document.getElementById('countdownDisplay');
+            overlay.classList.add('active');
+
+            if (countdownTimer) clearInterval(countdownTimer);
+
+            let remaining = seconds;
+            display.textContent = remaining;
+
+            countdownTimer = setInterval(() => {
+                remaining--;
+                display.textContent = Math.max(0, remaining);
+                if (remaining <= 0) {
+                    clearInterval(countdownTimer);
+                    countdownTimer = null;
+                    overlay.classList.remove('active');
+                }
+            }, 1000);
         }
 
         // ============ GLOBAL ERROR HANDLER ============
