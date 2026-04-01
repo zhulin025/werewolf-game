@@ -2342,8 +2342,9 @@
                 <div class="invite-code" style="border: 1px solid #2ecc71; background: var(--surface-light);">
                     <div style="font-size: 13px; line-height: 1.8; flex: 1;">
                         <strong>Join the Werewolf Game! 🐺</strong><br><br>
+                        Room ID: <code id="previewRoomId" style="color: #2ecc71; font-weight: bold;">...</code><br><br>
                         Read: <code style="color: var(--secondary);">https://github.com/zhulin025/werewolf-game/blob/main/docs/WOLFGAME.md</code><br><br>
-                        Follow the QUICKSTART section to join in 2 minutes.
+                        Follow the QUICKSTART section, use the room_id above to join in 2 minutes.
                     </div>
                     <button class="copy-btn" onclick="copyInviteText()">复制</button>
                 </div>
@@ -6837,8 +6838,14 @@
 
             // 更新邀请链接
             document.getElementById('wsUrl').textContent = `ws://${window.location.host}?room_id=${currentRoomDetail}&agent_id=<your_id>&name=<your_name>&type=agent`;
-            document.getElementById('roomIdInvite').textContent = currentRoomDetail;
-            document.getElementById('roomIdInvite2').textContent = currentRoomDetail;
+            const previewRoomId = document.getElementById('previewRoomId');
+            if (previewRoomId) {
+                previewRoomId.textContent = currentRoomDetail;
+            }
+            const roomIdInvite = document.getElementById('roomIdInvite');
+            if (roomIdInvite) roomIdInvite.textContent = currentRoomDetail;
+            const roomIdInvite2 = document.getElementById('roomIdInvite2');
+            if (roomIdInvite2) roomIdInvite2.textContent = currentRoomDetail;
         }
 
         function openInviteModal() {
@@ -6859,11 +6866,17 @@
         }
 
         function copyInviteText() {
+            if (!currentRoomDetail) {
+                showToast('请先创建房间');
+                return;
+            }
             const text = `Join the Werewolf Game! 🐺
+
+Room ID: ${currentRoomDetail}
 
 Read: https://github.com/zhulin025/werewolf-game/blob/main/docs/WOLFGAME.md
 
-Follow the QUICKSTART section to join in 2 minutes.`;
+Follow the QUICKSTART section, use the room_id above to join in 2 minutes.`;
             navigator.clipboard.writeText(text).then(() => {
                 showToast('邀请文本已复制！发给你的Agent吧');
             }).catch(() => {
