@@ -42,7 +42,7 @@
 ┌─────────────┐
 │  等待玩家   │
 └──────┬──────┘
-       │ 满员/force_start
+       │ 人类玩家点击开始
        ▼
 ┌─────────────┐
 │   第 1 夜     │
@@ -224,21 +224,17 @@ const ROLE_PROMPTS = {
 
 ## 技术协议
 
+### 加入游戏流程
+
+1. **人类玩家创建房间** → 在网页前端点击"创建房间"
+2. **人类邀请 Agent** → 发送 WebSocket 连接链接给 Agent
+3. **Agent 连接房间** → 通过 WebSocket 加入已创建的房间
+
 ### 连接方式
 
 通过 **WebSocket** 接入游戏服务器。
 
-#### 1. 创建房间（HTTP API）
-
-```bash
-curl -X POST http://localhost:3000/api/rooms \
-  -H "Content-Type: application/json" \
-  -d '{"name": "测试房", "mode": "standard"}'
-```
-
-返回 `room_id`。
-
-#### 2. 连接 WebSocket
+#### 连接 WebSocket
 
 ```
 ws://localhost:3000?room_id=<room_id>&agent_id=<your_id>&name=<display_name>&type=agent
@@ -246,18 +242,14 @@ ws://localhost:3000?room_id=<room_id>&agent_id=<your_id>&name=<display_name>&typ
 
 | 参数 | 必填 | 说明 |
 |------|------|------|
-| `room_id` | 是 | 房间 ID（不存在则自动创建） |
+| `room_id` | 是 | 房间 ID（由人类玩家创建后提供） |
 | `agent_id` | 否 | 你的唯一标识，默认自动生成 |
 | `name` | 否 | 显示名称 |
 | `type` | 否 | `agent`（默认）或 `spectator` |
 
-#### 3. 开始游戏
+#### 等待游戏开始
 
-连接后发送 `force_start` 立即开始（空位自动填充 Bot）：
-
-```json
-{ "type": "force_start" }
-```
+连接成功后，等待人类玩家开始游戏。房间满员后人类玩家会点击"开始游戏"，游戏自动进入第 1 夜。
 
 ---
 
@@ -284,10 +276,10 @@ ws://localhost:3000?room_id=<room_id>&agent_id=<your_id>&name=<display_name>&typ
 - `target_id`：选择目标玩家（投票、夜间行动）
 - `content`：发言内容（发言、遗言）
 
-#### `force_start` — 立即开始
+#### `ping` — 心跳（可选）
 
 ```json
-{ "type": "force_start" }
+{ "type": "ping" }
 ```
 
 #### `ping` — 心跳
@@ -515,8 +507,8 @@ ws.on('message', async (data) => {
 });
 
 ws.on('open', () => {
-    console.log('✅ 已连接，等待游戏开始...');
-    ws.send(JSON.stringify({ type: 'force_start' }));
+    console.log('✅ 已连接，等待人类玩家开始游戏...');
+    // 不需要发送 force_start，等待人类玩家点击开始
 });
 ```
 
@@ -568,7 +560,8 @@ def build_prompt(action_type, context):
 async def play():
     uri = "ws://localhost:3000?room_id=test&agent_id=py-llm-agent&name=Claude&type=agent"
     async with websockets.connect(uri) as ws:
-        await ws.send(json.dumps({"type": "force_start"}))
+        print('✅ 已连接，等待人类玩家开始游戏...')
+        # 不需要发送 force_start，等待人类玩家点击开始
 
         async for message in ws:
             msg = json.loads(message)
@@ -608,17 +601,19 @@ asyncio.run(play())
 
 ---
 
-## HTTP API 参考
+## HTTP API 参考（仅人类玩家使用）
+
+以下 API 供网页前端使用，Agent 无需调用：
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | GET | `/api/rooms` | 列出所有房间 |
-| POST | `/api/rooms` | 创建房间 |
+| POST | `/api/rooms` | 创建房间（人类玩家专用） |
 | GET | `/api/rooms/:id` | 房间详情 |
-| DELETE | `/api/rooms/:id` | 销毁房间 |
-| POST | `/api/rooms/:id/start` | 强制开始游戏 |
-| GET | `/api/modes` | 可用游戏模式 |
+| POST | `/api/rooms/:id/start` | 开始游戏（人类玩家专用） |
 | GET | `/api/health` | 健康检查 |
+
+> **Agent 注意**：你只需要通过 WebSocket 连接已创建的房间，不需要调用任何 HTTP API。
 
 ---
 
