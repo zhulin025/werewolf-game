@@ -6628,6 +6628,11 @@
 
         function handlePhaseChange(payload) {
             const { phase, day } = payload;
+
+            // Sync gameState so updatePhaseDisplay() works correctly
+            gameState.phase = phase;
+            gameState.day = day;
+
             const phaseIcon = document.getElementById('phaseIcon');
             const phaseText = document.getElementById('phaseText');
             const headerPhase = document.getElementById('headerPhase');
@@ -6645,11 +6650,15 @@
                 if (phaseIcon) phaseIcon.textContent = '☀';
                 if (phaseText) phaseText.textContent = `第${day}天`;
                 addLog(`☀ ═══ 第${day}天 ═══`, 'system');
+                document.getElementById('statDay').textContent = day;
             } else if (phase === 'vote') {
                 if (phaseIcon) phaseIcon.textContent = '🗳';
                 if (phaseText) phaseText.textContent = `投票`;
                 addLog('🗳 投票环节开始', 'system');
             }
+
+            // Update center display (centerSubtitle, centerRound)
+            updatePhaseDisplay();
         }
 
         function handlePublicEvent(payload) {
@@ -6659,18 +6668,32 @@
                     if (payload.deaths && payload.deaths.length > 0) {
                         for (const d of payload.deaths) {
                             addLog(`💀 ${d.player_name} 昨夜死亡`, 'death');
+                            VoiceSystem.speak(`${d.player_name}昨夜死亡`);
+                            markPlayerDead(d.player_id);
                         }
-                    } else if (payload.message) {
-                        addLog(`🌿 ${payload.message}`, 'system');
+                    } else {
+                        addLog('🌿 昨夜平安无事', 'system');
                     }
                     break;
                 case 'speaking_turn':
                     addLog(`🎤 轮到 ${payload.player_name} 发言`, 'system');
                     break;
-                case 'speech':
+                case 'speech': {
                     addLog(`💬 ${payload.player_name}：${payload.content}`, 'speak');
                     VoiceSystem.speak(`${payload.player_name}说：${payload.content}`);
+                    // Show speech bubble on player card (same as local simulation)
+                    const speakerCard = document.getElementById(`player-${payload.player_id}`);
+                    if (speakerCard) {
+                        speakerCard.classList.add('speaking');
+                        const speakerPlayer = gameState.players.find(p => p.id === payload.player_id);
+                        if (speakerPlayer) showSpeechBubble(speakerCard, speakerPlayer, payload.content);
+                        setTimeout(() => {
+                            speakerCard.classList.remove('speaking');
+                            hideSpeechBubble();
+                        }, 5000);
+                    }
                     break;
+                }
                 case 'vote_cast':
                     addLog(`🗳 ${payload.voter_name} → ${payload.target_name}`, 'vote');
                     break;
@@ -6683,6 +6706,7 @@
                 case 'elimination':
                     addLog(`⚔ ${payload.player_name} 被投票出局 (${payload.votes}票)`, 'death');
                     VoiceSystem.speak(`${payload.player_name}被投票出局`);
+                    markPlayerDead(payload.player_id);
                     break;
                 case 'tie_broken':
                     addLog(`⚖ ${payload.message}`, 'system');
@@ -6693,14 +6717,31 @@
                     break;
                 case 'death':
                     addLog(`💀 ${payload.message || payload.player_name + ' 死亡'}`, 'death');
+                    if (payload.player_id !== undefined) markPlayerDead(payload.player_id);
                     break;
+            }
+        }
+
+        function markPlayerDead(playerId) {
+            const player = gameState.players.find(p => p.id === playerId);
+            if (player) {
+                player.isAlive = false;
+                renderPlayers();
+                // Update alive stats
+                const alive = gameState.players.filter(p => p.isAlive);
+                const goodAlive = alive.filter(p => p.camp === 'good').length;
+                const wolfAlive = alive.filter(p => p.camp === 'wolf').length;
+                document.getElementById('statGood').textContent = goodAlive;
+                document.getElementById('statWolf').textContent = wolfAlive;
+                document.getElementById('statAlive').textContent = alive.length;
             }
         }
 
         function updateSpectatorPlayers(players) {
             // Update game state players for the ring display
-            gameState.players = players.map(p => ({
+            gameState.players = players.map((p, index) => ({
                 id: p.id,
+                number: p.id + 1,   // player number = id+1
                 name: p.name,
                 role: p.role || 'UNKNOWN',
                 roleName: p.roleName || '?',
