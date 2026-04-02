@@ -262,11 +262,7 @@ function handleMessage(room, connectionId, msg) {
             break;
 
         case 'force_start':
-            // Skip countdown, start immediately
-            if (room.status === 'waiting' || room.status === 'countdown') {
-                room.cancelCountdown?.();
-                room.startGame();
-            }
+            // Agent cannot force start — game start is controlled by the host via HTTP API or when room is full
             break;
 
         case 'ping':
