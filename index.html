@@ -2059,10 +2059,10 @@
         }
 
         .spectator-badge {
-            position: fixed; top: 12px; right: 12px; z-index: 999;
+            position: fixed; top: 72px; right: 12px; z-index: 999;
             background: linear-gradient(135deg, #e74c3c, #c0392b);
-            color: white; padding: 6px 14px; border-radius: 20px;
-            font-size: 13px; font-weight: 600;
+            color: white; padding: 5px 12px; border-radius: 20px;
+            font-size: 12px; font-weight: 600;
             display: none; align-items: center; gap: 6px;
             box-shadow: 0 2px 8px rgba(231, 76, 60, 0.4);
         }
@@ -2176,7 +2176,7 @@
         }
 
         .game-return-btn {
-            position: fixed; top: 12px; left: 12px; z-index: 999;
+            position: fixed; top: 72px; left: 12px; z-index: 999;
             background: linear-gradient(135deg, #6c5ce7, #5f3dc4);
             color: white; border: none; border-radius: 8px;
             padding: 8px 16px; cursor: pointer;
@@ -2186,12 +2186,14 @@
         .game-return-btn:hover { opacity: 0.9; }
 
         .role-toggle-btn {
-            position: fixed; top: 12px; right: 12px; z-index: 999;
+            position: fixed; top: 72px; right: 12px; z-index: 999;
             background: linear-gradient(135deg, #00b894, #00897b);
             color: white; border: none; border-radius: 8px;
             padding: 8px 14px; cursor: pointer;
             font-size: 13px; font-weight: 600;
+            display: none;
         }
+        .role-toggle-btn.active { display: block; }
         .role-toggle-btn:hover { opacity: 0.9; }
 
         /* ============ COUNTDOWN DISPLAY ============ */
@@ -2409,9 +2411,12 @@
 
     <!-- Header -->
     <header>
-        <div class="logo">
-            <span class="logo-icon">🐺</span>
-            <span>AI狼人杀</span>
+        <div style="display:flex;align-items:center;gap:12px;">
+            <button class="btn btn-secondary header-back-btn" id="headerBackBtn" onclick="backToHome()" style="display:none;font-size:12px;padding:6px 10px;">← 返回</button>
+            <div class="logo">
+                <span class="logo-icon">🐺</span>
+                <span>AI狼人杀</span>
+            </div>
         </div>
         <div class="header-phase" id="headerPhase" style="display: none;">
             <span class="phase-icon" id="phaseIcon">🌙</span>
@@ -2551,7 +2556,7 @@
 
     <!-- Settings Modal -->
     <div class="modal-overlay" id="settingsModal">
-        <div class="modal" style="max-width: 520px;">
+        <div class="modal" style="max-width: 480px;">
             <div class="modal-content">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h2 style="font-family: 'Orbitron', sans-serif; font-size: 20px;">⚙️ 设置</h2>
@@ -2560,107 +2565,42 @@
 
                 <div class="settings-section">
                     <h3>🎨 主题皮肤</h3>
-                    <div class="skin-grid" id="skinGrid">
-                        <!-- Skins will be added by JS -->
-                    </div>
+                    <div class="skin-grid" id="skinGrid"></div>
                 </div>
 
                 <div class="settings-section">
-                    <h3>🔊 音效设置</h3>
-                    <div class="ai-config">
-                        <div class="config-row">
-                            <label>音效</label>
-                            <button class="btn btn-sm" onclick="toggleSound()" id="soundToggle">开启</button>
+                    <h3>🔊 声音</h3>
+                    <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span style="font-size:13px;color:var(--text-muted);">音效</span>
+                            <button class="btn btn-sm" onclick="toggleSound()" id="soundToggle" style="min-width:50px;">开启</button>
                         </div>
-                        <div class="config-row">
-                            <label>语音</label>
-                            <button class="btn btn-sm" onclick="toggleVoice()" id="voiceToggle">开启</button>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span style="font-size:13px;color:var(--text-muted);">语音</span>
+                            <button class="btn btn-sm" onclick="toggleVoice()" id="voiceToggle" style="min-width:50px;">开启</button>
                         </div>
-                        <div class="config-row">
-                            <label>语速</label>
-                            <div style="display: flex; gap: 8px; align-items: center;">
-                                <input type="range" min="0.5" max="2" step="0.1" value="1" 
-                                    style="flex: 1;" onchange="setVoiceRate(this.value)">
-                                <span id="voiceRateValue">1.0x</span>
-                            </div>
+                        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:150px;">
+                            <span style="font-size:13px;color:var(--text-muted);white-space:nowrap;">语速</span>
+                            <input type="range" min="0.5" max="2" step="0.1" value="1"
+                                style="flex:1;accent-color:var(--primary);" onchange="setVoiceRate(this.value)">
+                            <span id="voiceRateValue" style="font-size:12px;min-width:30px;">1.0x</span>
                         </div>
                     </div>
                 </div>
 
                 <div class="settings-section">
                     <h3>📊 我的战绩</h3>
-                    <div class="stats-grid" id="statsSummary">
-                        <!-- Stats will be added by JS -->
-                    </div>
+                    <div class="stats-grid" id="statsSummary"></div>
                 </div>
 
                 <div class="settings-section">
                     <h3>🎮 角色胜率</h3>
-                    <div id="roleWinrates">
-                        <!-- Role winrates will be added by JS -->
-                    </div>
+                    <div id="roleWinrates"></div>
                 </div>
 
                 <div class="settings-section">
                     <h3>🏆 成就</h3>
-                    <div id="achievementList">
-                        <!-- Achievements will be listed here -->
-                    </div>
-                </div>
-
-                <div class="settings-section">
-                    <h3>📽️ 游戏回放</h3>
-                    <div class="replay-list" id="replayList">
-                        <p style="color: var(--text-muted); font-size: 13px;">暂无录像</p>
-                    </div>
-                </div>
-
-                <div class="settings-section">
-                    <h3>🤖 AI配置</h3>
-                    <div class="ai-config">
-                        <div class="config-row">
-                            <label>模式</label>
-                            <select id="aiProvider" onchange="updateAIConfig()">
-                                <option value="local">本地智能AI（免费）</option>
-                                <option value="siliconflow">SiliconFlow API</option>
-                                <option value="openai">OpenAI API</option>
-                                <option value="deepseek">DeepSeek API</option>
-                            </select>
-                        </div>
-                        <div class="config-row" id="apiKeyRow" style="display: none;">
-                            <label>API Key</label>
-                            <input type="password" id="aiApiKey" placeholder="输入API密钥">
-                        </div>
-                        <div class="config-row" id="baseUrlRow" style="display: none;">
-                            <label>Base URL</label>
-                            <input type="text" id="aiBaseUrl" placeholder="https://api.siliconflow.cn/v1">
-                        </div>
-                        <div class="config-row">
-                            <label>模型</label>
-                            <select id="aiModel">
-                                <option value="Qwen/Qwen2.5-14B-Instruct">Qwen 14B</option>
-                                <option value="deepseek-ai/DeepSeek-V3">DeepSeek V3</option>
-                                <option value="gpt-4">GPT-4</option>
-                                <option value="claude-3-opus">Claude 3</option>
-                            </select>
-                        </div>
-                        <button class="btn btn-primary" onclick="saveAIConfig()" style="margin-top: 8px; width: 100%;">
-                            保存AI配置
-                        </button>
-                    </div>
-                </div>
-
-                <div class="settings-section">
-                    <h3>🔗 Agent接入指南</h3>
-                    <div style="font-size: 12px; color: var(--text-muted); line-height: 1.6;">
-                        <p style="margin-bottom: 8px;">要接入其他Agent，需要：</p>
-                        <ol style="padding-left: 16px;">
-                            <li>启动多Agent服务器：<code style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px;">cd werewolf-game && npm start</code></li>
-                            <li style="margin-top: 4px;">服务器地址：<code style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px;">ws://localhost:3000/ws</code></li>
-                            <li style="margin-top: 4px;">详细协议见文档：<code style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px;">docs/AGENT_PROTOCOL.md</code></li>
-                        </ol>
-                        <p style="margin-top: 10px; color: var(--accent);">💡 当前单机模式不支持直接接入外部Agent</p>
-                    </div>
+                    <div id="achievementList"></div>
                 </div>
 
                 <div style="margin-top: 20px; display: flex; gap: 12px;">
@@ -2802,23 +2742,13 @@
         // ============ GAME CONFIGURATION ============
         // Role images mapping
         const ROLE_IMAGES = {
-            VILLAGER: 'assets/images/01_村民.png',
-            PROPHET: 'assets/images/02_预言家.png',
-            WITCH: 'assets/images/03_女巫.png',
-            GUARD: 'assets/images/04_守卫.png',
-            HUNTER: 'assets/images/05_猎人.png',
-            WOLF: 'assets/images/05_普通狼人.png',
-            WOLF_KING: 'assets/images/06_狼王.png'
-        };
-
-        const ROLE_IMAGES = {
-            VILLAGER:  '/assets/images/01_村民.png',
-            PROPHET:   '/assets/images/02_预言家.png',
-            WITCH:     '/assets/images/03_女巫.png',
-            GUARD:     '/assets/images/04_守卫.png',
-            WOLF:      '/assets/images/05_普通狼人.png',
-            WOLF_KING: '/assets/images/06_狼王.png',
-            HUNTER:    null, // 暂无图片，fallback到emoji
+            VILLAGER:  'assets/images/01_村民.png',
+            PROPHET:   'assets/images/02_预言家.png',
+            WITCH:     'assets/images/03_女巫.png',
+            GUARD:     'assets/images/04_守卫.png',
+            WOLF:      'assets/images/05_普通狼人.png',
+            WOLF_KING: 'assets/images/06_狼王.png',
+            HUNTER:    'assets/images/07_猎人.png',
         };
 
         const ROLES = {
@@ -2995,13 +2925,31 @@
                 const roleLabel = (showRoles && player.roleName && player.roleName !== '?')
                     ? `<div style="font-size:9px;color:rgba(255,255,255,0.75);margin-top:1px;text-shadow:0 1px 3px rgba(0,0,0,0.9);">${player.roleName}</div>`
                     : '';
-                // When an image is available: show it in the avatar circle, hide the emoji
-                const avatarStyle = imgSrc
-                    ? `background-image:url('${imgSrc}');color:transparent;`
-                    : '';
+
+                // Avatar: show role image only when showRoles is on; otherwise generic colored circle
+                let avatarContent, avatarStyle;
+                if (showRoles && imgSrc) {
+                    avatarContent = '';
+                    avatarStyle = `background-image:url('${imgSrc}');`;
+                } else if (showRoles && !imgSrc) {
+                    avatarContent = player.icon;
+                    avatarStyle = '';
+                } else {
+                    // Hidden role mode: show mystery avatar with player-unique color
+                    const hues = [210, 340, 160, 280, 40, 0, 120, 200, 300, 60, 180, 240];
+                    const hue = hues[player.id % hues.length];
+                    avatarContent = '?';
+                    avatarStyle = `background:linear-gradient(135deg, hsl(${hue},50%,35%), hsl(${hue},60%,20%));font-size:24px;color:rgba(255,255,255,0.4);`;
+                }
+                // Also hide camp-based border when roles hidden
+                if (!showRoles) {
+                    card.className = 'player-card';
+                    if (!player.isAlive) card.classList.add('dead');
+                }
+
                 card.innerHTML = `
                     <div style="font-size:11px;color:rgba(255,255,255,0.7);margin-bottom:2px;">${player.number}号</div>
-                    <div class="player-avatar" style="${avatarStyle}">${imgSrc ? '' : player.icon}</div>
+                    <div class="player-avatar" style="${avatarStyle}">${avatarContent}</div>
                     <div class="player-name" style="font-size:12px;font-weight:bold;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.8);margin-top:2px;margin-bottom:2px;">${player.name}</div>
                     ${roleLabel}
                 `;
@@ -4094,6 +4042,24 @@
             });
         }
 
+        // Back to home screen (from local sim mode)
+        function backToHome() {
+            if (gameState.phase !== 'end' && gameState.phase !== 'waiting') {
+                if (!confirm('游戏进行中，确定要返回首页吗？')) return;
+            }
+            // Cancel pending phase
+            if (typeof phaseTimeout !== 'undefined' && phaseTimeout) {
+                clearTimeout(phaseTimeout); phaseTimeout = null;
+            }
+            VoiceSystem.stop();
+            gameState.phase = 'end';
+            document.getElementById('startScreen').style.display = '';
+            document.getElementById('headerBackBtn').style.display = 'none';
+            document.getElementById('toggleRolesBtn').classList.remove('active');
+            const gameOverModal = document.getElementById('gameOverModal');
+            if (gameOverModal) gameOverModal.classList.remove('active');
+        }
+
         // Play again - close modal and restart
         function playAgain() {
             const gameOverModal = document.getElementById('gameOverModal');
@@ -4122,6 +4088,10 @@
                 if (actionPanel) {
                     actionPanel.style.display = 'none';
                 }
+
+                // Show role toggle + back button
+                document.getElementById('toggleRolesBtn').classList.add('active');
+                document.getElementById('headerBackBtn').style.display = '';
 
                 // Reset game
                 initGame();
@@ -6575,7 +6545,12 @@
             spectatorRoomId = roomId;
             document.getElementById('spectatorBadge').classList.add('active');
             document.getElementById('gameReturnBtn').classList.add('active');
+            document.getElementById('toggleRolesBtn').classList.add('active');
             document.getElementById('wsDot').className = 'ws-dot connecting';
+
+            // Hide irrelevant local-sim controls in spectator mode
+            document.querySelector('.speed-control').style.display = 'none';
+            document.querySelector('.header-actions .btn-primary').style.display = 'none'; // 新游戏 btn
 
             // Initialize display — spectator mode: clear state, wait for real server data
             VoiceSystem.warmup();
@@ -6994,7 +6969,12 @@
             isSpectating = false;
             if (lobbyWs) { lobbyWs.close(); lobbyWs = null; }
             document.getElementById('spectatorBadge').classList.remove('active');
+            document.getElementById('toggleRolesBtn').classList.remove('active');
             document.getElementById('startScreen').style.display = '';
+            // Restore local-sim controls
+            document.querySelector('.speed-control').style.display = '';
+            const newGameBtn = document.querySelector('.header-actions .btn-primary');
+            if (newGameBtn) newGameBtn.style.display = '';
         }
 
         // ============ ROOM DETAIL PAGE ============
