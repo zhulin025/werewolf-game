@@ -2385,6 +2385,7 @@
                 <button class="speed-btn" onclick="setSpeed(2)" id="speed20">2x</button>
                 <button class="speed-btn" onclick="setSpeed(5)" id="speed50">5x</button>
             </div>
+            <button class="btn btn-secondary" id="toggleRolesBtn" onclick="toggleRolesDisplay()">🎭 显示角色</button>
             <button class="btn btn-secondary" onclick="showSettings()">⚙️ 设置</button>
             <button class="btn btn-primary" onclick="startGame()">🆕 新游戏</button>
         </div>
@@ -2798,6 +2799,15 @@
             renderDeathRecords();
         }
 
+        // Role display toggle
+        let showRoles = false;
+        function toggleRolesDisplay() {
+            showRoles = !showRoles;
+            const btn = document.getElementById('toggleRolesBtn');
+            if (btn) btn.textContent = showRoles ? '🙈 隐藏角色' : '🎭 显示角色';
+            renderPlayers();
+        }
+
         // Render death records
         function renderDeathRecords() {
             const container = document.getElementById('deathRecords');
@@ -2886,6 +2896,9 @@
             nightActions.wolfTarget = null;
             gameState.suspects = [];
             gameState.deathRecords = [];
+            showRoles = false;
+            const toggleBtn = document.getElementById('toggleRolesBtn');
+            if (toggleBtn) toggleBtn.textContent = '🎭 显示角色';
 
             renderPlayers();
             renderDeathRecords();
@@ -2918,7 +2931,7 @@
                 card.id = `player-${player.id}`;
                 card.onclick = () => onPlayerClick(player);
 
-                const roleLabel = (player.roleName && player.roleName !== '?')
+                const roleLabel = (showRoles && player.roleName && player.roleName !== '?')
                     ? `<div style="font-size:9px;color:rgba(255,255,255,0.6);margin-top:1px;">${player.roleName}</div>`
                     : '';
                 card.innerHTML = `
@@ -6509,6 +6522,9 @@
             gameState.phase = 'waiting';
             gameState.day = 0;
             gameState.deathRecords = [];
+            showRoles = false;
+            const toggleBtn2 = document.getElementById('toggleRolesBtn');
+            if (toggleBtn2) toggleBtn2.textContent = '🎭 显示角色';
             renderPlayers();
             renderDeathRecords();
             clearLogs();
