@@ -754,17 +754,15 @@
             position: relative;
         }
         
-        /* Role image overlay effect */
+        /* Subtle vignette on role images */
         .player-avatar::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             border-radius: 50%;
-            background: rgba(0, 0, 0, 0.3);
+            background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.25) 100%);
             z-index: 1;
+            pointer-events: none;
         }
         
         .player-avatar > * {
@@ -2813,6 +2811,16 @@
             WOLF_KING: 'assets/images/06_狼王.png'
         };
 
+        const ROLE_IMAGES = {
+            VILLAGER:  '/assets/images/01_村民.png',
+            PROPHET:   '/assets/images/02_预言家.png',
+            WITCH:     '/assets/images/03_女巫.png',
+            GUARD:     '/assets/images/04_守卫.png',
+            WOLF:      '/assets/images/05_普通狼人.png',
+            WOLF_KING: '/assets/images/06_狼王.png',
+            HUNTER:    null, // 暂无图片，fallback到emoji
+        };
+
         const ROLES = {
             VILLAGER: { name: '村民', camp: 'good', icon: '👤', image: ROLE_IMAGES.VILLAGER, desc: '没有任何特殊技能，但你的分析和逻辑是找出狼人的关键。仔细观察每个人的发言和投票，找到狼人的破绽！' },
             PROPHET: { name: '预言家', camp: 'good', icon: '🔮', image: ROLE_IMAGES.PROPHET, desc: '每晚可以查验一名玩家的身份是好是坏。善用你的查验信息，但要小心狼人可能假跳预言家！' },
@@ -2983,17 +2991,17 @@
                 card.id = `player-${player.id}`;
                 card.onclick = () => onPlayerClick(player);
 
-                // Get role image for background
-                const roleImage = player.roleKey && ROLE_IMAGES[player.roleKey] 
-                    ? `url('${ROLE_IMAGES[player.roleKey]}')` 
-                    : 'none';
-                
+                const imgSrc = ROLE_IMAGES[player.role];
                 const roleLabel = (showRoles && player.roleName && player.roleName !== '?')
-                    ? `<div style="font-size:9px;color:rgba(255,255,255,0.6);margin-top:1px;">${player.roleName}</div>`
+                    ? `<div style="font-size:9px;color:rgba(255,255,255,0.75);margin-top:1px;text-shadow:0 1px 3px rgba(0,0,0,0.9);">${player.roleName}</div>`
+                    : '';
+                // When an image is available: show it in the avatar circle, hide the emoji
+                const avatarStyle = imgSrc
+                    ? `background-image:url('${imgSrc}');color:transparent;`
                     : '';
                 card.innerHTML = `
                     <div style="font-size:11px;color:rgba(255,255,255,0.7);margin-bottom:2px;">${player.number}号</div>
-                    <div class="player-avatar" style="background-image:${roleImage};background-size:cover;background-position:center;background-repeat:no-repeat;">${player.icon}</div>
+                    <div class="player-avatar" style="${avatarStyle}">${imgSrc ? '' : player.icon}</div>
                     <div class="player-name" style="font-size:12px;font-weight:bold;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.8);margin-top:2px;margin-bottom:2px;">${player.name}</div>
                     ${roleLabel}
                 `;
