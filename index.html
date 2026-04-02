@@ -2159,6 +2159,15 @@
         .game-return-btn.active { display: block; }
         .game-return-btn:hover { opacity: 0.9; }
 
+        .role-toggle-btn {
+            position: fixed; top: 12px; right: 12px; z-index: 999;
+            background: linear-gradient(135deg, #00b894, #00897b);
+            color: white; border: none; border-radius: 8px;
+            padding: 8px 14px; cursor: pointer;
+            font-size: 13px; font-weight: 600;
+        }
+        .role-toggle-btn:hover { opacity: 0.9; }
+
         /* ============ COUNTDOWN DISPLAY ============ */
         .countdown-overlay {
             display: none;
@@ -2360,6 +2369,11 @@
         ← 返回房间
     </button>
 
+    <!-- Role Toggle Button (floating, always visible in-game) -->
+    <button class="role-toggle-btn" id="toggleRolesBtn" onclick="toggleRolesDisplay()">
+        🎭 显示角色
+    </button>
+
     <!-- Countdown Overlay -->
     <div class="countdown-overlay" id="countdownOverlay">
         <div class="countdown-text">游戏即将开始</div>
@@ -2385,7 +2399,6 @@
                 <button class="speed-btn" onclick="setSpeed(2)" id="speed20">2x</button>
                 <button class="speed-btn" onclick="setSpeed(5)" id="speed50">5x</button>
             </div>
-            <button class="btn btn-secondary" id="toggleRolesBtn" onclick="toggleRolesDisplay()">🎭 显示角色</button>
             <button class="btn btn-secondary" onclick="showSettings()">⚙️ 设置</button>
             <button class="btn btn-primary" onclick="startGame()">🆕 新游戏</button>
         </div>
@@ -6735,14 +6748,28 @@
                     }
                     break;
                 }
-                case 'vote_cast':
+                case 'vote_cast': {
                     addLog(`🗳 ${payload.voter_name} → ${payload.target_name}`, 'vote');
+                    // Vote animation: highlight voter, draw line to target
+                    const voterCard = document.getElementById(`player-${payload.voter_id}`);
+                    const targetCard = document.getElementById(`player-${payload.target_id}`);
+                    if (voterCard) {
+                        voterCard.classList.add('voting-target');
+                        if (targetCard) {
+                            targetCard.classList.add('voted');
+                            drawVoteLine(voterCard, payload.target_id);
+                        }
+                        setTimeout(() => voterCard.classList.remove('voting-target'), 1500);
+                    }
                     break;
+                }
                 case 'vote_result':
                     if (payload.votes) {
                         const summary = payload.votes.map(v => `${v.player_name}(${v.count}票)`).join(', ');
                         addLog(`📊 投票结果: ${summary}`, 'system');
                     }
+                    // Clear vote highlights
+                    document.querySelectorAll('.player-card.voted').forEach(c => c.classList.remove('voted'));
                     break;
                 case 'elimination': {
                     addLog(`⚔ ${payload.player_name} 被投票出局 (${payload.votes}票)`, 'death');
