@@ -1090,6 +1090,35 @@
             letter-spacing: 1px;
         }
 
+        /* Toggle switch style for settings */
+        .sound-toggle-btn {
+            display: flex; align-items: center; gap: 8px;
+            background: none; border: none; cursor: pointer; padding: 0;
+        }
+        .toggle-track {
+            width: 40px; height: 22px; border-radius: 11px;
+            background: rgba(255,255,255,0.15);
+            position: relative; transition: background 0.3s;
+        }
+        .sound-toggle-btn.on .toggle-track {
+            background: var(--primary);
+        }
+        .toggle-thumb {
+            position: absolute; top: 2px; left: 2px;
+            width: 18px; height: 18px; border-radius: 50%;
+            background: white; transition: transform 0.3s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        .sound-toggle-btn.on .toggle-thumb {
+            transform: translateX(18px);
+        }
+        .toggle-label {
+            font-size: 12px; color: var(--text-muted); min-width: 28px;
+        }
+        .sound-toggle-btn.on .toggle-label {
+            color: var(--primary);
+        }
+
         .skin-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -2185,17 +2214,6 @@
         .game-return-btn.active { display: block; }
         .game-return-btn:hover { opacity: 0.9; }
 
-        .role-toggle-btn {
-            position: fixed; top: 72px; right: 12px; z-index: 999;
-            background: linear-gradient(135deg, #00b894, #00897b);
-            color: white; border: none; border-radius: 8px;
-            padding: 8px 14px; cursor: pointer;
-            font-size: 13px; font-weight: 600;
-            display: none;
-        }
-        .role-toggle-btn.active { display: block; }
-        .role-toggle-btn:hover { opacity: 0.9; }
-
         /* ============ COUNTDOWN DISPLAY ============ */
         .countdown-overlay {
             display: none;
@@ -2397,10 +2415,8 @@
         ← 返回房间
     </button>
 
-    <!-- Role Toggle Button (floating, always visible in-game) -->
-    <button class="role-toggle-btn" id="toggleRolesBtn" onclick="toggleRolesDisplay()">
-        🎭 显示角色
-    </button>
+    <!-- Role Toggle Button (managed by JS, shown/hidden in-game) -->
+    <!-- Moved into header-actions -->
 
     <!-- Countdown Overlay -->
     <div class="countdown-overlay" id="countdownOverlay">
@@ -2423,6 +2439,7 @@
             <span id="phaseText">等待开始</span>
         </div>
         <div class="header-actions">
+            <button class="btn btn-secondary" id="toggleRolesBtn" onclick="toggleRolesDisplay()" style="display:none;background:linear-gradient(135deg,#00b894,#00897b);border:none;color:#fff;">🎭 显示角色</button>
             <div class="speed-control">
                 <span style="font-size: 12px; color: var(--text-muted);">速度:</span>
                 <button class="speed-btn" onclick="setSpeed(0.5)" id="speed05">0.5x</button>
@@ -2430,7 +2447,7 @@
                 <button class="speed-btn" onclick="setSpeed(2)" id="speed20">2x</button>
                 <button class="speed-btn" onclick="setSpeed(5)" id="speed50">5x</button>
             </div>
-            <button class="btn btn-secondary" onclick="showSettings()">⚙️ 设置</button>
+            <button class="btn btn-secondary" onclick="showSettings()">⚙️</button>
             <button class="btn btn-primary" onclick="startGame()">🆕 新游戏</button>
         </div>
     </header>
@@ -2570,20 +2587,26 @@
 
                 <div class="settings-section">
                     <h3>🔊 声音</h3>
-                    <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
-                        <div style="display:flex;align-items:center;gap:8px;">
-                            <span style="font-size:13px;color:var(--text-muted);">音效</span>
-                            <button class="btn btn-sm" onclick="toggleSound()" id="soundToggle" style="min-width:50px;">开启</button>
+                    <div style="display:flex;flex-direction:column;gap:12px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;">
+                            <span style="font-size:13px;color:var(--text);">音效</span>
+                            <button class="sound-toggle-btn" onclick="toggleSound()" id="soundToggle">
+                                <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                                <span class="toggle-label">开启</span>
+                            </button>
                         </div>
-                        <div style="display:flex;align-items:center;gap:8px;">
-                            <span style="font-size:13px;color:var(--text-muted);">语音</span>
-                            <button class="btn btn-sm" onclick="toggleVoice()" id="voiceToggle" style="min-width:50px;">开启</button>
+                        <div style="display:flex;align-items:center;justify-content:space-between;">
+                            <span style="font-size:13px;color:var(--text);">语音播报</span>
+                            <button class="sound-toggle-btn" onclick="toggleVoice()" id="voiceToggle">
+                                <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                                <span class="toggle-label">开启</span>
+                            </button>
                         </div>
-                        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:150px;">
-                            <span style="font-size:13px;color:var(--text-muted);white-space:nowrap;">语速</span>
+                        <div style="display:flex;align-items:center;gap:12px;">
+                            <span style="font-size:13px;color:var(--text);white-space:nowrap;">语速</span>
                             <input type="range" min="0.5" max="2" step="0.1" value="1"
-                                style="flex:1;accent-color:var(--primary);" onchange="setVoiceRate(this.value)">
-                            <span id="voiceRateValue" style="font-size:12px;min-width:30px;">1.0x</span>
+                                style="flex:1;accent-color:var(--primary);height:4px;" onchange="setVoiceRate(this.value)">
+                            <span id="voiceRateValue" style="font-size:12px;color:var(--text-muted);min-width:35px;text-align:right;">1.0x</span>
                         </div>
                     </div>
                 </div>
@@ -2921,7 +2944,7 @@
                 card.id = `player-${player.id}`;
                 card.onclick = () => onPlayerClick(player);
 
-                const imgSrc = ROLE_IMAGES[player.role];
+                const imgSrc = ROLE_IMAGES[player.role] ? encodeURI(ROLE_IMAGES[player.role]) : null;
                 const roleLabel = (showRoles && player.roleName && player.roleName !== '?')
                     ? `<div style="font-size:9px;color:rgba(255,255,255,0.75);margin-top:1px;text-shadow:0 1px 3px rgba(0,0,0,0.9);">${player.roleName}</div>`
                     : '';
@@ -2930,7 +2953,7 @@
                 let avatarContent, avatarStyle;
                 if (showRoles && imgSrc) {
                     avatarContent = '';
-                    avatarStyle = `background-image:url('${imgSrc}');`;
+                    avatarStyle = `background:url('${imgSrc}') center/cover no-repeat;`;
                 } else if (showRoles && !imgSrc) {
                     avatarContent = player.icon;
                     avatarStyle = '';
@@ -4055,7 +4078,7 @@
             gameState.phase = 'end';
             document.getElementById('startScreen').style.display = '';
             document.getElementById('headerBackBtn').style.display = 'none';
-            document.getElementById('toggleRolesBtn').classList.remove('active');
+            document.getElementById('toggleRolesBtn').style.display = 'none';
             const gameOverModal = document.getElementById('gameOverModal');
             if (gameOverModal) gameOverModal.classList.remove('active');
         }
@@ -4090,7 +4113,7 @@
                 }
 
                 // Show role toggle + back button
-                document.getElementById('toggleRolesBtn').classList.add('active');
+                document.getElementById('toggleRolesBtn').style.display = '';
                 document.getElementById('headerBackBtn').style.display = '';
 
                 // Reset game
@@ -4744,6 +4767,93 @@
                 voting: ['冲', '投这边', '狼队跟我走', '不要怂', '一起投']
             }
         };
+
+        // ============ SKIN / THEME SYSTEM ============
+        const skinSystem = {
+            themes: {
+                dark_purple: {
+                    name: '🌙 暗夜',
+                    colors: {
+                        '--primary': '#6c5ce7', '--secondary': '#00cec9', '--accent': '#ff6b6b',
+                        '--bg': '#1a0a2e', '--surface': '#2d1b4e', '--surface-light': '#3d2b5e',
+                        '--text': '#ffffff', '--text-muted': '#a0a0c0',
+                        '--wolf': '#e74c3c', '--god': '#9b59b6', '--villager': '#3498db',
+                    },
+                    preview: 'linear-gradient(135deg, #1a0a2e, #2d1b4e)',
+                },
+                blood_moon: {
+                    name: '🌅 血月',
+                    colors: {
+                        '--primary': '#c0392b', '--secondary': '#e67e22', '--accent': '#e74c3c',
+                        '--bg': '#1a0505', '--surface': '#2d1010', '--surface-light': '#3d1a1a',
+                        '--text': '#f5e6e0', '--text-muted': '#c09080',
+                        '--wolf': '#ff4444', '--god': '#e67e22', '--villager': '#e08050',
+                    },
+                    preview: 'linear-gradient(135deg, #1a0505, #3d1a1a)',
+                },
+                forest: {
+                    name: '🌿 森林',
+                    colors: {
+                        '--primary': '#27ae60', '--secondary': '#2ecc71', '--accent': '#e74c3c',
+                        '--bg': '#0a1a0f', '--surface': '#1b2d1f', '--surface-light': '#2b3d2f',
+                        '--text': '#e0f5e8', '--text-muted': '#80c0a0',
+                        '--wolf': '#c0392b', '--god': '#8e44ad', '--villager': '#2980b9',
+                    },
+                    preview: 'linear-gradient(135deg, #0a1a0f, #1b2d1f)',
+                },
+                frost: {
+                    name: '❄️ 寒冬',
+                    colors: {
+                        '--primary': '#2980b9', '--secondary': '#00b4d8', '--accent': '#ff6b6b',
+                        '--bg': '#0a0f1a', '--surface': '#1b2535', '--surface-light': '#2b3545',
+                        '--text': '#e0f0ff', '--text-muted': '#80a0c0',
+                        '--wolf': '#e74c3c', '--god': '#9b59b6', '--villager': '#3498db',
+                    },
+                    preview: 'linear-gradient(135deg, #0a0f1a, #1b2535)',
+                },
+                light: {
+                    name: '☀️ 白天',
+                    colors: {
+                        '--primary': '#5b4cdb', '--secondary': '#00a896', '--accent': '#e74c3c',
+                        '--bg': '#f0f0f5', '--surface': '#ffffff', '--surface-light': '#e8e8f0',
+                        '--text': '#1a1a2e', '--text-muted': '#6060a0',
+                        '--wolf': '#c0392b', '--god': '#8e44ad', '--villager': '#2980b9',
+                    },
+                    preview: 'linear-gradient(135deg, #f0f0f5, #e8e8f0)',
+                },
+            },
+            currentSkin: 'dark_purple',
+
+            init() {
+                try {
+                    const saved = localStorage.getItem('werewolf_skin');
+                    if (saved && this.themes[saved]) {
+                        this.currentSkin = saved;
+                        this.applyThemeVars(saved);
+                    }
+                } catch (e) {}
+            },
+
+            getAvailableSkins() {
+                return Object.entries(this.themes).map(([id, t]) => ({ id, name: t.name }));
+            },
+
+            applySkin(id) {
+                if (!this.themes[id]) return;
+                this.currentSkin = id;
+                this.applyThemeVars(id);
+                try { localStorage.setItem('werewolf_skin', id); } catch (e) {}
+            },
+
+            applyThemeVars(id) {
+                const colors = this.themes[id].colors;
+                const root = document.documentElement;
+                for (const [prop, val] of Object.entries(colors)) {
+                    root.style.setProperty(prop, val);
+                }
+            },
+        };
+        skinSystem.init();
 
         // ============ ACHIEVEMENTS SYSTEM ============
         const Achievements = {
@@ -5893,10 +6003,6 @@
             }
         }
 
-        function showSettings() {
-            alert('设置功能开发中...');
-        }
-
         // ============ KEYBOARD SHORTCUTS ============
         document.addEventListener('keydown', (e) => {
             // Space to submit action
@@ -5939,27 +6045,43 @@
             const modal = document.getElementById('settingsModal');
             modal.classList.add('active');
 
+            // Sync toggle states
+            const soundBtn = document.getElementById('soundToggle');
+            if (soundBtn) {
+                const soundOn = SoundSystem.enabled !== false;
+                soundBtn.classList.toggle('on', soundOn);
+                soundBtn.querySelector('.toggle-label').textContent = soundOn ? '开启' : '关闭';
+            }
+            const voiceBtn = document.getElementById('voiceToggle');
+            if (voiceBtn) {
+                const voiceOn = VoiceSystem.enabled !== false;
+                voiceBtn.classList.toggle('on', voiceOn);
+                voiceBtn.querySelector('.toggle-label').textContent = voiceOn ? '开启' : '关闭';
+            }
+
             // Load skins
             renderSkinGrid();
-
             // Load stats
             renderStats();
-
-            // Load replays
-            renderReplayList();
             renderAchievementsList();
         }
 
         function toggleSound() {
             const enabled = SoundSystem.toggle();
             const btn = document.getElementById('soundToggle');
-            if (btn) btn.textContent = enabled ? '开启' : '关闭';
+            if (btn) {
+                btn.classList.toggle('on', enabled);
+                btn.querySelector('.toggle-label').textContent = enabled ? '开启' : '关闭';
+            }
         }
 
         function toggleVoice() {
             const enabled = VoiceSystem.toggle();
             const btn = document.getElementById('voiceToggle');
-            if (btn) btn.textContent = enabled ? '开启' : '关闭';
+            if (btn) {
+                btn.classList.toggle('on', enabled);
+                btn.querySelector('.toggle-label').textContent = enabled ? '开启' : '关闭';
+            }
         }
 
         function setVoiceRate(rate) {
@@ -6001,7 +6123,7 @@
 
                 const preview = document.createElement('div');
                 preview.className = 'skin-preview';
-                preview.style.background = Skins[skin.id].colors.bg;
+                preview.style.background = skinSystem.themes[skin.id].preview;
 
                 const name = document.createElement('div');
                 name.className = 'skin-name';
@@ -6545,7 +6667,7 @@
             spectatorRoomId = roomId;
             document.getElementById('spectatorBadge').classList.add('active');
             document.getElementById('gameReturnBtn').classList.add('active');
-            document.getElementById('toggleRolesBtn').classList.add('active');
+            document.getElementById('toggleRolesBtn').style.display = '';
             document.getElementById('wsDot').className = 'ws-dot connecting';
 
             // Hide irrelevant local-sim controls in spectator mode
@@ -6969,7 +7091,7 @@
             isSpectating = false;
             if (lobbyWs) { lobbyWs.close(); lobbyWs = null; }
             document.getElementById('spectatorBadge').classList.remove('active');
-            document.getElementById('toggleRolesBtn').classList.remove('active');
+            document.getElementById('toggleRolesBtn').style.display = 'none';
             document.getElementById('startScreen').style.display = '';
             // Restore local-sim controls
             document.querySelector('.speed-control').style.display = '';
