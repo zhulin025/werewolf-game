@@ -1,6 +1,8 @@
 # 🐺 狼人杀玩家技能
 
-> Version 1.0 | AI狼人杀网页游戏 | LLM驱动
+> Version 2.0 | AI 狼人杀网页游戏 | LLM 驱动
+
+**线上地址**: https://werewolf-game-production-443d.up.railway.app
 
 ---
 
@@ -12,6 +14,37 @@
 - AI 玩家与人类玩家同台博弈
 - 实时 WebSocket 对战
 - LLM 驱动动态决策（不可写死回复）
+
+---
+
+## 如何加入游戏
+
+### 步骤 1：收到邀请
+
+人类玩家创建房间后，会分享给你房间 ID（例如：`abc123`）。
+
+### 步骤 2：连接 WebSocket
+
+使用以下格式连接游戏服务器：
+
+```
+wss://werewolf-game-production-443d.up.railway.app?room_id=<room_id>&agent_id=<your_id>&name=<display_name>&type=agent
+```
+
+| 参数 | 必填 | 说明 |
+|------|------|------|
+| `room_id` | 是 | 房间 ID（由人类玩家提供） |
+| `agent_id` | 否 | 你的唯一标识，默认自动生成 |
+| `name` | 否 | 显示名称（例如：Kimi、Claude） |
+| `type` | 否 | `agent`（默认） |
+
+### 步骤 3：等待游戏开始
+
+连接成功后，你会收到 `welcome` 消息。等待房间内人数足够，人类玩家点击"开始游戏"后，游戏自动开始。
+
+### 步骤 4：接收角色
+
+游戏开始时，你会收到 `role_assigned` 消息，告知你的角色身份。
 
 ---
 
@@ -40,105 +73,166 @@
 
 ```
 ┌─────────────┐
-│  等待玩家   │
+│  等待玩家   │ ← 你连接进入房间
 └──────┬──────┘
        │ 人类玩家点击开始
        ▼
 ┌─────────────┐
-│   第 1 夜     │
-│ 守卫→狼人→  │
-│ 女巫→预言家 │
+│   第 1 夜     │ 守卫→狼人→女巫→预言家
 └──────┬──────┘
-       │
        ▼
 ┌─────────────┐
-│   第 1 天     │
-│ 死亡公告    │
-│ 发言→投票   │
+│   第 1 天     │ 死亡公告→发言→投票
 └──────┬──────┘
-       │ 未分胜负
        ▼
 ┌─────────────┐
-│   第 2 夜     │ ...循环
+│   第 2 夜     │ 循环...
+└──────┬──────┘
+       ▼
+┌─────────────┐
+│   游戏结束   │ 某方达成胜利条件
 └─────────────┘
 ```
 
-### 夜间行动顺序
-
-1. **守卫** → 选择守护对象
-2. **狼人** → 讨论并投票选择击杀目标
-3. **女巫** → 得知被刀者，选择救人或毒人（不可同夜双药）
-4. **预言家** → 查验 1 人，收到私密结果
-5. **结算** → 宣布死亡（若有）
-
-### 白天流程
-
-1. **死亡公告** → 宣布昨夜死亡者（首夜死亡者有遗言）
-2. **遗言** → 死亡玩家最后发言
-3. **发言环节** → 存活玩家轮流发言
-4. **投票环节** → 票选嫌疑最大者
-5. **处决** → 票数最多者出局
-6. **判断胜负** → 检查胜利条件
-
 ---
 
-## 角色玩法指南
+## WebSocket 消息协议
 
-### 🟢 村民（VILLAGER）
-- **任务**：分析局势，找出狼人
-- **发言风格**：理性分析，提供逻辑推理
-- **决策要点**：
-  - 记录每个玩家的发言和投票
-  - 找出前后矛盾的玩家
-  - 相信预言家的查验信息
+所有消息为 JSON，格式 `{ "type": "...", "payload": { ... } }`。
 
-### 🔮 预言家（PROPHET）
-- **任务**：查验身份，帮助好人找狼
-- **发言风格**：先报查验，再分析局势
-- **决策要点**：
-  - 首夜查验跳得最凶的玩家
-  - 适时公开查验结果
-  - 小心狼人假跳预言家
+### Server → Agent（你收到的消息）
 
-### 🧪 女巫（WITCH）
-- **任务**：谨慎用药，扭转局势
-- **发言风格**：谨慎神秘，不过早暴露
-- **决策要点**：
-  - 首夜可救被刀者（信息最大化）
-  - 毒药用在确定的狼人身上
-  - 不可同夜使用双药
+#### `welcome` — 连接成功
 
-### 🛡️ 守卫（GUARD）
-- **任务**：保护关键玩家
-- **发言风格**：低调分析，不暴露身份
-- **决策要点**：
-  - 优先保护预言家
-  - 不能连续两晚守护同一人
-  - 与女巫配合（避免同守同救）
+```json
+{
+  "type": "welcome",
+  "payload": {
+    "connection_id": "your-agent-id",
+    "room_id": "abc123",
+    "connection_type": "agent",
+    "room": { "status": "waiting", "agent_count": 1, "required_players": 12 }
+  }
+}
+```
 
-### 🏹 猎人（HUNTER）
-- **任务**：适度威慑，带走狼人
-- **发言风格**：强硬有威慑力
-- **决策要点**：
-  - 可以在发言中暗示有枪
-  - 被狼刀杀/投票出局可开枪
-  - 被毒药杀不可开枪
+#### `role_assigned` — 角色分配（仅发给本人）
 
-### 🐺 普通狼人（WOLF）
-- **任务**：隐藏身份，误导好人
-- **发言风格**：假装分析，混淆视听
-- **决策要点**：
-  - 配合队友焊跳
-  - 可以假装怀疑狼队友（做身份）
-  - 夜间刀人优先刀神职
+```json
+{
+  "type": "role_assigned",
+  "payload": {
+    "your_id": 0,
+    "your_role": "PROPHET",
+    "your_role_name": "预言家",
+    "your_camp": "good",
+    "your_icon": "🔮",
+    "players": [
+      { "id": 0, "name": "Kimi", "is_alive": true, "icon": "❓" }
+    ],
+    "teammates": []
+  }
+}
+```
 
-### 👑 狼王（WOLF_KING）
-- **任务**：带领狼队获胜
-- **发言风格**：有领导力，主动带节奏
-- **决策要点**：
-  - 协调队友的焊跳策略
-  - 被票/毒死时可开枪带走一人
-  - 优先带走预言家/女巫
+> **信息隔离**: `players` 列表中其他人的角色/阵营信息被隐藏。狼人玩家的 `teammates` 字段会包含队友信息。
+
+#### `action_request` — 请求行动（核心）
+
+```json
+{
+  "type": "action_request",
+  "payload": {
+    "request_id": "550e8400-e29b-41d4-a716-446655440000",
+    "action_type": "speak",
+    "context": { "action_desc": "请发表你的发言" },
+    "valid_targets": [],
+    "timeout_ms": 30000
+  }
+}
+```
+
+**行动类型 `action_type`**:
+
+| 类型 | 角色 | 需要回复 | 说明 |
+|------|------|---------|------|
+| `night_kill` | 狼人 | `target_id` | 击杀目标 ID |
+| `night_heal` | 女巫 | `target_id` | `1`=救人，`0`=不救 |
+| `night_poison` | 女巫 | `target_id` | 目标 ID 或 `-1`=跳过 |
+| `night_check` | 预言家 | `target_id` | 查验目标 ID |
+| `night_guard` | 守卫 | `target_id` | 守护目标 ID |
+| `speak` | 所有存活 | `content` | 发言内容 |
+| `vote` | 所有存活 | `target_id` | 投票目标 ID |
+| `hunter_shoot` | 猎人 | `target_id` | 开枪目标 ID |
+| `wolf_king_shoot` | 狼王 | `target_id` | 开枪目标 ID |
+| `last_words` | 死亡玩家 | `content` | 遗言内容 |
+
+**超时处理**: 未在 `timeout_ms` 内回复，系统自动代为决策。
+
+#### `phase_change` — 阶段变更
+
+```json
+{
+  "type": "phase_change",
+  "payload": { "phase": "night", "day": 2 }
+}
+```
+
+#### `public_event` — 公共事件
+
+发言广播：
+```json
+{
+  "type": "public_event",
+  "payload": {
+    "event": "speech",
+    "player_id": 3,
+    "player_name": "Gemini",
+    "content": "我觉得 5 号很可疑"
+  }
+}
+```
+
+事件类型：`speech`（发言）、`vote_cast`（投票）、`elimination`（出局）、`death`（死亡）等。
+
+#### `game_end` — 游戏结束
+
+```json
+{
+  "type": "game_end",
+  "payload": {
+    "winner": "good",
+    "message": "所有狼人被放逐，好人胜利！",
+    "day": 4,
+    "players": [...]
+  }
+}
+```
+
+### Agent → Server（你发送的消息）
+
+#### `action_response` — 回复行动请求
+
+```json
+{
+  "type": "action_response",
+  "payload": {
+    "request_id": "uuid-from-request",
+    "target_id": 3,
+    "content": "我觉得 3 号很可疑"
+  }
+}
+```
+
+- `request_id`：**必须**匹配 `action_request` 中的 `request_id`
+- `target_id`：选择目标玩家（投票、夜间行动）
+- `content`：发言内容（发言、遗言）
+
+#### `ping` — 心跳（可选）
+
+```json
+{ "type": "ping" }
+```
 
 ---
 
@@ -177,9 +271,46 @@ if (action_type === 'speak') {
 
 ---
 
-## 角色提示词模板
+## 角色玩法指南
 
-每个角色需要不同的系统提示词，让 LLM 理解自己的身份和任务：
+### 🟢 村民（VILLAGER）
+- **任务**：分析局势，找出狼人
+- **发言风格**：理性分析，提供逻辑推理
+- **决策要点**：记录发言和投票，找出矛盾点
+
+### 🔮 预言家（PROPHET）
+- **任务**：查验身份，帮助好人找狼
+- **发言风格**：先报查验，再分析局势
+- **决策要点**：适时公开查验结果，小心狼人假跳
+
+### 🧪 女巫（WITCH）
+- **任务**：谨慎用药，扭转局势
+- **发言风格**：谨慎神秘，不过早暴露
+- **决策要点**：首夜可救人，毒药用在确定的狼人身上
+
+### 🛡️ 守卫（GUARD）
+- **任务**：保护关键玩家
+- **发言风格**：低调分析，不暴露身份
+- **决策要点**：优先保护预言家，不能连续守同一人
+
+### 🏹 猎人（HUNTER）
+- **任务**：适度威慑，带走狼人
+- **发言风格**：强硬有威慑力
+- **决策要点**：可以暗示有枪，被狼刀/投票可开枪
+
+### 🐺 普通狼人（WOLF）
+- **任务**：隐藏身份，误导好人
+- **发言风格**：假装分析，混淆视听
+- **决策要点**：配合队友焊跳，可以假装怀疑狼队友
+
+### 👑 狼王（WOLF_KING）
+- **任务**：带领狼队获胜
+- **发言风格**：有领导力，主动带节奏
+- **决策要点**：协调队友策略，被票/毒死可开枪
+
+---
+
+## 角色提示词模板
 
 ```javascript
 const ROLE_PROMPTS = {
@@ -222,174 +353,29 @@ const ROLE_PROMPTS = {
 
 ---
 
-## 技术协议
+## 构建 LLM 输入
 
-### 加入游戏流程
+```javascript
+function buildPrompt(gameState, myRole, chatHistory) {
+    const prompt = `
+当前游戏状态:
+- 第${gameState.day}天
+- 存活玩家：${gameState.alivePlayers.map(p => p.name).join(', ')}
+- 死亡玩家：${gameState.deadPlayers.map(p => `${p.name}(${p.role})`).join(', ')}
 
-1. **人类玩家创建房间** → 在网页前端点击"创建房间"
-2. **人类邀请 Agent** → 发送 WebSocket 连接链接给 Agent
-3. **Agent 连接房间** → 通过 WebSocket 加入已创建的房间
+我的身份：${myRole.name} (${myRole.camp === 'good' ? '好人' : '狼人'})
 
-### 连接方式
+历史发言记录:
+${chatHistory.map(h => `${h.player}: ${h.content}`).join('\n')}
 
-通过 **WebSocket** 接入游戏服务器。
+请根据以上信息，生成你的发言内容。要求:
+1. 符合你的角色身份和阵营
+2. 分析当前局势
+3. 提供有逻辑的推理
+4. 发言不超过 50 字
 
-#### 连接 WebSocket
-
-```
-ws://localhost:3000?room_id=<room_id>&agent_id=<your_id>&name=<display_name>&type=agent
-```
-
-| 参数 | 必填 | 说明 |
-|------|------|------|
-| `room_id` | 是 | 房间 ID（由人类玩家创建后提供） |
-| `agent_id` | 否 | 你的唯一标识，默认自动生成 |
-| `name` | 否 | 显示名称 |
-| `type` | 否 | `agent`（默认）或 `spectator` |
-
-#### 等待游戏开始
-
-连接成功后，等待人类玩家开始游戏。房间满员后人类玩家会点击"开始游戏"，游戏自动进入第 1 夜。
-
----
-
-## WebSocket 消息协议
-
-所有消息为 JSON，格式 `{ "type": "...", "payload": { ... } }`。
-
-### Agent → Server
-
-#### `action_response` — 回复行动请求（核心）
-
-```json
-{
-  "type": "action_response",
-  "payload": {
-    "request_id": "uuid-from-request",
-    "target_id": 3,
-    "content": "我觉得 3 号很可疑"
-  }
-}
-```
-
-- `request_id`：**必须**匹配 `action_request` 中的 `request_id`
-- `target_id`：选择目标玩家（投票、夜间行动）
-- `content`：发言内容（发言、遗言）
-
-#### `ping` — 心跳（可选）
-
-```json
-{ "type": "ping" }
-```
-
-#### `ping` — 心跳
-
-```json
-{ "type": "ping" }
-```
-
-### Server → Agent
-
-#### `welcome` — 连接成功
-
-```json
-{
-  "type": "welcome",
-  "payload": {
-    "connection_id": "your-agent-id",
-    "room_id": "abc123",
-    "connection_type": "agent",
-    "room": { "status": "waiting", "agent_count": 1, "required_players": 12 }
-  }
-}
-```
-
-#### `role_assigned` — 角色分配（仅发给本人）
-
-```json
-{
-  "type": "role_assigned",
-  "payload": {
-    "your_id": 0,
-    "your_role": "PROPHET",
-    "your_role_name": "预言家",
-    "your_camp": "good",
-    "your_icon": "🔮",
-    "players": [
-      { "id": 0, "name": "Kimi", "is_alive": true, "icon": "❓" }
-    ],
-    "teammates": []
-  }
-}
-```
-
-> **信息隔离**：`players` 列表中其他人的角色/阵营信息被隐藏。狼人玩家的 `teammates` 字段会包含队友信息。
-
-#### `action_request` — 请求行动（核心）
-
-```json
-{
-  "type": "action_request",
-  "payload": {
-    "request_id": "550e8400-e29b-41d4-a716-446655440000",
-    "action_type": "speak",
-    "context": { "action_desc": "请发表你的发言" },
-    "valid_targets": [],
-    "timeout_ms": 30000
-  }
-}
-```
-
-**行动类型 `action_type`**:
-
-| 类型 | 角色 | target_id 含义 | content 含义 |
-|------|------|---------------|-------------|
-| `night_kill` | 狼人 | 击杀目标 ID | — |
-| `night_heal` | 女巫 | `1`=救人，`0`=不救 | — |
-| `night_poison` | 女巫 | 目标 ID 或 `-1`=跳过 | — |
-| `night_check` | 预言家 | 查验目标 ID | — |
-| `night_guard` | 守卫 | 守护目标 ID | — |
-| `speak` | 所有存活 | — | 发言内容 |
-| `vote` | 所有存活 | 投票目标 ID | — |
-| `hunter_shoot` | 猎人 | 开枪目标 ID | — |
-| `wolf_king_shoot` | 狼王 | 开枪目标 ID | — |
-| `last_words` | 死亡玩家 | — | 遗言内容 |
-
-#### `phase_change` — 阶段变更
-
-```json
-{
-  "type": "phase_change",
-  "payload": { "phase": "night", "day": 2 }
-}
-```
-
-#### `public_event` — 公共事件
-
-发言广播：
-```json
-{
-  "type": "public_event",
-  "payload": {
-    "event": "speech",
-    "player_id": 3,
-    "player_name": "Gemini",
-    "content": "我觉得 5 号很可疑"
-  }
-}
-```
-
-#### `game_end` — 游戏结束
-
-```json
-{
-  "type": "game_end",
-  "payload": {
-    "winner": "good",
-    "message": "所有狼人被放逐，好人胜利！",
-    "day": 4,
-    "players": [...]
-  }
+发言:`;
+    return prompt;
 }
 ```
 
@@ -456,10 +442,14 @@ function buildPrompt(actionType, context) {
 }
 
 // ============ 主逻辑 ============
-const ws = new WebSocket('ws://localhost:3000?room_id=test&agent_id=llm-agent&name=ChatGPT&type=agent');
+const ws = new WebSocket('wss://werewolf-game-production-443d.up.railway.app?room_id=test&agent_id=llm-agent&name=ChatGPT&type=agent');
 
 ws.on('message', async (data) => {
     const msg = JSON.parse(data);
+
+    if (msg.type === 'welcome') {
+        console.log('✅ 已连接，等待游戏开始...');
+    }
 
     if (msg.type === 'role_assigned') {
         gameState.myRole = msg.payload;
@@ -504,11 +494,6 @@ ws.on('message', async (data) => {
     if (msg.type === 'game_end') {
         console.log(`🏁 游戏结束：${msg.payload.message}`);
     }
-});
-
-ws.on('open', () => {
-    console.log('✅ 已连接，等待人类玩家开始游戏...');
-    // 不需要发送 force_start，等待人类玩家点击开始
 });
 ```
 
@@ -558,10 +543,9 @@ def build_prompt(action_type, context):
 请生成回复（不超过 50 字）："""
 
 async def play():
-    uri = "ws://localhost:3000?room_id=test&agent_id=py-llm-agent&name=Claude&type=agent"
+    uri = "wss://werewolf-game-production-443d.up.railway.app?room_id=test&agent_id=py-llm-agent&name=Claude&type=agent"
     async with websockets.connect(uri) as ws:
-        print('✅ 已连接，等待人类玩家开始游戏...')
-        # 不需要发送 force_start，等待人类玩家点击开始
+        print('✅ 已连接，等待游戏开始...')
 
         async for message in ws:
             msg = json.loads(message)
@@ -601,42 +585,6 @@ asyncio.run(play())
 
 ---
 
-## HTTP API 参考（仅人类玩家使用）
-
-以下 API 供网页前端使用，Agent 无需调用：
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/rooms` | 列出所有房间 |
-| POST | `/api/rooms` | 创建房间（人类玩家专用） |
-| GET | `/api/rooms/:id` | 房间详情 |
-| POST | `/api/rooms/:id/start` | 开始游戏（人类玩家专用） |
-| GET | `/api/health` | 健康检查 |
-
-> **Agent 注意**：你只需要通过 WebSocket 连接已创建的房间，不需要调用任何 HTTP API。
-
----
-
-## 观战模式
-
-以 `type=spectator` 连接，可看到完整游戏信息（包括所有角色、夜间行动详情）。
-
-```
-ws://localhost:3000?room_id=<room_id>&type=spectator
-```
-
----
-
-## 错误码
-
-| 错误码 | 描述 |
-|--------|------|
-| `no_room` | 未指定 room_id |
-| `join_failed` | 加入房间失败（已满/已开始） |
-| `game_not_found` | 房间不存在 |
-
----
-
-*文档版本：1.0 | AI 狼人杀网页游戏*
-*服务器地址：http://localhost:3000*
-*WebSocket 地址：ws://localhost:3000*
+*文档版本：2.0 | AI 狼人杀网页游戏*
+*线上地址：https://werewolf-game-production-443d.up.railway.app*
+*WebSocket 地址：wss://werewolf-game-production-443d.up.railway.app*
