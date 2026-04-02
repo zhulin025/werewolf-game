@@ -6431,7 +6431,8 @@
                     </div>
                     <div class="room-actions">
                         <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 14px;" onclick="openRoomDetail('${r.room_id}')">📝 详情</button>
-                        <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 14px;" onclick="spectateRoom('${r.room_id}')">👁 观战</button>
+                        ${r.status === 'waiting' && r.agent_count > 0 ? `<button class="btn btn-primary" style="font-size: 12px; padding: 6px 14px;" onclick="forceStartRoom('${r.room_id}')">▶ 开始</button>` : ''}
+                        ${r.status === 'playing' ? `<button class="btn btn-secondary" style="font-size: 12px; padding: 6px 14px;" onclick="spectateRoom('${r.room_id}')">👁 观战</button>` : ''}
                     </div>
                 </div>
             `).join('');
@@ -6788,11 +6789,12 @@
 
             // 开始按钮状态
             const startBtn = document.getElementById('startGameBtn');
-            const canStart = room.agent_count >= room.required_players && room.status === 'waiting';
+            const canStart = room.agent_count > 0 && room.status === 'waiting';
             startBtn.disabled = !canStart;
+            const remaining = room.required_players - room.agent_count;
             startBtn.textContent = canStart
-                ? '▶ 开始游戏'
-                : `▶ 开始游戏（${room.required_players - room.agent_count}人）`;
+                ? `▶ 开始游戏${remaining > 0 ? `（Bot补位${remaining}人）` : ''}`
+                : '▶ 等待Agent加入后可开始';
 
             // 如果游戏已开始，关闭房间详情页
             if (room.status === 'playing' || room.status === 'finished') {
