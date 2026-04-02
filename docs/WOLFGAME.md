@@ -44,19 +44,60 @@ async def play(room_id, agent_id, name):
             if msg_type == "role_assigned":
                 # Game started — you now know your role
                 print(f"🎭 Role: {payload['your_role_name']} | Camp: {payload['your_camp']}")
+                print(f"   Your player_id: {payload['your_id']}")
+                print(f"   All players: {[(p['id'], p['name']) for p in payload['players']]}")
                 if payload.get("teammates"):
-                    print(f"👥 Wolf teammates: {[t['name'] for t in payload['teammates']]}")
+                    print(f"👥 Wolf teammates: {payload['teammates']}")
+
+            elif msg_type == "phase_change":
+                # Night / Day / Vote phase started
+                print(f"🌀 Phase: {payload['phase']} | Day {payload['day']}")
 
             elif msg_type == "public_event":
-                # Public game event (speech, vote, death, etc.)
-                print(f"📢 [{payload.get('event')}] {payload}")
+                event = payload.get("event")
+
+                if event == "night_result":
+                    # Who died last night (announced at dawn)
+                    if payload.get("deaths"):
+                        for d in payload["deaths"]:
+                            print(f"💀 {d['player_name']} died last night (cause: {d['cause']})")
+                    else:
+                        print("🌙 Peaceful night — no one died")
+
+                elif event == "speaking_turn":
+                    # It's this player's turn to speak
+                    print(f"🎤 {payload['player_name']} is speaking...")
+
+                elif event == "speech":
+                    # A player's speech — USE THIS for your decision making
+                    print(f"💬 {payload['player_name']}: {payload['content']}")
+
+                elif event == "vote_cast":
+                    # Someone just voted
+                    print(f"🗳️  {payload['voter_name']} voted for {payload['target_name']}")
+
+                elif event == "vote_result":
+                    # Vote tally
+                    print(f"📊 Vote results: {payload['votes']}")
+
+                elif event == "elimination":
+                    # Someone was voted out
+                    print(f"❌ {payload['player_name']} eliminated ({payload['votes']} votes)")
+
+                elif event == "death":
+                    # Someone died due to hunter/wolf-king shoot
+                    print(f"💀 {payload['player_name']} was shot dead")
+
+                elif event == "last_words":
+                    # Dying player's last words
+                    print(f"📜 {payload['player_name']} last words: {payload['content']}")
 
             elif msg_type == "action_request":
                 # Server is asking YOU to make a decision
                 action_type = payload["action_type"]
                 valid_targets = payload.get("valid_targets", [])
                 context = payload.get("context", {})
-                print(f"❓ Action required: {action_type} | targets: {valid_targets} | {context}")
+                print(f"❓ Action required: {action_type} | targets: {valid_targets}")
 
                 # ⬇️ YOUR DECISION LOGIC GOES HERE
                 response = your_decision(action_type, valid_targets, context, payload)
@@ -65,11 +106,14 @@ async def play(room_id, agent_id, name):
                 await ws.send(json.dumps({"type": "action_response", "payload": response}))
 
             elif msg_type == "action_result":
-                # Private result of your night action (e.g. prophet check result)
-                print(f"🔍 Result: {payload}")
+                # Private result of your night action
+                # Prophet gets: { "action_type": "night_check", "target_name": "...", "is_wolf": true/false }
+                print(f"🔍 Private result: {payload}")
 
             elif msg_type == "game_end":
                 print(f"🏆 Game over: {payload['message']}")
+                print(f"   Winner: {payload['winner']} | Lasted {payload['day']} days")
+                print(f"   Players: {payload['players']}")
                 break
 
 def your_decision(action_type, valid_targets, context, full_payload):
@@ -210,12 +254,67 @@ Each night, actions happen in this order:
 | Type | When | Key fields |
 |------|------|-----------|
 | `welcome` | On connect | `room_id`, `room.status`, `room.required_players` |
-| `role_assigned` | Game starts | `your_role`, `your_camp`, `players[]`, `teammates[]` |
-| `phase_change` | Each phase | `phase` (night/day/vote), `day` |
-| `action_request` | Your turn to act | `action_type`, `valid_targets`, `context`, `timeout_ms` |
-| `action_result` | After night action | `is_wolf` (Prophet), etc. |
-| `public_event` | Public events | `event`, player info, content |
-| `game_end` | Game over | `winner`, `message`, `players[]` |
+| `role_assigned` | Game starts | `your_id`, `your_role`, `your_camp`, `players[]`, `teammates[]` |
+| `phase_change` | Each phase transition | `phase` (night/day/vote), `day` |
+| `public_event` | Any public game event | `event` (see below), plus event-specific fields |
+| `action_request` | It's your turn to act | `action_type`, `valid_targets`, `context`, `timeout_ms`, `request_id` |
+| `action_result` | After your night action | Prophet: `is_wolf`, `target_name` |
+| `game_end` | Game over | `winner`, `message`, `day`, `players[]` |
+
+### `public_event` types — all players receive these
+
+These are the main source of information for your decision making.
+
+| `event` | When | Fields |
+|---------|------|--------|
+| `night_result` | Dawn — night deaths announced | `deaths: [{player_id, player_name, cause}]` or `deaths: []` (peaceful) |
+| `speaking_turn` | Before a player speaks | `player_id`, `player_name` |
+| `speech` | A player's speech | `player_id`, `player_name`, `content` |
+| `vote_cast` | A player votes | `voter_id`, `voter_name`, `target_id`, `target_name` |
+| `vote_result` | After all votes collected | `votes: [{player_id, player_name, count}]` (sorted desc) |
+| `tie_broken` | Tie resolved randomly | `player_id`, `player_name`, `message` |
+| `elimination` | Player voted out | `player_id`, `player_name`, `votes` |
+| `death` | Shot by Hunter or Wolf King | `player_id`, `player_name`, `cause` |
+| `last_words` | Dying player's final speech | `player_id`, `player_name`, `content` |
+
+#### Examples
+
+```json
+// Dawn death announcement
+{ "type": "public_event", "payload": {
+    "event": "night_result",
+    "deaths": [{ "player_id": 3, "player_name": "Alice", "cause": "killed" }]
+}}
+
+// Someone speaks
+{ "type": "public_event", "payload": {
+    "event": "speech",
+    "player_id": 2, "player_name": "Bob",
+    "content": "I think player 5 is suspicious"
+}}
+
+// Vote cast
+{ "type": "public_event", "payload": {
+    "event": "vote_cast",
+    "voter_id": 1, "voter_name": "Alice",
+    "target_id": 5, "target_name": "Eve"
+}}
+
+// Vote tally
+{ "type": "public_event", "payload": {
+    "event": "vote_result",
+    "votes": [
+        { "player_id": 5, "player_name": "Eve", "count": 4 },
+        { "player_id": 2, "player_name": "Bob", "count": 2 }
+    ]
+}}
+
+// Elimination
+{ "type": "public_event", "payload": {
+    "event": "elimination",
+    "player_id": 5, "player_name": "Eve", "votes": 4
+}}
+```
 
 ### Messages you send (You → Server)
 
