@@ -742,6 +742,34 @@
 
         .player-avatar {
             font-size: 32px;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            position: relative;
+        }
+        
+        /* Role image overlay effect */
+        .player-avatar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: 1;
+        }
+        
+        .player-avatar > * {
+            position: relative;
+            z-index: 2;
         }
 
         .player-name {
@@ -2774,14 +2802,25 @@
 
     <script>
         // ============ GAME CONFIGURATION ============
+        // Role images mapping
+        const ROLE_IMAGES = {
+            VILLAGER: 'assets/images/01_村民.png',
+            PROPHET: 'assets/images/02_预言家.png',
+            WITCH: 'assets/images/03_女巫.png',
+            GUARD: 'assets/images/04_守卫.png',
+            HUNTER: 'assets/images/05_猎人.png',
+            WOLF: 'assets/images/05_普通狼人.png',
+            WOLF_KING: 'assets/images/06_狼王.png'
+        };
+
         const ROLES = {
-            VILLAGER: { name: '村民', camp: 'good', icon: '👤', desc: '没有任何特殊技能，但你的分析和逻辑是找出狼人的关键。仔细观察每个人的发言和投票，找到狼人的破绽！' },
-            PROPHET: { name: '预言家', camp: 'good', icon: '🔮', desc: '每晚可以查验一名玩家的身份是好是坏。善用你的查验信息，但要小心狼人可能假跳预言家！' },
-            WITCH: { name: '女巫', camp: 'good', icon: '🧪', desc: '你有一瓶解药和一瓶毒药。解药可以救人，毒药可以杀人。用得好可以扭转局势，用不好可能害死好人！' },
-            GUARD: { name: '守卫', camp: 'good', icon: '🛡️', desc: '每晚可以守护一名玩家，让他不被狼人杀害。但要小心，守卫和女巫不能同时守护同一个人！' },
-            HUNTER: { name: '猎人', camp: 'good', icon: '🏹', desc: '当你被投票出局或被狼人杀害时，你可以开枪带走一人。善用这个权力，但别误杀好人！' },
-            WOLF: { name: '普通狼人', camp: 'wolf', icon: '🐺', desc: '每晚可以和同伴讨论并杀死一名玩家。你的目标是杀死所有好人，同时隐藏自己的身份。' },
-            WOLF_KING: { name: '狼王', camp: 'wolf', icon: '👑', desc: '狼人团队的领袖。被投票出局或被毒死时可以开枪带走一人。带领你的团队走向胜利！' }
+            VILLAGER: { name: '村民', camp: 'good', icon: '👤', image: ROLE_IMAGES.VILLAGER, desc: '没有任何特殊技能，但你的分析和逻辑是找出狼人的关键。仔细观察每个人的发言和投票，找到狼人的破绽！' },
+            PROPHET: { name: '预言家', camp: 'good', icon: '🔮', image: ROLE_IMAGES.PROPHET, desc: '每晚可以查验一名玩家的身份是好是坏。善用你的查验信息，但要小心狼人可能假跳预言家！' },
+            WITCH: { name: '女巫', camp: 'good', icon: '🧪', image: ROLE_IMAGES.WITCH, desc: '你有一瓶解药和一瓶毒药。解药可以救人，毒药可以杀人。用得好可以扭转局势，用不好可能害死好人！' },
+            GUARD: { name: '守卫', camp: 'good', icon: '🛡️', image: ROLE_IMAGES.GUARD, desc: '每晚可以守护一名玩家，让他不被狼人杀害。但要小心，守卫和女巫不能同时守护同一个人！' },
+            HUNTER: { name: '猎人', camp: 'good', icon: '🏹', image: ROLE_IMAGES.HUNTER, desc: '当你被投票出局或被狼人杀害时，你可以开枪带走一人。善用这个权力，但别误杀好人！' },
+            WOLF: { name: '普通狼人', camp: 'wolf', icon: '🐺', image: ROLE_IMAGES.WOLF, desc: '每晚可以和同伴讨论并杀死一名玩家。你的目标是杀死所有好人，同时隐藏自己的身份。' },
+            WOLF_KING: { name: '狼王', camp: 'wolf', icon: '👑', image: ROLE_IMAGES.WOLF_KING, desc: '狼人团队的领袖。被投票出局或被毒死时可以开枪带走一人。带领你的团队走向胜利！' }
         };
 
         const PLAYER_NAMES = [
@@ -2944,12 +2983,17 @@
                 card.id = `player-${player.id}`;
                 card.onclick = () => onPlayerClick(player);
 
+                // Get role image for background
+                const roleImage = player.roleKey && ROLE_IMAGES[player.roleKey] 
+                    ? `url('${ROLE_IMAGES[player.roleKey]}')` 
+                    : 'none';
+                
                 const roleLabel = (showRoles && player.roleName && player.roleName !== '?')
                     ? `<div style="font-size:9px;color:rgba(255,255,255,0.6);margin-top:1px;">${player.roleName}</div>`
                     : '';
                 card.innerHTML = `
                     <div style="font-size:11px;color:rgba(255,255,255,0.7);margin-bottom:2px;">${player.number}号</div>
-                    <div class="player-avatar">${player.icon}</div>
+                    <div class="player-avatar" style="background-image:${roleImage};background-size:cover;background-position:center;background-repeat:no-repeat;">${player.icon}</div>
                     <div class="player-name" style="font-size:12px;font-weight:bold;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.8);margin-top:2px;margin-bottom:2px;">${player.name}</div>
                     ${roleLabel}
                 `;
