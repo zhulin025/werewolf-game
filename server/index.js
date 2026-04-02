@@ -214,6 +214,7 @@ wss.on('connection', (ws, req) => {
     }
 
     // Send welcome
+    const baseUrl = process.env.PUBLIC_URL || `https://werewolf-game-production-443d.up.railway.app`;
     ws.send(JSON.stringify({
         type: 'welcome',
         payload: {
@@ -221,6 +222,7 @@ wss.on('connection', (ws, req) => {
             room_id: roomId,
             connection_type: connType,
             room: room.getRoomInfo(),
+            spectate_url: `${baseUrl}/?spectate=${roomId}`,
         },
     }));
 

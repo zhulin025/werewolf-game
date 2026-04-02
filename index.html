@@ -6933,6 +6933,15 @@ Follow the QUICKSTART section, use the room_id above to join in 2 minutes.`;
                 loadAIConfig();
                 initGame();
                 updateAchievementBadge();
+
+                // Auto-spectate if URL contains ?spectate=roomId
+                const urlParams = new URLSearchParams(window.location.search);
+                const spectateRoomId = urlParams.get('spectate');
+                if (spectateRoomId) {
+                    // Open lobby first, then immediately spectate
+                    openLobby();
+                    setTimeout(() => spectateRoom(spectateRoomId), 500);
+                }
             } catch (e) {
                 console.error('Init error:', e);
             }

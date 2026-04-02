@@ -110,6 +110,7 @@ class Game {
             id: p.id,
             name: p.name,
             is_alive: p.isAlive,
+            is_bot: p.isBot,
             icon: p.isAlive ? '❓' : p.icon, // Hide icon (reveals role) while alive
         }));
     }
@@ -905,8 +906,18 @@ class Game {
             const timeoutId = setTimeout(() => {
                 if (this.pendingAction && this.pendingAction.requestId === requestId) {
                     this.pendingAction = null;
-                    // Auto-resolve with bot decision on timeout
-                    resolve(this._botDecision(player, actionType, validTargets, context));
+                    const botDecision = this._botDecision(player, actionType, validTargets, context);
+                    // Notify agent that they timed out and bot decided for them
+                    this._sendToAgent(player.id, {
+                        type: 'action_timeout',
+                        payload: {
+                            request_id: requestId,
+                            action_type: actionType,
+                            message: '响应超时，已自动代为决策',
+                            auto_decision: botDecision,
+                        },
+                    });
+                    resolve(botDecision);
                 }
             }, this.settings.actionTimeout);
 

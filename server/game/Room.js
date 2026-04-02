@@ -36,6 +36,33 @@ class Room {
     // ============ CONNECTION MANAGEMENT ============
 
     addAgent(agentId, ws, name) {
+        // Allow reconnection if game is playing and agent was already a player
+        if (this.status === 'playing' && this.game) {
+            const existingPlayer = this.game.getPlayerByAgentId(agentId);
+            if (existingPlayer) {
+                // Reconnect: update the websocket connection
+                this.connections.set(agentId, { ws, name: existingPlayer.name, type: 'agent' });
+                console.log(`[Room] Agent ${agentId} reconnected to playing game`);
+
+                // Send current game state so agent can catch up
+                ws.send(JSON.stringify({
+                    type: 'reconnected',
+                    payload: {
+                        message: '重新连接成功',
+                        your_id: existingPlayer.id,
+                        your_role: existingPlayer.role,
+                        your_role_name: existingPlayer.roleName,
+                        your_camp: existingPlayer.camp,
+                        players: this.game.getPublicPlayers(),
+                        day: this.game.day,
+                        phase: this.game.phase,
+                    },
+                }));
+                return { ok: true, reconnected: true };
+            }
+            return { ok: false, error: '游戏已开始，无法加入新玩家' };
+        }
+
         if (this.status !== 'waiting' && this.status !== 'countdown') return { ok: false, error: '房间已开始游戏' };
 
         const agentCount = this.getAgentCount();
