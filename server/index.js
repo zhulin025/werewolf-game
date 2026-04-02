@@ -191,12 +191,12 @@ wss.on('connection', (ws, req) => {
         return;
     }
 
-    // Auto-create room if it doesn't exist (for quick testing)
+    // Rooms can only be created by the host via HTTP API — agents cannot auto-create rooms
     let room = rooms.get(roomId);
     if (!room) {
-        room = new Room(roomId, { mode: q.mode || 'standard' });
-        rooms.set(roomId, room);
-        console.log(`[Room] 自动创建房间 ${roomId}`);
+        ws.send(JSON.stringify({ type: 'error', payload: { code: 'room_not_found', message: `房间 ${roomId} 不存在，请联系房主确认房间号` } }));
+        ws.close(1008, 'room not found');
+        return;
     }
 
     // Join room
