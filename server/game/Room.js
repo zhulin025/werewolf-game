@@ -10,7 +10,7 @@ class Room {
         this.roomId = roomId;
         this.name = options.name || `房间${roomId.slice(-4)}`;
         this.mode = options.mode || 'standard';
-        this.modeConfig = GAME_MODES[this.mode];
+        this.modeConfig = GAME_MODES[this.mode] || GAME_MODES['standard'];
         this.createdAt = Date.now();
 
         // Connections: agentId -> { ws, name, type: 'agent'|'spectator' }

@@ -16,6 +16,9 @@ function getWsBase() {
 }
 
 function openLobby() {
+    // 停止正在进行的本地模拟
+    if (typeof stopGame === 'function') stopGame();
+    
     document.getElementById('startScreen').style.display = 'none';
     document.getElementById('lobbyScreen').classList.add('active');
     refreshRooms();
@@ -100,6 +103,8 @@ async function forceStartRoom(roomId) {
 }
 
 function spectateRoom(roomId) {
+    if (typeof stopGame === 'function') stopGame();
+    
     // Close lobby and room detail
     document.getElementById('lobbyScreen').classList.remove('active');
     document.getElementById('roomDetailScreen').classList.remove('active');
@@ -578,16 +583,18 @@ async function updateRoomDetail() {
 function renderRoomDetail(room) {
     const statusLabels = { waiting: '等待中', countdown: '倒计时', playing: '游戏中', finished: '已结束' };
 
-    document.getElementById('roomDetailTitle').textContent = `🏠 ${room.name}`;
-    document.getElementById('roomDetailName').textContent = room.name;
-    document.getElementById('roomDetailMode').textContent = room.mode_name;
-    document.getElementById('roomDetailStatus').textContent = statusLabels[room.status] || room.status;
-    document.getElementById('roomDetailCount').textContent = `${room.agent_count}/${room.required_players}`;
+    if (document.getElementById('roomDetailTitle')) document.getElementById('roomDetailTitle').textContent = `🏠 ${room.name}`;
+    if (document.getElementById('roomDetailName')) document.getElementById('roomDetailName').textContent = room.name;
+    if (document.getElementById('roomDetailMode')) document.getElementById('roomDetailMode').textContent = room.mode_name;
+    if (document.getElementById('roomDetailStatus')) document.getElementById('roomDetailStatus').textContent = statusLabels[room.status] || room.status;
+    if (document.getElementById('roomDetailCount')) document.getElementById('roomDetailCount').textContent = `${room.agent_count}/${room.required_players}`;
 
     const progress = (room.agent_count / room.required_players) * 100;
     const fill = document.getElementById('progressFill');
-    fill.style.width = progress + '%';
-    fill.textContent = Math.round(progress) + '%';
+    if (fill) {
+        fill.style.width = progress + '%';
+        fill.textContent = Math.round(progress) + '%';
+    }
 
     // Agent列表
     const agentsList = document.getElementById('agentsList');
@@ -617,13 +624,15 @@ function renderRoomDetail(room) {
     }
 
     // 更新邀请链接
-    document.getElementById('wsUrl').textContent = `ws://${window.location.host}?room_id=${currentRoomDetail}&agent_id=<your_id>&name=<your_name>&type=agent`;
+    const wsUrl = document.getElementById('wsUrl');
+    if (wsUrl) wsUrl.textContent = `wss://${window.location.host}?room_id=${currentRoomDetail}&agent_id=<your_id>&name=<your_name>&type=agent`;
+    
     const previewRoomId = document.getElementById('previewRoomId');
-    if (previewRoomId) {
-        previewRoomId.textContent = currentRoomDetail;
-    }
+    if (previewRoomId) previewRoomId.textContent = currentRoomDetail;
+    
     const roomIdInvite = document.getElementById('roomIdInvite');
     if (roomIdInvite) roomIdInvite.textContent = currentRoomDetail;
+    
     const roomIdInvite2 = document.getElementById('roomIdInvite2');
     if (roomIdInvite2) roomIdInvite2.textContent = currentRoomDetail;
 }

@@ -95,18 +95,30 @@ const server = http.createServer(async (req, res) => {
 
     // POST /api/rooms — create room
     if (pathname === '/api/rooms' && req.method === 'POST') {
-        const body = await readBody(req);
-        const roomId = genId();
-        const room = new Room(roomId, {
-            name: body.name,
-            mode: body.mode || 'standard',
-            settings: body.settings,
-            autoFillBots: body.auto_fill_bots !== false,
-            autoStartThreshold: body.auto_start_threshold,
-        });
-        rooms.set(roomId, room);
-        console.log(`[Room] 创建房间 ${roomId} (${room.modeConfig.name})`);
-        return jsonResponse(res, 201, room.getRoomInfo());
+        try {
+            const body = await readBody(req);
+            const mode = body.mode || 'standard';
+            
+            // Validate mode
+            if (!GAME_MODES[mode]) {
+                return jsonResponse(res, 400, { error: `不支持的游戏模式: ${mode}` });
+            }
+
+            const roomId = genId();
+            const room = new Room(roomId, {
+                name: body.name,
+                mode: mode,
+                settings: body.settings,
+                autoFillBots: body.auto_fill_bots !== false,
+                autoStartThreshold: body.auto_start_threshold,
+            });
+            rooms.set(roomId, room);
+            console.log(`[Room] 创建房间 ${roomId} (${room.modeConfig.name})`);
+            return jsonResponse(res, 201, room.getRoomInfo());
+        } catch (err) {
+            console.error('[Room] 创建房间失败:', err.message);
+            return jsonResponse(res, 500, { error: '服务器内部错误，创建房间失败' });
+        }
     }
 
     // GET /api/rooms/:id — room detail

@@ -190,6 +190,41 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, Math.max(50, ms / gameSpeed)));
 }
 
+// 停止当前游戏逻辑（用于进入大厅或切换模式）
+function stopGame() {
+    console.log('[Game] Stopping current game simulation...');
+    if (phaseTimeout) {
+        clearTimeout(phaseTimeout);
+        phaseTimeout = null;
+    }
+    gameState.phase = 'end'; // 触发异步循环的退出检查
+    
+    // 停止语音
+    if (typeof VoiceSystem !== 'undefined') VoiceSystem.stop();
+    
+    // 移除所有悬浮 UI 元素（弹窗、公告、指示器等）
+    document.querySelectorAll('.modal, .phase-announcement, .night-action-indicator, .wolf-team-vision, .speech-bubble').forEach(el => el.remove());
+    
+    // 隐藏气泡和特效
+    if (typeof hideSpeechBubble === 'function') hideSpeechBubble();
+    
+    // 归位开始界面
+    const startScreen = document.getElementById('startScreen');
+    if (startScreen) startScreen.style.display = '';
+    
+    const toggleBtn = document.getElementById('toggleRolesBtn');
+    if (toggleBtn) toggleBtn.style.display = 'none';
+    
+    const backBtn = document.getElementById('headerBackBtn');
+    if (backBtn) backBtn.style.display = 'none';
+    
+    // 隐藏主游戏界面以防干扰
+    const gameContainer = document.querySelector('.main-container');
+    if (gameContainer) gameContainer.style.display = 'none';
+
+    addLog('⏹ 游戏已停止', 'system');
+}
+
 // ============ GAME FLOW ============
 function startGame() {
     console.log('startGame called');
@@ -217,6 +252,11 @@ function startGame() {
         // Reset game
         initGame();
         clearLogs();
+        
+        // Show game UI
+        const gameContainer = document.querySelector('.main-container');
+        if (gameContainer) gameContainer.style.display = '';
+        
         addLog('🐺 游戏开始！所有玩家都是AI，人类观众观战', 'system');
 
         // Start first night
