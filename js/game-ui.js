@@ -25,19 +25,24 @@ function renderPlayers() {
         card.id = `player-${player.id}`;
         card.onclick = () => onPlayerClick(player);
 
-        const imgSrc = ROLE_IMAGES[player.role] ? encodeURI(ROLE_IMAGES[player.role]) : null;
+        const roleKey = player.role ? player.role.toUpperCase() : 'UNKNOWN';
+        const roleData = window.ROLES ? window.ROLES[roleKey] : null;
+        const imgSrc = (roleData && roleData.image) ? encodeURI(roleData.image) : null;
+        
         const roleLabel = (showRoles && player.roleName && player.roleName !== '?')
             ? `<div style="font-size:9px;color:rgba(255,255,255,0.75);margin-top:1px;text-shadow:0 1px 3px rgba(0,0,0,0.9);">${player.roleName}</div>`
             : '';
 
         // Avatar: show role image only when showRoles is on; otherwise generic colored circle
-        let avatarContent, avatarStyle;
-        if (showRoles && imgSrc) {
-            avatarContent = '';
-            avatarStyle = `background:url('${imgSrc}') center/cover no-repeat;`;
-        } else if (showRoles && !imgSrc) {
-            avatarContent = player.icon;
-            avatarStyle = '';
+        let avatarContent = '', avatarStyle = '';
+        if (showRoles) {
+            if (imgSrc) {
+                avatarStyle = `background:url('${imgSrc}') center/cover no-repeat;`;
+                // Image error fallback
+                avatarContent = `<img src="${imgSrc}" style="display:none" onerror="this.parentElement.style.background='none';this.parentElement.innerHTML='${player.icon || '👤'}';">`;
+            } else {
+                avatarContent = player.icon || '👤';
+            }
         } else {
             // Hidden role mode: show mystery avatar with player-unique color
             const hues = [210, 340, 160, 280, 40, 0, 120, 200, 300, 60, 180, 240];
@@ -45,6 +50,7 @@ function renderPlayers() {
             avatarContent = '?';
             avatarStyle = `background:linear-gradient(135deg, hsl(${hue},50%,35%), hsl(${hue},60%,20%));font-size:24px;color:rgba(255,255,255,0.4);`;
         }
+
         // Also hide camp-based border when roles hidden
         if (!showRoles) {
             card.className = 'player-card';
@@ -391,23 +397,56 @@ function playDayAnimation() {
     });
 }
 
-// Back to home screen (from local sim mode)
-function backToHome() {
-    if (gameState.phase !== 'end' && gameState.phase !== 'waiting') {
-        if (!confirm('游戏进行中，确定要返回首页吗？')) return;
+// Back to home screen
+window.isConfirmingBack = false;
+function backToHome(event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
     }
-    // Cancel pending phase
+    
+    if (window.isConfirmingBack) return;
+    window.isConfirmingBack = true;
+
+    // Immediately pause game logic if applicable
+    const wasPaused = window.isPaused;
+    window.isPaused = true;
+
+    // Only confirm if in an active game
+    if (gameState.phase !== 'end' && gameState.phase !== 'waiting') {
+        const confirmed = confirm('游戏进行中，确定要返回首页吗？');
+        if (!confirmed) {
+            window.isPaused = wasPaused;
+            window.isConfirmingBack = false;
+            return;
+        }
+    }
+
+    // Force stop all game activity
+    if (typeof stopGame === 'function') stopGame();
     if (typeof phaseTimeout !== 'undefined' && phaseTimeout) {
-        clearTimeout(phaseTimeout); phaseTimeout = null;
+        clearTimeout(phaseTimeout);
+        phaseTimeout = null;
     }
     VoiceSystem.stop();
     gameState.phase = 'end';
+
+    // UI Updates
     document.getElementById('startScreen').style.display = '';
     document.getElementById('headerBackBtn').style.display = 'none';
-    document.getElementById('toggleRolesBtn').style.display = 'none';
-    const gameOverModal = document.getElementById('gameOverModal');
-    if (gameOverModal) gameOverModal.classList.remove('active');
+    if (document.getElementById('btnBackToHome')) {
+        document.getElementById('btnBackToHome').style.display = 'none';
+    }
+    
+    // Reset guard after short delay to prevent accidental double-clicks from remaining in memory
+    setTimeout(() => {
+        window.isConfirmingBack = false;
+    }, 500);
+
+    // Return to lobby/home
+    openLobby();
 }
+window.backToHome = backToHome;
 
 // Play again - close modal and restart
 function playAgain() {
@@ -704,15 +743,15 @@ function showDeathAnimation(playerId, callback) {
 }
 
 // Pause game
-let isPaused = false;
+window.isPaused = false;
 let pauseResolve = null;
 
 function togglePause() {
     if (gameState.phase === 'waiting' || gameState.phase === 'end') return;
 
-    isPaused = !isPaused;
+    window.isPaused = !window.isPaused;
 
-    if (isPaused) {
+    if (window.isPaused) {
         showPauseIndicator();
     } else {
         hidePauseIndicator();
@@ -746,7 +785,7 @@ function hidePauseIndicator() {
 
 // Enhanced pause-aware sleep
 async function pausedSleep(ms) {
-    if (isPaused) {
+    if (window.isPaused) {
         await new Promise(resolve => {
             pauseResolve = resolve;
         });

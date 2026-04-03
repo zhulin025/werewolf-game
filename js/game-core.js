@@ -20,6 +20,11 @@ const ROLES = {
     WOLF_KING: { name: '狼王', camp: 'wolf', icon: '👑', image: ROLE_IMAGES.WOLF_KING, desc: '狼人团队的领袖。被投票出局或被毒死时可以开枪带走一人。带领你的团队走向胜利！' }
 };
 
+// 显式暴露给全局
+window.ROLES = ROLES;
+window.ROLE_IMAGES = ROLE_IMAGES;
+window.toggleRolesDisplay = toggleRolesDisplay;
+
 const PLAYER_NAMES = [
     '豆包', '千问', 'Deepseek', 'Gemini', 'ChatGPT', 'Grok',
     'Kimi', 'Claude', 'Claude Ops', 'GLM', 'Minimax', '小米'

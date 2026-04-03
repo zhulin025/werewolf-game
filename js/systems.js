@@ -279,3 +279,14 @@ const skinSystem = {
 };
 skinSystem.init();
 
+// 全局暴露
+window.openGuide = openGuide;
+window.closeGuide = function() {
+    const modal = document.getElementById('guideModal');
+    if (modal) modal.classList.remove('active');
+};
+window.closeModal = function(id) {
+    const modal = document.getElementById(id);
+    if (modal) modal.classList.remove('active');
+};
+

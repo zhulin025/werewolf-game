@@ -162,11 +162,15 @@ const server = http.createServer(async (req, res) => {
 
     // ---- Static Files ----
     let filePath;
-    if (pathname === '/' || pathname === '/index.html') {
+    const decodedPath = decodeURIComponent(pathname);
+    if (decodedPath === '/' || decodedPath === '/index.html') {
         filePath = path.join(__dirname, '..', 'index.html');
     } else {
         // Prevent directory traversal
-        const safePath = path.normalize(pathname).replace(/^(\.\.(\/|\\|$))+/, '');
+        let safePath = path.normalize(decodedPath).replace(/^(\.\.(\/|\\|$))+/, '');
+        if (safePath.startsWith(path.sep) || safePath.startsWith('/')) {
+            safePath = safePath.slice(1);
+        }
         filePath = path.join(__dirname, '..', safePath);
     }
 

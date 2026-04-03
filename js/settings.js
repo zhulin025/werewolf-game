@@ -411,3 +411,10 @@ function showToast(message) {
     setTimeout(() => toast.remove(), 3000);
 }
 
+// ============ EXPOSE TO GLOBAL ============
+window.showSettings = showSettings;
+window.toggleSound = toggleSound;
+window.toggleVoice = toggleVoice;
+window.setVoiceRate = setVoiceRate;
+window.renderAchievementsList = renderAchievementsList;
+window.togglePause = typeof togglePause !== 'undefined' ? togglePause : null;

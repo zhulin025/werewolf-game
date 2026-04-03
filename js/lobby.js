@@ -74,22 +74,41 @@ function escapeHtml(s) {
 }
 
 async function createRoom() {
-    const name = document.getElementById('newRoomName').value.trim() || 'AI对战房';
-    const mode = document.getElementById('newRoomMode').value;
+    const nameInput = document.getElementById('newRoomName');
+    const modeInput = document.getElementById('newRoomMode');
+    if (!nameInput || !modeInput) return;
+
+    const name = nameInput.value.trim() || 'AI对战房';
+    const mode = modeInput.value;
+    
     try {
+        console.log('Creating room:', { name, mode });
         const resp = await fetch(`${getApiBase()}/api/rooms`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, mode, auto_fill_bots: true }),
         });
+        
+        if (!resp.ok) {
+            const errData = await resp.json().catch(() => ({}));
+            console.error('Room creation failed:', resp.status, errData);
+            showToast(`创建失败: ${errData.error || resp.statusText}`);
+            return;
+        }
+
         const data = await resp.json();
         showToast(`房间 "${name}" 已创建`);
-        // 清空输入框
-        document.getElementById('newRoomName').value = '';
-        // 自动打开房间详情页
+        nameInput.value = '';
+        
+        // Close modal
+        const modal = document.getElementById('createRoomModal');
+        if (modal) modal.classList.remove('active');
+
+        // Open detail
         openRoomDetail(data.room_id);
     } catch (e) {
-        showToast('创建失败');
+        console.error('Create room error:', e);
+        showToast('创建失败 — 请检查网络连接');
     }
 }
 
@@ -726,3 +745,19 @@ function showCountdown(seconds) {
     }, 1000);
 }
 
+// ============ EXPOSE TO GLOBAL ============
+window.openLobby = openLobby;
+window.closeLobby = closeLobby;
+window.refreshRooms = refreshRooms;
+window.createRoom = createRoom;
+window.spectateRoom = spectateRoom;
+window.openRoomDetail = openRoomDetail;
+window.closeRoomDetail = closeRoomDetail;
+window.openInviteModal = openInviteModal;
+window.closeInviteModal = closeInviteModal;
+window.copyInviteText = copyInviteText;
+window.startRoomGame = startRoomGame;
+window.exitSpectatoring = exitSpectatoring;
+window.forceStartRoom = forceStartRoom;
+window.stopSpectating = stopSpectating;
+window.playAgain = typeof playAgain !== 'undefined' ? playAgain : null;

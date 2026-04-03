@@ -186,7 +186,7 @@
     <!-- Header -->
     <header>
         <div style="display:flex;align-items:center;gap:12px;">
-            <button class="btn btn-secondary header-back-btn" id="headerBackBtn" onclick="backToHome()"
+            <button class="btn btn-secondary header-back-btn" id="headerBackBtn" onclick="backToHome(event)"
                 style="display:none;font-size:12px;padding:6px 10px;">← 返回</button>
             <div class="logo">
                 <span class="logo-icon">🐺</span>
@@ -342,7 +342,7 @@
 
     <!-- Settings Modal -->
     <div class="modal-overlay" id="settingsModal">
-        <div class="modal" style="max-width: 480px;">
+        <div class="modal" style="max-width: 480px; max-height: 85vh; overflow-y: auto;">
             <div class="modal-content">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h2 style="font-family: 'Orbitron', sans-serif; font-size: 20px;">⚙️ 设置</h2>
@@ -419,38 +419,15 @@
                         </div>
                     </div>
                 </div>
-
-                <div class="settings-section">
-                    <h3>📊 我的战绩</h3>
-                    <div class="stats-grid" id="statsSummary"></div>
-                </div>
-
-                <div class="settings-section">
-                    <h3>🎮 角色胜率</h3>
-                    <div id="roleWinrates"></div>
-                </div>
-
-                <div class="settings-section">
-                    <h3>🏆 成就</h3>
-                    <div id="achievementList"></div>
-                </div>
-
                 <div style="margin-top: 20px; display: flex; gap: 12px;">
-                    <button class="btn btn-secondary" onclick="resetStats()">重置战绩</button>
+                    <button class="btn btn-secondary" onclick="resetStats()">重置角色配置</button>
                     <button class="btn btn-primary" onclick="closeSettings()" style="flex:1;">关闭</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Achievement Badge -->
-    <div class="achievement-badge" id="achievementBadge" onclick="showSettings()">
-        <div class="icon">🏆</div>
-        <div class="info">
-            <div class="title">成就</div>
-            <div class="count" id="achievementCount">0/16</div>
-        </div>
-    </div>
+
 
     <!-- Fullscreen Button -->
     <button class="fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()">⛶</button>
@@ -582,9 +559,9 @@
     <script src="js/systems.js"></script>
     <script src="js/sound-voice.js"></script>
     <script src="js/achievements.js"></script>
-    <script src="js/game-ui.js"></script>
     <script src="js/ai-strategies.js"></script>
     <script src="js/game-core.js"></script>
+    <script src="js/game-ui.js"></script>
     <script src="js/settings.js"></script>
     <script src="js/lobby.js"></script>
     <script src="js/human-player.js"></script>
@@ -623,7 +600,9 @@
             }
         };
 
-        window.showSettings = showSettings;
+        // 确保全局可用
+        window.showSettings = typeof showSettings !== 'undefined' ? showSettings : null;
+        window.openGuide = typeof openGuide !== 'undefined' ? openGuide : null;
     </script>
 </body>
 
