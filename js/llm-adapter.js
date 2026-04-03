@@ -357,13 +357,26 @@ ${this.formatPreviousSpeeches(gameState.recentSpeeches || [])}
     }
 
     /**
-     * AI决策（用于夜晚行动）
+     * AI决策（用于夜晚行动）- 支持LLM API
      */
     async makeDecision(context, action) {
         const { player, gameState } = context;
         const alivePlayers = gameState.players.filter(p => p.isAlive && p.id !== player.id);
 
-        // 智能决策逻辑
+        // 如果配置了非本地LLM，尝试用LLM做决策
+        if (this.config.provider !== 'local' && this.config.apiKey) {
+            try {
+                const prompt = this.buildDecisionPrompt(context, action, alivePlayers);
+                const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('LLM decision timeout')), 8000));
+                const response = await Promise.race([this.callLLM(prompt), timeout]);
+                const parsed = this.parseDecisionResponse(response, action, alivePlayers);
+                if (parsed !== null) return parsed;
+            } catch (e) {
+                console.error('LLM decision failed, fallback to local:', e);
+            }
+        }
+
+        // 本地智能决策逻辑
         switch (action) {
             case 'guard':
                 return this.smartGuardDecision(player, alivePlayers);
@@ -374,10 +387,57 @@ ${this.formatPreviousSpeeches(gameState.recentSpeeches || [])}
             case 'vote':
                 return this.smartVoteDecision(player, alivePlayers, gameState);
             case 'witch_heal':
-                return Math.random() < 0.4; // 40%概率救人
+                return Math.random() < 0.4;
             default:
                 return alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
         }
+    }
+
+    /**
+     * 构建决策提示词
+     */
+    buildDecisionPrompt(context, action, alivePlayers) {
+        const { player, gameState } = context;
+        const isWolf = player.camp === 'wolf';
+        const playerList = alivePlayers.map(p => `${p.number}号${p.name}`).join('、');
+
+        const actionDescs = {
+            wolf_kill: `你是狼人"${player.name}"，现在是夜晚，你需要选择今晚击杀的目标。\n存活的非狼人玩家：${playerList}\n请选择一个目标的编号。优先考虑击杀神职玩家（预言家、女巫等）。`,
+            witch_heal: `你是女巫"${player.name}"，有人今晚被狼人杀害了。你有解药，是否使用解药救人？\n请回答"是"或"否"。考虑：第一天通常不救，后期解药更珍贵。`,
+            witch_poison: `你是女巫"${player.name}"，你有毒药可以毒杀一名玩家。\n存活玩家：${playerList}\n是否使用毒药？如果使用，请回答目标编号；如果不使用，请回答"不使用"。`,
+            prophet_check: `你是预言家"${player.name}"，现在选择今晚查验的玩家。\n存活玩家：${playerList}\n请选择一个目标的编号进行查验。优先查验发言可疑的玩家。`,
+            guard: `你是守卫"${player.name}"，选择今晚守护的玩家。\n存活玩家：${playerList}\n请选择一个目标的编号。优先守护重要的神职玩家。`,
+            vote: `你是"${player.name}"（${player.roleName}，${isWolf ? '狼人阵营' : '好人阵营'}），现在是投票环节。\n存活玩家：${playerList}\n请选择你要投票出局的玩家编号。${isWolf ? '尽量投好人。' : '尽量投出狼人。'}`
+        };
+
+        return `${actionDescs[action] || actionDescs.vote}\n\n【重要】只回答一个数字编号，不要有其他内容。`;
+    }
+
+    /**
+     * 解析LLM决策回复
+     */
+    parseDecisionResponse(response, action, alivePlayers) {
+        const text = response.trim();
+
+        // witch_heal 特殊处理：是/否
+        if (action === 'witch_heal') {
+            return text.includes('是') || text.includes('救') || text.includes('yes');
+        }
+
+        // witch_poison 可能回答"不使用"
+        if (action === 'witch_poison') {
+            if (text.includes('不') || text.includes('跳过') || text.includes('no')) return null;
+        }
+
+        // 提取数字编号
+        const match = text.match(/(\d+)/);
+        if (match) {
+            const num = parseInt(match[1]);
+            const target = alivePlayers.find(p => p.number === num);
+            if (target) return target;
+        }
+
+        return null; // 解析失败，回退到本地决策
     }
 
     smartGuardDecision(player, alivePlayers) {

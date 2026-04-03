@@ -1,327 +1,110 @@
-/**
- * 成就系统 - 解锁奖励和里程碑
- */
-
+// ============ ACHIEVEMENTS SYSTEM ============
 const Achievements = {
-    // 成就定义
-    list: {
-        first_game: {
-            id: 'first_game',
-            name: '初次见面',
-            desc: '完成第一场游戏',
-            icon: '🎮',
-            condition: (stats) => stats.totalGames >= 1
-        },
-        games_10: {
-            id: 'games_10',
-            name: '常客',
-            desc: '完成10场游戏',
-            icon: '🎯',
-            condition: (stats) => stats.totalGames >= 10
-        },
-        games_50: {
-            id: 'games_50',
-            name: '老手',
-            desc: '完成50场游戏',
-            icon: '🏆',
-            condition: (stats) => stats.totalGames >= 50
-        },
-        first_win: {
-            id: 'first_win',
-            name: '首胜',
-            desc: '获得第一场胜利',
-            icon: '🌟',
-            condition: (stats) => stats.wins >= 1
-        },
-        win_streak_3: {
-            id: 'win_streak_3',
-            name: '三连胜',
-            desc: '连续获得3场胜利',
-            icon: '🔥',
-            condition: (stats) => stats.winStreak >= 3
-        },
-        win_streak_5: {
-            id: 'win_streak_5',
-            name: '五连胜',
-            desc: '连续获得5场胜利',
-            icon: '⚡',
-            condition: (stats) => stats.winStreak >= 5
-        },
-        win_rate_60: {
-            id: 'win_rate_60',
-            name: '胜率达人',
-            desc: '总胜率达到60%',
-            icon: '📈',
-            condition: (stats) => stats.totalGames >= 10 && (stats.wins / stats.totalGames) >= 0.6
-        },
-        wolf_slayer: {
-            id: 'wolf_slayer',
-            name: '猎狼者',
-            desc: '作为好人阵营投出4只狼人',
-            icon: '🐺',
-            condition: (stats) => stats.wolvesKilled >= 4
-        },
-        survivor: {
-            id: 'survivor',
-            name: '幸存者',
-            desc: '作为村民存活到最后',
-            icon: '🛡️',
-            condition: (stats) => stats.timesSurvivedAsVillager >= 1
-        },
-        prophet_king: {
-            id: 'prophet_king',
-            name: '预言之王',
-            desc: '作为预言家查验准确率超过80%',
-            icon: '🔮',
-            condition: (stats) => stats.prophetChecks >= 5 && (stats.prophetCorrect / stats.prophetChecks) >= 0.8
-        },
-        witch_power: {
-            id: 'witch_power',
-            name: '药水大师',
-            desc: '女巫连续3场救人',
-            icon: '🧪',
-            condition: (stats) => stats.witchSaves >= 3
-        },
-        hunter_trail: {
-            id: 'hunter_trail',
-            name: '神射手',
-            desc: '猎人连续3场开枪带走狼人',
-            icon: '🏹',
-            condition: (stats) => stats.hunterKills >= 3
-        },
-        wolf_pack: {
-            id: 'wolf_pack',
-            name: '狼群之王',
-            desc: '狼人阵营获得5连胜',
-            icon: '👑',
-            condition: (stats) => stats.wolfWinStreak >= 5
-        },
-        speed_demon: {
-            id: 'speed_demon',
-            name: '速战速决',
-            desc: '在第3天之前结束游戏',
-            icon: '⚡',
-            condition: (stats) => stats.fastWins >= 1
-        },
-        marathon: {
-            id: 'marathon',
-            name: '马拉松',
-            desc: '进行一场超过10分钟的游戏',
-            icon: '🏃',
-            condition: (stats) => stats.longestGame >= 600000 // 10分钟
-        },
-        collector: {
-            id: 'collector',
-            name: '收藏家',
-            desc: '解锁所有皮肤',
-            icon: '🎨',
-            condition: () => {
-                const unlocked = JSON.parse(localStorage.getItem('werewolf_unlocked_skins') || '[]');
-                return unlocked.length >= 6;
+    list: [
+        // 游戏参与
+        { id: 'first_game', name: '初来乍到', desc: '完成第一局游戏', icon: '🎮', unlocked: false },
+        { id: 'survive_night', name: '活过第一夜', desc: '在游戏中活过第一夜', icon: '🌙', unlocked: false },
+        { id: 'survive_3days', name: '苟活三天', desc: '存活达到3天', icon: '⏳', unlocked: false },
+
+        // 胜利成就
+        { id: 'good_win', name: '好人胜利', desc: '好人阵营获得胜利', icon: '🏆', unlocked: false },
+        { id: 'wolf_win', name: '狼人胜利', desc: '狼人阵营获得胜利', icon: '🐺', unlocked: false },
+        { id: 'first_win', name: '首胜', desc: '获得第一次胜利', icon: '⭐', unlocked: false },
+
+        // 角色成就
+        { id: 'prophet_check', name: '预言查验', desc: '使用预言家查验功能', icon: '🔮', unlocked: false },
+        { id: 'witch_save', name: '生死人肉白骨', desc: '女巫使用解药救人', icon: '💊', unlocked: false },
+        { id: 'witch_poison', name: '毒家本领', desc: '女巫使用毒药击杀狼人', icon: '☠️', unlocked: false },
+        { id: 'guard_protect', name: '铜墙铁壁', desc: '守卫连续3晚守护成功', icon: '🛡️', unlocked: false },
+        { id: 'hunter_shoot', name: '枪打出头鸟', desc: '猎人开枪带走狼人', icon: '🏹', unlocked: false },
+
+        // 特殊成就
+        { id: 'peaceful_night', name: '平安夜', desc: '夜晚无人死亡', icon: '😌', unlocked: false },
+        { id: 'wolf_king_kill', name: '狼王风范', desc: '狼王带走猎人', icon: '👑', unlocked: false },
+        { id: 'double_kill', name: '双杀', desc: '一晚击杀两名玩家', icon: '⚔️', unlocked: false },
+
+        // 游戏次数
+        { id: 'play_5', name: '常客', desc: '完成5局游戏', icon: '🎯', unlocked: false },
+        { id: 'play_10', name: '老手', desc: '完成10局游戏', icon: '🎰', unlocked: false },
+        { id: 'play_20', name: '专家', desc: '完成20局游戏', icon: '🎲', unlocked: false },
+
+        // 连胜
+        { id: 'win_streak_3', name: '三连胜', desc: '获得3连胜', icon: '🔥', unlocked: false },
+        { id: 'win_streak_5', name: '五连胜', desc: '获得5连胜', icon: '💥', unlocked: false }
+    ],
+
+    init() {
+        try {
+            const saved = localStorage.getItem('werewolf_achievements');
+            if (saved) {
+                const savedIds = JSON.parse(saved);
+                this.list.forEach(a => {
+                    a.unlocked = savedIds.includes(a.id);
+                });
             }
-        }
+        } catch (e) { }
     },
 
-    // 玩家已解锁的成就
-    unlocked: new Set(JSON.parse(localStorage.getItem('werewolf_achievements') || '[]')),
-
-    // 检查新成就
-    check(stats) {
-        const newAchievements = [];
-
-        for (const [id, achievement] of Object.entries(this.list)) {
-            if (!this.unlocked.has(id) && achievement.condition(stats)) {
-                this.unlocked.add(id);
-                newAchievements.push(achievement);
-            }
-        }
-
-        if (newAchievements.length > 0) {
+    unlock(id) {
+        const achievement = this.list.find(a => a.id === id);
+        if (achievement && !achievement.unlocked) {
+            achievement.unlocked = true;
             this.save();
-            this.showNotification(newAchievements);
+            this.showNotification(achievement);
         }
-
-        return newAchievements;
     },
 
-    // 保存成就
     save() {
-        localStorage.setItem('werewolf_achievements', JSON.stringify([...this.unlocked]));
+        try {
+            const unlockedIds = this.list.filter(a => a.unlocked).map(a => a.id);
+            localStorage.setItem('werewolf_achievements', JSON.stringify(unlockedIds));
+        } catch (e) { }
     },
 
-    // 显示通知
-    showNotification(achievements) {
-        achievements.forEach((achievement, index) => {
-            setTimeout(() => {
-                this.createAchievementPopup(achievement);
-            }, index * 2000);
-        });
-    },
-
-    createAchievementPopup(achievement) {
-        const popup = document.createElement('div');
-        popup.style.cssText = `
+    showNotification(achievement) {
+        // Show achievement notification
+        const notification = document.createElement('div');
+        notification.style.cssText = `
             position: fixed;
             top: 20px;
             right: 20px;
-            background: linear-gradient(135deg, #2d1b4e, #1a0a2e);
+            background: linear-gradient(135deg, rgba(45, 27, 78, 0.98), rgba(20, 10, 40, 0.98));
+            padding: 16px 24px;
+            border-radius: 12px;
             border: 2px solid #ffd700;
-            border-radius: 16px;
-            padding: 20px 24px;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            z-index: 10000;
-            animation: slideInRight 0.5s ease, fadeOut 0.5s ease 3s forwards;
-            box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.4);
+            z-index: 3000;
+            animation: achievementSlideIn 0.5s ease, achievementSlideOut 0.5s ease 3s forwards;
         `;
-
-        popup.innerHTML = `
-            <div style="font-size: 48px;">${achievement.icon}</div>
-            <div>
-                <div style="font-family: 'Orbitron', sans-serif; color: #ffd700; font-size: 14px; margin-bottom: 4px;">
-                    成就解锁
-                </div>
-                <div style="color: white; font-size: 16px; font-weight: 600;">
-                    ${achievement.name}
-                </div>
-                <div style="color: rgba(255,255,255,0.6); font-size: 12px;">
-                    ${achievement.desc}
+        notification.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 32px;">${achievement.icon}</span>
+                <div>
+                    <div style="color: #ffd700; font-weight: bold; font-size: 14px;">成就解锁!</div>
+                    <div style="color: #fff; font-size: 13px;">${achievement.name}</div>
+                    <div style="color: rgba(255,255,255,0.6); font-size: 11px;">${achievement.desc}</div>
                 </div>
             </div>
         `;
+        document.body.appendChild(notification);
 
-        document.body.appendChild(popup);
+        // Play sound
+        SoundSystem.play('action');
 
-        // 添加动画样式
-        if (!document.getElementById('achievementAnimations')) {
-            const style = document.createElement('style');
-            style.id = 'achievementAnimations';
-            style.textContent = `
-                @keyframes slideInRight {
-                    from { transform: translateX(100%); opacity: 0; }
-                    to { transform: translateX(0); opacity: 1; }
-                }
-                @keyframes fadeOut {
-                    to { opacity: 0; transform: translateX(100%); }
-                }
-            `;
-            document.head.appendChild(style);
-        }
-
-        setTimeout(() => popup.remove(), 4000);
+        // Remove after animation
+        setTimeout(() => notification.remove(), 3500);
     },
 
-    // 获取已解锁成就列表
-    getUnlockedList() {
-        return [...this.unlocked].map(id => ({
-            ...this.list[id],
-            unlocked: true
-        }));
-    },
-
-    // 获取所有成就列表
-    getAllList() {
-        return Object.values(this.list).map(a => ({
-            ...a,
-            unlocked: this.unlocked.has(a.id)
-        }));
-    },
-
-    // 获取成就进度
     getProgress() {
-        const total = Object.keys(this.list).length;
-        const unlocked = this.unlocked.size;
-        return {
-            unlocked,
-            total,
-            percentage: Math.round((unlocked / total) * 100)
-        };
+        const unlocked = this.list.filter(a => a.unlocked).length;
+        return { unlocked, total: this.list.length };
     },
 
-    // 重置成就
     reset() {
-        this.unlocked.clear();
+        this.list.forEach(a => a.unlocked = false);
         this.save();
     }
 };
 
-// 成就追踪器
-class AchievementTracker {
-    constructor() {
-        this.reset();
-    }
-
-    reset() {
-        this.data = {
-            totalGames: 0,
-            wins: 0,
-            losses: 0,
-            winStreak: 0,
-            wolfWinStreak: 0,
-            wolvesKilled: 0,
-            timesSurvivedAsVillager: 0,
-            prophetChecks: 0,
-            prophetCorrect: 0,
-            witchSaves: 0,
-            hunterKills: 0,
-            fastWins: 0,
-            longestGame: 0
-        };
-    }
-
-    // 游戏结束记录
-    recordGameEnd(result) {
-        this.data.totalGames++;
-        this.data.longestGame = Math.max(this.data.longestGame, result.duration);
-
-        if (result.winner === 'good') {
-            this.data.wins++;
-            this.data.winStreak++;
-            this.data.wolfWinStreak = 0;
-        } else {
-            this.data.losses++;
-            this.data.winStreak = 0;
-            this.data.wolfWinStreak++;
-        }
-
-        // 快速胜利
-        if (result.day <= 3 && result.winner === 'good') {
-            this.data.fastWins++;
-        }
-
-        // 检查成就
-        const newAchievements = Achievements.check(this.data);
-
-        return newAchievements;
-    }
-
-    // 记录狼人被投
-    recordWolfKilled() {
-        this.data.wolvesKilled++;
-    }
-
-    // 记录村民存活
-    recordVillagerSurvived() {
-        this.data.timesSurvivedAsVillager++;
-    }
-
-    // 记录预言家查验
-    recordProphetCheck(correct) {
-        this.data.prophetChecks++;
-        if (correct) this.data.prophetCorrect++;
-    }
-
-    // 记录女巫救人
-    recordWitchSave() {
-        this.data.witchSaves++;
-    }
-
-    // 记录猎人杀狼
-    recordHunterKillWolf() {
-        this.data.hunterKills++;
-    }
-}
-
-// 全局实例
-const achievementTracker = new AchievementTracker();
+// Init achievements
+Achievements.init();
