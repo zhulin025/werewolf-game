@@ -253,14 +253,34 @@ wss.on('connection', (ws, req) => {
         },
     }));
 
-    // Server-side heartbeat to keep connection alive
+    // Server-side heartbeat to keep connection alive — includes game state for sync
     const heartbeat = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'heartbeat', payload: { timestamp: Date.now() } }));
+            const heartbeatPayload = { timestamp: Date.now() };
+            // Include game state so agents stay in sync
+            heartbeatPayload.room_status = room.status;
+            if (room.game) {
+                heartbeatPayload.game_phase = room.game.phase;
+                heartbeatPayload.game_day = room.game.day;
+                heartbeatPayload.alive_count = room.game.players.filter(p => p.isAlive).length;
+                // For agents, include their role if assigned
+                if (connType === 'agent') {
+                    const player = room.game.getPlayerByAgentId(connectionId);
+                    if (player) {
+                        heartbeatPayload.your_id = player.id;
+                        heartbeatPayload.your_role = player.role;
+                        heartbeatPayload.is_alive = player.isAlive;
+                    }
+                }
+            } else {
+                heartbeatPayload.agent_count = room.getAgentCount();
+                heartbeatPayload.required_players = room.modeConfig.players;
+            }
+            ws.send(JSON.stringify({ type: 'heartbeat', payload: heartbeatPayload }));
         } else {
             clearInterval(heartbeat);
         }
-    }, 30000); // Every 30s
+    }, 15000); // Every 15s (was 30s) for better sync
 
     // Handle messages
     ws.on('message', (data) => {
@@ -304,12 +324,43 @@ function handleMessage(room, connectionId, msg) {
             // Agent cannot force start — game start is controlled by the host via HTTP API or when room is full
             break;
 
-        case 'ping':
+        case 'ping': {
             const conn = room.connections.get(connectionId);
             if (conn && conn.ws.readyState === 1) {
                 conn.ws.send(JSON.stringify({ type: 'pong', payload: { timestamp: Date.now() } }));
             }
             break;
+        }
+
+        case 'get_status': {
+            // Agent can request current game state at any time for re-sync
+            const conn2 = room.connections.get(connectionId);
+            if (!conn2 || conn2.ws.readyState !== 1) break;
+            const statusPayload = {
+                room_id: room.roomId,
+                room_status: room.status,
+                agent_count: room.getAgentCount(),
+                required_players: room.modeConfig.players,
+            };
+            if (room.game) {
+                statusPayload.game_phase = room.game.phase;
+                statusPayload.game_day = room.game.day;
+                statusPayload.players = room.game.getPublicPlayers();
+                statusPayload.alive_count = room.game.players.filter(p => p.isAlive).length;
+                // Include agent's own role info
+                const player = room.game.getPlayerByAgentId(connectionId);
+                if (player) {
+                    statusPayload.your_id = player.id;
+                    statusPayload.your_role = player.role;
+                    statusPayload.your_role_name = player.roleName;
+                    statusPayload.your_camp = player.camp;
+                    statusPayload.is_alive = player.isAlive;
+                }
+                statusPayload.event_log = room.game.eventLog.slice(-20).map(e => e.message);
+            }
+            conn2.ws.send(JSON.stringify({ type: 'game_status', payload: statusPayload }));
+            break;
+        }
 
         default:
             console.log(`[WS] 未知消息类型: ${msg.type} from ${connectionId}`);

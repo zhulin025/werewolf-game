@@ -566,12 +566,14 @@ class Game {
 
             const result = await this._requestAction(player, 'speak', [], context);
             const speech = result?.content || '过';
+            const isAuto = !!(result?.is_auto || player.isBot);
 
             // Broadcast speech to all
             this._broadcastPublic('speech', {
                 player_id: player.id,
                 player_name: player.name,
                 content: speech,
+                is_auto: isAuto,
             });
 
             this._log('speak', `${player.name}：${speech}`);
@@ -607,10 +609,12 @@ class Game {
 
             const result = await this._requestAction(player, 'vote', validTargets, context);
             let targetId = result?.target_id;
+            let isAuto = !!(result?.is_auto || player.isBot);
 
             // Validate
             if (!validTargets.includes(targetId)) {
                 targetId = validTargets[Math.floor(Math.random() * validTargets.length)];
+                isAuto = true; // Invalid response treated as auto
             }
 
             votes[player.id] = targetId;
@@ -621,6 +625,7 @@ class Game {
                 voter_name: player.name,
                 target_id: targetId,
                 target_name: target?.name,
+                is_auto: isAuto,
             });
 
             this._log('vote', `${player.name} 投了 ${target?.name}`);
@@ -803,11 +808,13 @@ class Game {
         const context = { action_desc: '请发表遗言' };
         const result = await this._requestAction(player, 'last_words', [], context);
         const words = result?.content || '无遗言';
+        const isAuto = !!(result?.is_auto || player.isBot);
 
         this._broadcastPublic('last_words', {
             player_id: player.id,
             player_name: player.name,
             content: words,
+            is_auto: isAuto,
         });
 
         this._log('death', `${player.name} 的遗言：${words}`);
@@ -917,11 +924,17 @@ class Game {
                 },
             });
 
+            // Determine timeout based on action type
+            const timeout = actionType === 'speak' ? this.settings.speakTimeout
+                : actionType === 'vote' ? this.settings.voteTimeout
+                : this.settings.actionTimeout;
+
             // Set timeout for response
             const timeoutId = setTimeout(() => {
                 if (this.pendingAction && this.pendingAction.requestId === requestId) {
                     this.pendingAction = null;
                     const botDecision = this._botDecision(player, actionType, validTargets, context);
+                    botDecision.is_auto = true; // Mark as system-generated due to timeout
                     // Notify agent that they timed out and bot decided for them
                     this._sendToAgent(player.id, {
                         type: 'action_timeout',
@@ -934,7 +947,7 @@ class Game {
                     });
                     resolve(botDecision);
                 }
-            }, this.settings.actionTimeout);
+            }, timeout);
 
             this.pendingAction = { requestId, playerId: player.id, resolve, timeout: timeoutId };
         });

@@ -9,8 +9,8 @@ function renderPlayers() {
         return;
     }
     const radius = playerCount <= 6 ? 150 : playerCount <= 9 ? 180 : 220;
-    const centerX = 250;
-    const centerY = 250;
+    const centerX = ring.offsetWidth / 2 || 250;
+    const centerY = ring.offsetHeight / 2 || 250;
 
     gameState.players.forEach((player, index) => {
         const angle = (index / playerCount) * 2 * Math.PI - Math.PI / 2;
@@ -205,16 +205,18 @@ function getOrCreateBubbleLayer() {
     return layer;
 }
 
-function showSpeechBubble(card, player, text) {
+function showSpeechBubble(card, player, text, isAuto = false) {
     hideSpeechBubble(); // Remove any existing bubble
 
     const layer = getOrCreateBubbleLayer();
     const bubble = document.createElement('div');
-    bubble.className = 'speech-bubble';
+    bubble.className = 'speech-bubble' + (isAuto ? ' auto-bubble' : '');
     bubble.id = 'currentSpeechBubble';
+    const autoLabel = isAuto ? '<div class="speech-bubble-auto">🤖 系统代发（Agent超时）</div>' : '';
     bubble.innerHTML = `
         <div class="speech-bubble-role">${player.icon} ${player.name}（${player.roleName}）</div>
         <div class="speech-bubble-text">"${text}"</div>
+        ${autoLabel}
     `;
 
     layer.appendChild(bubble);

@@ -554,6 +554,7 @@
             font-weight: 700;
             background: linear-gradient(135deg, var(--primary), var(--secondary));
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
             display: flex;
             align-items: center;
@@ -652,13 +653,70 @@
             position: relative;
             z-index: 1;
             display: grid;
-            grid-template-columns: 240px 1fr 340px;
+            grid-template-columns: 240px 1fr 310px;
             gap: 16px;
             padding: 16px;
             max-width: 1600px;
             margin: 0 auto;
             height: calc(100vh - 70px);
             overflow: hidden;
+        }
+
+        @media (max-width: 1024px) {
+            .game-container {
+                grid-template-columns: 200px 1fr 280px;
+                gap: 10px;
+                padding: 10px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .game-container {
+                display: flex;
+                flex-direction: column;
+                height: auto;
+                overflow-y: auto;
+                gap: 16px;
+                padding-bottom: 100px; /* Space for action panel */
+            }
+
+            header {
+                flex-direction: column;
+                gap: 10px;
+                padding: 10px;
+            }
+
+            .header-phase {
+                position: static;
+                transform: none;
+                order: -1;
+            }
+
+            .header-actions {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 8px;
+            }
+
+            .speed-control {
+                margin-right: 0;
+            }
+
+            .arena-column {
+                order: 1;
+                min-height: 400px;
+            }
+
+            .death-list {
+                order: 2;
+                max-height: 300px;
+            }
+
+            .chronicles {
+                order: 3;
+                max-height: 300px;
+                height: 300px;
+            }
         }
 
         html {
@@ -766,6 +824,18 @@
             border: 1px solid rgba(108, 92, 231, 0.2);
             overflow: hidden;
             min-height: 500px;
+            width: 100%;
+        }
+
+        @media (max-width: 768px) {
+            .arena {
+                min-height: 350px;
+                aspect-ratio: 1/1;
+            }
+            .players-ring {
+                transform: scale(0.7); /* Scale ring for small screens */
+                transform-origin: center;
+            }
         }
 
         .phase-banner {
@@ -805,6 +875,7 @@
             font-weight: 700;
             background: linear-gradient(135deg, var(--primary), var(--secondary));
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
@@ -1175,6 +1246,22 @@
             font-size: 11px;
             margin-bottom: 6px;
             font-weight: 600;
+        }
+
+        /* Auto-generated speech bubble (agent timeout) */
+        .speech-bubble.auto-bubble {
+            border-color: rgba(149, 165, 166, 0.6);
+            opacity: 0.85;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 12px rgba(149, 165, 166, 0.2);
+        }
+
+        .speech-bubble-auto {
+            color: #95a5a6;
+            font-size: 10px;
+            margin-top: 6px;
+            padding-top: 4px;
+            border-top: 1px solid rgba(149, 165, 166, 0.3);
+            font-style: italic;
         }
 
         @keyframes bubbleAppear {
@@ -1952,6 +2039,17 @@
             border-left-color: #9b59b6;
         }
 
+        /* System auto-generated action (agent timeout) */
+        .log-entry.auto-action {
+            border-left-color: #95a5a6;
+            opacity: 0.7;
+            background: rgba(149, 165, 166, 0.08);
+        }
+
+        .log-entry.auto-action .log-message {
+            font-style: italic;
+        }
+
         .log-time {
             font-size: 10px;
             color: var(--text-muted);
@@ -2108,6 +2206,7 @@
             margin-bottom: 8px;
             background: linear-gradient(135deg, var(--primary), var(--secondary));
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
@@ -2226,6 +2325,7 @@
             font-weight: 700;
             background: linear-gradient(135deg, var(--primary), var(--secondary));
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
             margin-bottom: 16px;
         }
@@ -2293,202 +2393,128 @@
         }
 
         /* Responsive - Tablet */
+        @media (max-width: 1024px) {
+            .game-container {
+                grid-template-columns: 200px 1fr 280px;
+                gap: 12px;
+                padding: 12px;
+            }
+        }
+
         @media (max-width: 900px) {
             .game-container {
-                grid-template-columns: 1fr 200px;
-                padding: 10px;
-                gap: 10px;
+                grid-template-columns: 1fr 260px;
             }
-
             .death-list {
-                display: none;
-            }
-
-            .chronicles {
-                height: 180px;
-                border-radius: 10px;
-                font-size: 11px;
-            }
-
-            .arena {
-                min-height: 380px;
-                border-radius: 12px;
-                padding: 15px;
-            }
-
-            .players-ring {
-                width: 280px;
-                height: 280px;
-            }
-
-            .player-card {
-                width: 55px;
-                height: 75px;
-            }
-
-            .header-actions {
-                gap: 8px;
-            }
-
-            .speed-control {
-                display: none;
-            }
-
-            .btn {
-                padding: 8px 12px;
-                font-size: 12px;
-            }
-
-            .bottom-stats {
-                gap: 10px;
-                padding: 10px 12px;
-            }
-
-            .center-round {
-                font-size: 28px;
-            }
-
-            .fullscreen-btn,
-            .help-btn,
-            .role-guide-btn,
-            .leaderboard-btn,
-            .share-btn {
-                display: none;
-            }
-
-            .achievement-badge {
                 display: none;
             }
         }
 
         /* Mobile Phone */
-        @media (max-width: 600px) {
+        @media (max-width: 768px) {
             .game-container {
-                grid-template-columns: 1fr;
-                grid-template-rows: auto 1fr auto auto;
-                padding: 8px;
-                gap: 8px;
+                display: flex;
+                flex-direction: column;
+                height: 100vh;
+                overflow-y: auto;
+                gap: 16px;
+                padding: 12px 12px 100px;
             }
 
             header {
-                flex-wrap: wrap;
-                padding: 8px 12px;
-                gap: 8px;
+                flex-direction: column;
+                padding: 12px;
+                gap: 12px;
             }
 
-            .logo {
-                font-size: 16px;
-            }
-
-            .logo-icon {
-                font-size: 20px;
+            .header-phase {
+                position: static;
+                transform: none;
+                order: -1;
+                width: fit-content;
             }
 
             .header-actions {
                 width: 100%;
-                justify-content: flex-end;
-                gap: 6px;
+                justify-content: center;
+                flex-wrap: wrap;
             }
 
-            .btn {
-                padding: 6px 10px;
-                font-size: 11px;
+            .arena-column {
+                order: 1;
+                min-height: 400px;
+                height: auto;
             }
 
             .arena {
-                min-height: 320px;
-                border-radius: 10px;
-                padding: 10px;
-            }
-
-            .phase-banner {
-                padding: 8px 16px;
-                font-size: 14px;
+                min-height: 380px;
+                aspect-ratio: 1/1;
+                padding: 15px;
             }
 
             .players-ring {
-                width: 240px;
-                height: 240px;
+                width: 100%;
+                height: 100%;
+                max-width: 400px;
+                max-height: 400px;
+                transform: scale(0.9);
             }
 
             .player-card {
-                width: 48px;
-                height: 65px;
-            }
-
-            .player-number {
-                font-size: 12px;
-            }
-
-            .player-avatar {
-                font-size: 18px;
+                width: 50px;
+                height: 70px;
             }
 
             .player-name {
-                font-size: 8px;
-                display: none;
+                font-size: 10px;
+                max-width: 45px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
             }
 
-            .center-round {
-                font-size: 24px;
-            }
-
-            .bottom-stats {
-                display: grid;
-                grid-template-columns: repeat(4, 1fr);
-                gap: 8px;
-                padding: 10px;
-            }
-
-            .bottom-stat {
-                flex-direction: column;
-                gap: 2px;
-                padding: 6px;
-            }
-
-            .bottom-stat .stat-value {
-                font-size: 16px;
+            .death-list {
+                order: 2;
+                display: block;
+                max-height: 300px;
             }
 
             .chronicles {
-                height: 140px;
-                font-size: 10px;
-                border-radius: 8px;
-            }
-
-            .chronicles-header {
-                font-size: 12px;
-                padding-bottom: 8px;
-                margin-bottom: 8px;
-            }
-
-            .modal {
-                max-width: 95vw !important;
-                margin: 10px;
-            }
-        }
-
-        /* Extra small screens */
-        @media (max-width: 380px) {
-            .players-ring {
-                width: 200px;
-                height: 200px;
-            }
-
-            .player-card {
-                width: 42px;
-                height: 58px;
-            }
-
-            .center-round {
-                font-size: 20px;
+                order: 3;
+                height: 250px;
+                max-height: 250px;
             }
 
             .bottom-stats {
-                padding: 8px;
-                gap: 6px;
+                order: 4;
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+
+            .speed-control {
+                display: none;
+            }
+            
+            .fullscreen-btn, .help-btn, .role-guide-btn, .leaderboard-btn, .share-btn {
+                display: none;
             }
         }
+
+        @media (max-width: 480px) {
+            .players-ring {
+                transform: scale(0.75);
+            }
+            .player-card {
+                width: 45px;
+                height: 62px;
+            }
+            .player-name {
+                display: none; /* Only hide on very small screens */
+            }
+        }
+
+        /* Remove the old 600px and 380px queries as they are superseded by 768px and 480px */
 
         /* Touch optimizations */
         @media (hover: none) {
@@ -2963,8 +2989,8 @@
             font-weight: 700;
             background: linear-gradient(135deg, #e74c3c, #f39c12);
             -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
             background-clip: text;
+            -webkit-text-fill-color: transparent;
             animation: countdownPulse 1s infinite;
         }
 

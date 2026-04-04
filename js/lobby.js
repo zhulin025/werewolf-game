@@ -263,7 +263,9 @@ function handleSpectatorMessage(msg) {
                     const causeMap = { killed: 'killed', poisoned: 'killed', vote: 'vote', hunter: 'hunter', wolfking: 'wolfking' };
                     const icon = p ? p.icon : '💀';
                     const roleName = d.roleName || (p ? p.roleName : '?');
-                    gameState.deathRecords.push({ name: d.player_name, cause: causeMap[d.cause] || d.cause, day: gameState.day, roleName, icon });
+                    // Ensure day is synchronized
+                    const currentDay = msg.payload.day || gameState.day;
+                    gameState.deathRecords.push({ name: d.player_name, cause: causeMap[d.cause] || d.cause, day: currentDay, roleName, icon });
                     renderDeathRecords();
                 }
             }
@@ -354,23 +356,33 @@ function handlePublicEvent(payload) {
             addLog(`🎤 轮到 ${payload.player_name} 发言`, 'system');
             break;
         case 'speech': {
-            addLog(`💬 ${payload.player_name}：${payload.content}`, 'speak');
+            const autoTag = payload.is_auto ? ' 🤖[系统代发]' : '';
+            const logClass = payload.is_auto ? 'speak auto-action' : 'speak';
+            addLog(`💬 ${payload.player_name}：${payload.content}${autoTag}`, logClass);
             VoiceSystem.speak(`${payload.player_name}说：${payload.content}`);
             // Show speech bubble on player card (same as local simulation)
             const speakerCard = document.getElementById(`player-${payload.player_id}`);
             if (speakerCard) {
                 speakerCard.classList.add('speaking');
                 const speakerPlayer = gameState.players.find(p => p.id === payload.player_id);
-                if (speakerPlayer) showSpeechBubble(speakerCard, speakerPlayer, payload.content);
+                if (speakerPlayer) {
+                    showSpeechBubble(speakerCard, speakerPlayer, payload.content, payload.is_auto);
+                }
                 setTimeout(() => {
                     speakerCard.classList.remove('speaking');
                     hideSpeechBubble();
                 }, 5000);
             }
+            // Track auto stats
+            if (payload.is_auto) {
+                updateAutoActionStats(payload.player_id, 'speech');
+            }
             break;
         }
         case 'vote_cast': {
-            addLog(`🗳 ${payload.voter_name} → ${payload.target_name}`, 'vote');
+            const voteAutoTag = payload.is_auto ? ' 🤖[系统代投]' : '';
+            const voteLogClass = payload.is_auto ? 'vote auto-action' : 'vote';
+            addLog(`🗳 ${payload.voter_name} → ${payload.target_name}${voteAutoTag}`, voteLogClass);
             // Vote animation: highlight voter, draw line to target
             const voterCard = document.getElementById(`player-${payload.voter_id}`);
             const targetCard = document.getElementById(`player-${payload.target_id}`);
@@ -381,6 +393,9 @@ function handlePublicEvent(payload) {
                     drawVoteLine(voterCard, payload.target_id);
                 }
                 setTimeout(() => voterCard.classList.remove('voting-target'), 1500);
+            }
+            if (payload.is_auto) {
+                updateAutoActionStats(payload.voter_id, 'vote');
             }
             break;
         }
@@ -396,26 +411,45 @@ function handlePublicEvent(payload) {
             addLog(`⚔ ${payload.player_name} 被投票出局 (${payload.votes}票)`, 'death');
             VoiceSystem.speak(`${payload.player_name}被投票出局`);
             markPlayerDead(payload.player_id);
-            // Death list — role info from gameState (set via 'deaths' spectator event)
+            // Death list — role info from gameState (set via 'deaths' spectator event or game_started)
             const elimP = gameState.players.find(p => p.id === payload.player_id);
-            gameState.deathRecords.push({ name: payload.player_name, cause: 'vote', day: gameState.day, roleName: elimP?.roleName || '?', icon: elimP?.icon || '💀' });
+            const iconMap = { VILLAGER: '👤', PROPHET: '🔮', WITCH: '🧪', GUARD: '🛡️', HUNTER: '🏹', WOLF: '🐺', WOLF_KING: '👑' };
+            const roleIcon = elimP?.icon && elimP.icon !== '❓' ? elimP.icon : (iconMap[elimP?.role] || '💀');
+            gameState.deathRecords.push({ 
+                name: payload.player_name, 
+                cause: 'vote', 
+                day: payload.day || gameState.day, 
+                roleName: elimP?.roleName || '?', 
+                icon: roleIcon 
+            });
             renderDeathRecords();
             break;
         }
         case 'tie_broken':
             addLog(`⚖ ${payload.message}`, 'system');
             break;
-        case 'last_words':
-            addLog(`🪦 ${payload.player_name} 的遗言：${payload.content}`, 'speak');
+        case 'last_words': {
+            const lwAutoTag = payload.is_auto ? ' 🤖[系统代发]' : '';
+            const lwLogClass = payload.is_auto ? 'speak auto-action' : 'speak';
+            addLog(`🪦 ${payload.player_name} 的遗言：${payload.content}${lwAutoTag}`, lwLogClass);
             VoiceSystem.speak(`${payload.player_name}的遗言：${payload.content}`);
             break;
+        }
         case 'death': {
             addLog(`💀 ${payload.message || payload.player_name + ' 死亡'}`, 'death');
             if (payload.player_id !== undefined) {
                 markPlayerDead(payload.player_id);
                 const shootP = gameState.players.find(p => p.id === payload.player_id);
                 const shootCause = payload.cause === 'wolfking' ? 'wolfking' : 'hunter';
-                gameState.deathRecords.push({ name: payload.player_name, cause: shootCause, day: gameState.day, roleName: shootP?.roleName || '?', icon: shootP?.icon || '💀' });
+                const iconMap = { VILLAGER: '👤', PROPHET: '🔮', WITCH: '🧪', GUARD: '🛡️', HUNTER: '🏹', WOLF: '🐺', WOLF_KING: '👑' };
+                const roleIcon = shootP?.icon && shootP.icon !== '❓' ? shootP.icon : (iconMap[shootP?.role] || '💀');
+                gameState.deathRecords.push({ 
+                    name: payload.player_name, 
+                    cause: shootCause, 
+                    day: payload.day || gameState.day, 
+                    roleName: shootP?.roleName || '?', 
+                    icon: roleIcon 
+                });
                 renderDeathRecords();
             }
             break;
@@ -463,100 +497,113 @@ function updateSpectatorPlayers(players) {
 }
 
 function handleSpectatorGameEnd(payload) {
-    const winner = payload.winner;
-    const winnerText = winner === 'good' ? '好人阵营胜利' : '狼人阵营胜利';
-    addLog(`🏆 游戏结束 — ${payload.message || winnerText}`, 'system');
-    VoiceSystem.speak(`游戏结束！${payload.message || winnerText}`);
-    gameState.phase = 'end';
+    try {
+        const winner = payload.winner;
+        const winnerText = winner === 'good' ? '好人阵营胜利' : '狼人阵营胜利';
+        addLog(`🏆 游戏结束 — ${payload.message || winnerText}`, 'system');
+        VoiceSystem.speak(`游戏结束！${payload.message || winnerText}`);
+        gameState.phase = 'end';
 
-    // Update player cards with final revealed roles
-    if (payload.players) {
-        // Rebuild gameState.players with full role info from game_end payload
-        // (ROLES icon map for display since game_end doesn't carry icon field)
         const iconMap = { VILLAGER: '👤', PROPHET: '🔮', WITCH: '🧪', GUARD: '🛡️', HUNTER: '🏹', WOLF: '🐺', WOLF_KING: '👑' };
-        gameState.players = payload.players.map(p => ({
-            id: p.id,
-            number: p.id + 1,
-            name: p.name,
-            role: p.role,
-            roleName: p.roleName,
-            camp: p.camp,
-            icon: iconMap[p.role] || '❓',
-            isAlive: p.survived,
-            isAI: true,
-        }));
-        renderPlayers();
-    }
 
-    // Restore death records from payload
-    if (payload.death_records) {
-        gameState.deathRecords = payload.death_records.map(r => ({
-            name: r.name, cause: r.cause, day: r.day, roleName: r.roleName || '?',
-            icon: (payload.players?.find(p => p.name === r.name) ? (({ VILLAGER: '👤', PROPHET: '🔮', WITCH: '🧪', GUARD: '🛡️', HUNTER: '🏹', WOLF: '🐺', WOLF_KING: '👑' })[payload.players.find(p => p.name === r.name).role] || '💀') : '💀'),
-        }));
-        renderDeathRecords();
-    }
+        // Update player cards with final revealed roles
+        if (payload.players) {
+            gameState.players = payload.players.map(p => ({
+                id: p.id,
+                number: p.id + 1,
+                name: p.name,
+                role: p.role,
+                roleName: p.roleName,
+                camp: p.camp,
+                icon: iconMap[p.role] || '❓',
+                isAlive: p.survived,
+                isAI: true,
+            }));
+            renderPlayers();
+        }
 
-    // Show game-over modal (reuse local sim modal)
-    const modal = document.getElementById('gameOverModal');
-    const badge = document.getElementById('winnerBadge');
-    const text = document.getElementById('winnerText');
-    const camp = document.getElementById('winnerCamp');
-    if (winner === 'good') {
-        badge.textContent = '🏆';
-        text.textContent = '好人胜利！';
-        camp.textContent = '所有狼人已被放逐';
-        camp.style.color = '#3498db';
-        SoundSystem.play('win');
-        showPhaseAnnouncement('🏆 好人胜利', '#3498db');
-    } else {
-        badge.textContent = '🐺';
-        text.textContent = '狼人胜利！';
-        camp.textContent = '狼人控制了局面';
-        camp.style.color = '#e74c3c';
-        SoundSystem.play('lose');
-        showPhaseAnnouncement('🐺 狼人胜利', '#e74c3c');
-    }
-    // Stats
-    const deadPlayers = gameState.players.filter(p => !p.isAlive);
-    document.getElementById('statRounds').textContent = payload.day || gameState.day;
-    document.getElementById('statDeaths').textContent = deadPlayers.length;
-    document.getElementById('statWolfKills').textContent = gameState.deathRecords.filter(r => r.cause === 'killed').length;
-    document.getElementById('statVotes').textContent = gameState.deathRecords.filter(r => r.cause === 'vote').length;
-    // Survivors
-    const survivors = gameState.players.filter(p => p.isAlive);
-    const survivorsContent = document.getElementById('survivorsListContent');
-    if (survivorsContent) {
-        survivorsContent.innerHTML = survivors.map(p => `<span class="survivor-badge">${p.icon} ${p.name}</span>`).join('');
-    }
-    // Death summary
-    const deathSummaryList = document.getElementById('deathSummaryList');
-    if (deathSummaryList) {
-        deathSummaryList.innerHTML = gameState.deathRecords.map((r, i) => {
-            const causeText = { vote: '投票', killed: '狼刀', hunter: '猎杀', wolfking: '狼王', poisoned: '毒杀' }[r.cause] || r.cause;
-            return `<div class="death-item-mini">${i + 1}. ${r.icon} ${r.name}（${r.roleName}）<span class="cause">${causeText}</span></div>`;
-        }).join('');
-    }
-    modal.classList.add('active');
-    // Change button to return to lobby (not start a new local sim game)
-    const playAgainBtn = modal.querySelector('button');
-    if (playAgainBtn) {
-        playAgainBtn.textContent = '返回大厅';
-        playAgainBtn.onclick = () => {
-            modal.classList.remove('active');
-            playAgainBtn.textContent = '再来一局';
-            playAgainBtn.onclick = playAgain;
-            stopSpectating();
-            document.getElementById('gameReturnBtn').classList.remove('active');
-            document.getElementById('startScreen').style.display = '';
-            openLobby();
-        };
-    }
+        // Restore death records from payload
+        if (payload.death_records) {
+            gameState.deathRecords = payload.death_records.map(r => {
+                const p = payload.players?.find(pl => pl.name === r.name);
+                const role = p ? p.role : r.role;
+                return {
+                    name: r.name,
+                    cause: r.cause,
+                    day: r.day,
+                    roleName: r.roleName || '?',
+                    icon: iconMap[role] || '💀',
+                };
+            });
+            renderDeathRecords();
+        }
 
-    // Disconnect spectator WS
-    isSpectating = false;
-    if (lobbyWs) { lobbyWs.close(); lobbyWs = null; }
-    document.getElementById('spectatorBadge').classList.remove('active');
+        // Show game-over modal (reuse local sim modal)
+        const modal = document.getElementById('gameOverModal');
+        const badge = document.getElementById('winnerBadge');
+        const text = document.getElementById('winnerText');
+        const camp = document.getElementById('winnerCamp');
+        if (winner === 'good') {
+            badge.textContent = '🏆';
+            text.textContent = '好人胜利！';
+            camp.textContent = '所有狼人已被放逐';
+            camp.style.color = '#3498db';
+            SoundSystem.play('win');
+            if (typeof showPhaseAnnouncement === 'function') showPhaseAnnouncement('🏆 好人胜利', '#3498db');
+        } else {
+            badge.textContent = '🐺';
+            text.textContent = '狼人胜利！';
+            camp.textContent = '狼人控制了局面';
+            camp.style.color = '#e74c3c';
+            SoundSystem.play('lose');
+            if (typeof showPhaseAnnouncement === 'function') showPhaseAnnouncement('🐺 狼人胜利', '#e74c3c');
+        }
+        // Stats
+        const deadPlayers = gameState.players.filter(p => !p.isAlive);
+        document.getElementById('statRounds').textContent = payload.day || gameState.day;
+        document.getElementById('statDeaths').textContent = deadPlayers.length;
+        document.getElementById('statWolfKills').textContent = gameState.deathRecords.filter(r => r.cause === 'killed').length;
+        document.getElementById('statVotes').textContent = gameState.deathRecords.filter(r => r.cause === 'vote').length;
+        // Survivors
+        const survivors = gameState.players.filter(p => p.isAlive);
+        const survivorsContent = document.getElementById('survivorsListContent');
+        if (survivorsContent) {
+            survivorsContent.innerHTML = survivors.map(p => `<span class="survivor-badge">${p.icon} ${p.name}</span>`).join('');
+        }
+        // Death summary
+        const deathSummaryList = document.getElementById('deathSummaryList');
+        if (deathSummaryList) {
+            deathSummaryList.innerHTML = gameState.deathRecords.map((r, i) => {
+                const causeText = { vote: '投票', killed: '狼刀', hunter: '猎杀', wolfking: '狼王', poisoned: '毒杀' }[r.cause] || r.cause;
+                return `<div class="death-item-mini">${i + 1}. ${r.icon} ${r.name}（${r.roleName}）<span class="cause">${causeText}</span></div>`;
+            }).join('');
+        }
+        modal.classList.add('active');
+        // Change button to return to lobby (not start a new local sim game)
+        const playAgainBtn = modal.querySelector('button');
+        if (playAgainBtn) {
+            playAgainBtn.textContent = '返回大厅';
+            playAgainBtn.onclick = () => {
+                modal.classList.remove('active');
+                playAgainBtn.textContent = '再来一局';
+                playAgainBtn.onclick = typeof playAgain !== 'undefined' ? playAgain : null;
+                stopSpectating();
+                document.getElementById('gameReturnBtn').classList.remove('active');
+                document.getElementById('startScreen').style.display = '';
+                openLobby();
+            };
+        }
+
+        // Disconnect spectator WS
+        isSpectating = false;
+        if (lobbyWs) { lobbyWs.close(); lobbyWs = null; }
+        document.getElementById('spectatorBadge').classList.remove('active');
+    } catch (e) {
+        console.error('handleSpectatorGameEnd error:', e);
+        // Fallback: at least try to show the modal if possible
+        const modal = document.getElementById('gameOverModal');
+        if (modal) modal.classList.add('active');
+    }
 }
 
 function stopSpectating() {
@@ -743,6 +790,17 @@ function showCountdown(seconds) {
             overlay.classList.remove('active');
         }
     }, 1000);
+}
+
+// ============ AUTO-ACTION TRACKING ============
+// Track which players have system-generated actions (timeout)
+const autoActionStats = {}; // playerId -> { speech: count, vote: count }
+
+function updateAutoActionStats(playerId, actionType) {
+    if (!autoActionStats[playerId]) {
+        autoActionStats[playerId] = { speech: 0, vote: 0 };
+    }
+    autoActionStats[playerId][actionType] = (autoActionStats[playerId][actionType] || 0) + 1;
 }
 
 // ============ EXPOSE TO GLOBAL ============
