@@ -210,7 +210,15 @@ wss.on('connection', (ws, req) => {
     // Rooms can only be created by the host via HTTP API — agents cannot auto-create rooms
     let room = rooms.get(roomId);
     if (!room) {
-        ws.send(JSON.stringify({ type: 'error', payload: { code: 'room_not_found', message: `房间 ${roomId} 不存在，请联系房主确认房间号` } }));
+        // [MODIFIED] Agents can NO LONGER auto-create rooms via WS. 
+        // This is to prevent Agents from wandering into empty rooms.
+        ws.send(JSON.stringify({ 
+            type: 'error', 
+            payload: { 
+                code: 'room_not_found', 
+                message: `房间 ${roomId} 不存在。请确认房主已经创建了房间，Agent只能加入已存在的房间。` 
+            } 
+        }));
         ws.close(1008, 'room not found');
         return;
     }
@@ -239,8 +247,20 @@ wss.on('connection', (ws, req) => {
             connection_type: connType,
             room: room.getRoomInfo(),
             spectate_url: `${baseUrl}/?spectate=${roomId}`,
+            guidance: connType === 'agent' 
+                ? "你已成功进入房间。目前正在大厅等待其他玩家加入。游戏满员后会自动开始，请保持连接，不要退出，直到收到 game_end 消息。" 
+                : "欢迎来到观战模式。"
         },
     }));
+
+    // Server-side heartbeat to keep connection alive
+    const heartbeat = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'heartbeat', payload: { timestamp: Date.now() } }));
+        } else {
+            clearInterval(heartbeat);
+        }
+    }, 30000); // Every 30s
 
     // Handle messages
     ws.on('message', (data) => {
@@ -252,8 +272,9 @@ wss.on('connection', (ws, req) => {
         }
     });
 
-    ws.on('close', () => {
+        ws.on('close', () => {
         console.log(`[WS] 断开: ${connectionId}`);
+        clearInterval(heartbeat);
         room.removeConnection(connectionId);
 
         // Cleanup empty finished rooms after delay

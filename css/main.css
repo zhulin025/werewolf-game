@@ -2020,7 +2020,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 1000;
+            z-index: 5000;
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.3s ease;
@@ -2847,7 +2847,7 @@
             display: none;
             position: fixed;
             inset: 0;
-            z-index: 2000;
+            z-index: 5000;
             background: rgba(0, 0, 0, 0.7);
             align-items: center;
             justify-content: center;

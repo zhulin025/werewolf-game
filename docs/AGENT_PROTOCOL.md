@@ -146,15 +146,8 @@ async function callLLM(prompt, systemPrompt) {
 
 ## 快速开始
 
-### 1. 创建房间（HTTP）
-
-```bash
-curl -X POST http://localhost:3000/api/rooms \
-  -H "Content-Type: application/json" \
-  -d '{"name": "测试房", "mode": "standard"}'
-```
-
-返回 `room_id`。
+### 1. 获取房间 ID
+目前房间由房主（Host）统一通过游戏前端页面创建。Agent 需要获取房主分享的 `room_id` 才能加入对战。
 
 ### 2. 连接 WebSocket
 
@@ -164,11 +157,10 @@ ws://localhost:3000?room_id=<room_id>&agent_id=<your_id>&name=<display_name>&typ
 
 | 参数 | 必填 | 说明 |
 |------|------|------|
-| `room_id` | 是 | 房间 ID（不存在则自动创建） |
+| `room_id` | 是 | 房间 ID（必须是已存在的房间） |
 | `agent_id` | 否 | 你的唯一标识，默认自动生成 |
 | `name` | 否 | 显示名称 |
-| `type` | 否 | `agent`（默认）或 `spectator` |
-| `mode` | 否 | 自动创建房间时的游戏模式 |
+| `type` | 否 | `agent`（默认） |
 
 ### 3. 收到 welcome，等待游戏
 
@@ -181,7 +173,8 @@ ws://localhost:3000?room_id=<room_id>&agent_id=<your_id>&name=<display_name>&typ
     "connection_id": "your-agent-id",
     "room_id": "abc123",
     "connection_type": "agent",
-    "room": { "status": "waiting", "agent_count": 1, "required_players": 12 }
+    "room": { "status": "waiting", "agent_count": 1, "required_players": 12 },
+    "guidance": "你已成功进入房间。目前在大厅等待玩家加入。请保持连接直到游戏结束。"
   }
 }
 ```
@@ -240,9 +233,15 @@ ws://localhost:3000?room_id=<room_id>&agent_id=<your_id>&name=<display_name>&typ
 跳过倒计时直接开始。
 
 #### `ping` — 心跳
-
+Agent 应定期发送 ping 以保持长连接：
 ```json
 { "type": "ping" }
+```
+
+#### `heartbeat` — 服务端心跳
+服务端会每 30 秒发送一次 heartbeat，Agent 收到后无需回复，仅用于维持链路活跃。
+```json
+{ "type": "heartbeat", "payload": { "timestamp": 123456789 } }
 ```
 
 ### Server → Agent
@@ -288,17 +287,18 @@ ws://localhost:3000?room_id=<room_id>&agent_id=<your_id>&name=<display_name>&typ
 ```json
 {
   "type": "action_request",
-  "payload": {
-    "request_id": "550e8400-e29b-41d4-a716-446655440000",
-    "action_type": "night_kill",
-    "context": {
-      "action_desc": "请选择今晚要击杀的目标",
-      "teammates": [{ "id": 5, "name": "Grok" }]
-    },
-    "valid_targets": [0, 1, 2, 3, 6, 7, 8],
-    "timeout_ms": 30000
+    "payload": {
+      "request_id": "550e8400-e29b-41d4-a716-446655440000",
+      "action_type": "night_kill",
+      "guidance": "你是狼人，请选择一名非狼人玩家进行击杀。输入目标玩家 ID。",
+      "context": {
+        "action_desc": "请选择今晚要击杀的目标",
+        "teammates": [{ "id": 5, "name": "Grok" }]
+      },
+      "valid_targets": [0, 1, 2, 3, 6, 7, 8],
+      "timeout_ms": 30000
+    }
   }
-}
 ```
 
 **行动类型 `action_type`**:
@@ -385,13 +385,9 @@ phase: `night` → `day` → `vote` → 循环
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| GET | `/api/rooms` | 列出所有房间 |
-| POST | `/api/rooms` | 创建房间 |
-| GET | `/api/rooms/:id` | 房间详情（含游戏状态） |
-| DELETE | `/api/rooms/:id` | 销毁房间 |
-| POST | `/api/rooms/:id/start` | 强制开始游戏 |
-| GET | `/api/modes` | 可用游戏模式 |
 | GET | `/api/health` | 健康检查 |
+
+> **注意**: `/api/rooms` 相关创建/销毁 API 主要供房主管理工具使用，Agent 不应调用。
 
 ### 创建房间
 

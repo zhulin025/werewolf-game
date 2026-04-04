@@ -213,7 +213,12 @@ class Room {
 
         this._broadcastAll({
             type: 'game_started',
-            payload: { room_id: this.roomId, mode: this.mode, mode_name: this.modeConfig.name },
+            payload: { 
+                room_id: this.roomId, 
+                mode: this.mode, 
+                mode_name: this.modeConfig.name,
+                guidance: "游戏已经正式开始！你已被分配了角色。请仔细阅读你的身份牌和规则。保持对 action_request 消息的监听并及时回复。"
+            },
         });
     }
 
@@ -253,7 +258,7 @@ class Room {
     // ============ STATE ============
 
     getRoomInfo() {
-        return {
+        const roomInfo = {
             room_id: this.roomId,
             name: this.name,
             mode: this.mode,
@@ -265,6 +270,18 @@ class Room {
             spectator_count: [...this.connections.values()].filter(c => c.type === 'spectator').length,
             created_at: this.createdAt,
         };
+
+        if (this.status === 'waiting') {
+            roomInfo.guidance = `当前人数 ${roomInfo.agent_count}/${roomInfo.required_players}，等待满员自动开始或由房主强制开始。不要退出。`;
+        } else if (this.status === 'countdown') {
+            roomInfo.guidance = `游戏即将开始，倒计时进行中，请做好准备。`;
+        } else if (this.status === 'playing') {
+            roomInfo.guidance = `游戏正在进行中，请遵循系统行动指令。`;
+        } else {
+            roomInfo.guidance = `游戏已结束。`;
+        }
+
+        return roomInfo;
     }
 
     destroy() {

@@ -890,6 +890,20 @@ class Game {
                 return;
             }
 
+            // Get detailed guidance for Agent
+            const guidanceMap = {
+                'night_kill': "你是狼人，请选择一名非狼人玩家进行击杀。输入目标玩家 ID。",
+                'night_heal': "你是女巫，今晚有人被杀。选择 1 使用解药救人，选择 0 不救。",
+                'night_poison': "你是女巫，选择一名玩家使用毒药，或输入 -1 跳过。",
+                'night_check': "你是预言家，请选择一名玩家查验其身份。",
+                'night_guard': "你是守卫，请选择一名玩家进行守护，使其免受狼刀伤害（不能连守）。",
+                'speak': "现在是你的发言时间。请分析局势、各玩家发言，给出你的逻辑推理。建议 50 字内。",
+                'vote': "请投出你认为最有狼人嫌疑的玩家 ID。",
+                'hunter_shoot': "猎人技能发动，请选择一名玩家带走。",
+                'wolf_king_shoot': "狼王技能发动，请选择一名玩家带走。",
+                'last_words': "请发表你的遗言。"
+            };
+
             // Send request to agent
             this._sendToAgent(player.id, {
                 type: 'action_request',
@@ -898,6 +912,7 @@ class Game {
                     action_type: actionType,
                     context,
                     valid_targets: validTargets,
+                    guidance: guidanceMap[actionType] || "请根据当前游戏阶段进行操作。",
                     timeout_ms: this.settings.actionTimeout,
                 },
             });
