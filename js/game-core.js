@@ -208,7 +208,13 @@ function stopGame() {
     if (typeof VoiceSystem !== 'undefined') VoiceSystem.stop();
     
     // 移除所有悬浮 UI 元素（弹窗、公告、指示器等）
-    document.querySelectorAll('.modal, .phase-announcement, .night-action-indicator, .wolf-team-vision, .speech-bubble').forEach(el => el.remove());
+    // 注意：排除 gameOverModal 和 settingsModal 内的 .modal，避免破坏结算和设置弹窗
+    document.querySelectorAll('.phase-announcement, .night-action-indicator, .wolf-team-vision, .speech-bubble').forEach(el => el.remove());
+    document.querySelectorAll('.modal').forEach(el => {
+        const parent = el.closest('.modal-overlay');
+        if (parent && (parent.id === 'gameOverModal' || parent.id === 'settingsModal')) return;
+        el.remove();
+    });
     
     // 隐藏气泡和特效
     if (typeof hideSpeechBubble === 'function') hideSpeechBubble();
