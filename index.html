@@ -219,9 +219,11 @@
     <!-- Main Game -->
     <div class="game-container">
         <div class="death-list" id="deathList">
-            <h3>💀 死亡记录</h3>
+            <h3>💀 死亡记录<button onclick="document.getElementById('deathList').classList.remove('show-mobile')" style="float:right; background:none; border:none; color:var(--text-muted); font-size:16px;">×</button></h3>
             <div id="deathRecords"></div>
         </div>
+
+        <button class="mobile-death-btn" onclick="document.getElementById('deathList').classList.toggle('show-mobile')">💀</button>
 
         <div class="arena-column">
             <div class="arena">

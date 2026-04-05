@@ -8,14 +8,25 @@ function renderPlayers() {
         ring.innerHTML = '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--text-muted);font-size:14px;text-align:center;">⏳ 等待游戏数据...</div>';
         return;
     }
-    const radius = playerCount <= 6 ? 150 : playerCount <= 9 ? 180 : 220;
+    const isMobile = ring.offsetWidth < 480;
+    
+    // Dynamic offsets for centering logic based on player card CSS sizes
+    const offsetW = isMobile ? 37.5 : 45;
+    const offsetH = isMobile ? 47.5 : 55;
+
+    let radius = playerCount <= 6 ? 150 : playerCount <= 9 ? 180 : 220;
+    if (isMobile) {
+        // Tight spacing for mobile so it fits the compact screen width and they can overlap closely
+        radius = Math.min(radius, (ring.offsetWidth / 2) - 25);
+    }
+
     const centerX = ring.offsetWidth / 2 || 250;
     const centerY = ring.offsetHeight / 2 || 250;
 
     gameState.players.forEach((player, index) => {
         const angle = (index / playerCount) * 2 * Math.PI - Math.PI / 2;
-        const x = centerX + radius * Math.cos(angle) - 50;
-        const y = centerY + radius * Math.sin(angle) - 60;
+        const x = centerX + radius * Math.cos(angle) - offsetW;
+        const y = centerY + radius * Math.sin(angle) - offsetH;
 
         const card = document.createElement('div');
         card.className = `player-card ${player.camp === 'wolf' ? 'wolf' : player.camp === 'god' ? 'god' : 'villager'}`;

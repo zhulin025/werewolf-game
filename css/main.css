@@ -41,7 +41,6 @@
             position: absolute;
             background: white;
             border-radius: 50%;
-            animation: twinkle 3s infinite;
         }
 
         @keyframes twinkle {
@@ -404,39 +403,11 @@
             z-index: 200;
             border: 3px solid var(--primary);
             box-shadow: 0 0 60px rgba(108, 92, 231, 0.5), inset 0 0 30px rgba(108, 92, 231, 0.1);
-            animation: nightIndicatorPulse 2s ease-in-out infinite;
-        }
-
-        @keyframes nightIndicatorPulse {
-
-            0%,
-            100% {
-                box-shadow: 0 0 30px rgba(108, 92, 231, 0.4);
-                transform: translate(-50%, -50%) scale(1);
-            }
-
-            50% {
-                box-shadow: 0 0 60px rgba(108, 92, 231, 0.7);
-                transform: translate(-50%, -50%) scale(1.02);
-            }
         }
 
         .night-action-icon {
             font-size: 72px;
             margin-bottom: 16px;
-            animation: iconFloat 3s ease-in-out infinite;
-        }
-
-        @keyframes iconFloat {
-
-            0%,
-            100% {
-                transform: translateY(0);
-            }
-
-            50% {
-                transform: translateY(-8px);
-            }
         }
 
         .night-action-text {
@@ -450,7 +421,6 @@
             font-size: 14px;
             color: var(--text-muted);
             margin-top: 8px;
-            animation: blink 1.5s ease-in-out infinite;
         }
 
         @keyframes blink {
@@ -2180,6 +2150,8 @@
         .game-over-content {
             padding: 24px;
             text-align: center;
+            max-height: 80vh;
+            overflow-y: auto;
         }
 
         .winner-badge {
@@ -2410,90 +2382,196 @@
             }
         }
 
+        /* Mobile-only elements */
+        .mobile-death-btn {
+            display: none;
+        }
+
         /* Mobile Phone */
         @media (max-width: 768px) {
             .game-container {
                 display: flex;
                 flex-direction: column;
                 height: 100vh;
-                overflow-y: auto;
-                gap: 16px;
-                padding: 12px 12px 100px;
+                overflow-y: auto; /* Enables scroll on mobile */
+                gap: 12px;
+                padding: 10px;
             }
 
             header {
-                flex-direction: column;
-                padding: 12px;
-                gap: 12px;
+                display: flex;
+                flex-direction: row;
+                flex-wrap: wrap;
+                align-items: center;
+                justify-content: space-between;
+                padding: 8px 12px;
+                gap: 8px;
+            }
+
+            header > div:first-child {
+                order: 1;
+                flex: auto;
+            }
+
+            .header-actions {
+                display: contents;
+            }
+
+            button[onclick="showSettings()"] {
+                order: 2;
+                margin-left: auto;
+            }
+
+            header::after {
+                content: '';
+                flex-basis: 100%;
+                order: 3;
+            }
+
+            #humanModeBtn {
+                order: 4;
             }
 
             .header-phase {
                 position: static;
                 transform: none;
-                order: -1;
+                order: 5;
+                margin: 0 auto;
                 width: fit-content;
             }
 
-            .header-actions {
-                width: 100%;
-                justify-content: center;
-                flex-wrap: wrap;
+            #toggleRolesBtn {
+                order: 6;
+            }
+
+            .speed-control, header button[onclick="startGame()"] {
+                display: none !important;
             }
 
             .arena-column {
                 order: 1;
-                min-height: 400px;
-                height: auto;
+                flex: none; /* Do not stretch */
+                height: 360px; /* Small enough so logs show on screen */
+                min-height: 360px;
             }
 
             .arena {
-                min-height: 380px;
-                aspect-ratio: 1/1;
-                padding: 15px;
+                height: 100%;
+                aspect-ratio: auto;
+                padding: 5px;
             }
 
             .players-ring {
                 width: 100%;
                 height: 100%;
-                max-width: 400px;
-                max-height: 400px;
-                transform: scale(0.9);
+                max-width: 360px; /* Slightly bigger to accommodate bigger cards */
+                max-height: 360px;
+                margin: 0 auto;
+                transform: scale(1); /* Maintain size */
             }
 
             .player-card {
-                width: 50px;
-                height: 70px;
+                width: 75px;
+                height: 95px; /* Enlarged by ~1.5x */
+            }
+
+            .player-avatar {
+                font-size: 32px;
+                width: 45px;
+                height: 45px;
+            }
+
+            .player-number {
+                font-size: 14px;
             }
 
             .player-name {
-                font-size: 10px;
-                max-width: 45px;
+                font-size: 11px;
+                max-width: 65px;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
             }
 
             .death-list {
-                order: 2;
-                display: block;
-                max-height: 300px;
+                display: none !important;
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                max-height: 50vh;
+                background: var(--surface);
+                z-index: 1000;
+                border-top-left-radius: 20px;
+                border-top-right-radius: 20px;
+                box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
+                padding: 20px;
             }
 
-            .chronicles {
-                order: 3;
-                height: 250px;
-                max-height: 250px;
+            .death-list.show-mobile {
+                display: block !important;
+                animation: slideUp 0.3s ease forwards;
+            }
+
+            /* Floating button */
+            .mobile-death-btn {
+                position: fixed;
+                right: 20px;
+                bottom: 20px;
+                width: 50px;
+                height: 50px;
+                border-radius: 25px;
+                background: linear-gradient(135deg, var(--danger), #ff4757);
+                border: none;
+                color: white;
+                font-size: 24px;
+                box-shadow: 0 4px 15px rgba(255, 71, 87, 0.4);
+                cursor: pointer;
+                z-index: 999;
+                display: flex;
+                align-items: center;
+                justify-content: center;
             }
 
             .bottom-stats {
-                order: 4;
-                display: grid;
-                grid-template-columns: repeat(2, 1fr);
-                gap: 10px;
+                order: 2; /* Placed exactly above chronicles */
+                display: flex;
+                flex-direction: row;
+                justify-content: space-around;
+                align-items: center;
+                gap: 5px;
+                padding: 6px;
             }
 
-            .speed-control {
-                display: none;
+            .bottom-stat {
+                flex-direction: row;
+                align-items: center;
+                gap: 4px;
+                padding: 4px;
+            }
+
+            .bottom-stat .stat-label {
+                display: inline-block; /* Show text */
+                font-size: 11px;
+                white-space: nowrap;
+            }
+
+            .bottom-stat .stat-icon {
+                display: none; /* Hide emoji */
+            }
+
+            .chronicles {
+                order: 3; /* Bottom-most */
+                flex-shrink: 0;
+                height: 120px;
+                max-height: 120px;
+                padding: 10px; /* Reduce padding to save space */
+            }
+
+            .chronicles-header {
+                font-size: 14px;
+                padding-bottom: 5px;
+                margin-bottom: 5px;
             }
             
             .fullscreen-btn, .help-btn, .role-guide-btn, .leaderboard-btn, .share-btn {
@@ -2503,11 +2581,15 @@
 
         @media (max-width: 480px) {
             .players-ring {
-                transform: scale(0.75);
+                transform: scale(0.85);
             }
             .player-card {
-                width: 45px;
-                height: 62px;
+                width: 65px;
+                height: 85px;
+            }
+            .player-avatar {
+                width: 40px;
+                height: 40px;
             }
             .player-name {
                 display: none; /* Only hide on very small screens */
