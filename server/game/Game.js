@@ -9,6 +9,10 @@
 
 const { ROLES, GAME_MODES, DEFAULT_NAMES } = require('./GameModes');
 const { randomUUID } = require('crypto');
+const llmService = require('../llm/LLMService');
+const PromptBuilder = require('../llm/PromptBuilder');
+const { getFallbackPhrase } = require('../llm/FallbackPhrases');
+const { GameMemoryManager } = require('./GameMemory');
 
 class Game {
     constructor(gameId, mode = 'standard', settings = {}) {
@@ -40,6 +44,12 @@ class Game {
         // Game log
         this.eventLog = [];
         this.deathRecords = [];
+
+        // 当天发言记录（供 LLM prompt 上下文用）
+        this.recentSpeeches = [];
+
+        // 游戏记忆管理器
+        this.memoryManager = new GameMemoryManager();
 
         // Pending action tracking
         this.pendingAction = null; // { requestId, playerId, resolve, timeout }
@@ -195,6 +205,12 @@ class Game {
         });
 
         this._log('system', `游戏开始！模式：${this.modeConfig.name}`);
+
+        // 初始化记忆系统，并在每个玩家上挂载记忆引用
+        this.memoryManager.initForPlayers(this.players);
+        for (const player of this.players) {
+            player._memory = this.memoryManager.getMemory(player.id);
+        }
 
         // Start first night after delay
         setTimeout(() => this.startNight(), 3000);
@@ -386,6 +402,15 @@ class Game {
             });
 
             this._log('night', `预言家查验 ${target.name} → ${resultText}`);
+
+            // 更新预言家的私有记忆
+            const prophetMemory = this.memoryManager.getMemory(prophet.id);
+            if (prophetMemory) {
+                prophetMemory.addKnownInfo(this.day, 'check', target.id, target.name, isWolf ? '狼人' : '好人', `查验${target.name}：${resultText}`);
+                // 根据查验结果调整怀疑度
+                prophetMemory.addSuspicion(target.id, target.name, isWolf ? 5 : -5, `查验结果：${resultText}`);
+            }
+
             this._spectatorNightAction('PROPHET', `预言家查验 ${target.name}：${resultText}`, []);
         }
     }
@@ -495,6 +520,13 @@ class Game {
                 });
             }
 
+            // 更新记忆：夜间死亡（不公开角色）
+            const aliveAfterNight = this.players.filter(p => p.isAlive);
+            for (const d of deaths) {
+                const causeText = d.cause === 'killed' ? '被狼人杀害' : '被毒死';
+                this.memoryManager.broadcastDeath(this.day, d.player.id, d.player.name, d.player.roleName, causeText, aliveAfterNight, false);
+            }
+
             const deathInfo = deaths.map(d => ({
                 player_id: d.player.id,
                 player_name: d.player.name,
@@ -547,6 +579,9 @@ class Game {
         this._broadcastPhase('day', this.day);
         this._log('day', `第${this.day}天天亮了`);
 
+        // 重置当天发言记录
+        this.recentSpeeches = [];
+
         // Speaking phase
         const alivePlayers = this.players.filter(p => p.isAlive);
         for (const player of alivePlayers) {
@@ -567,6 +602,14 @@ class Game {
             const result = await this._requestAction(player, 'speak', [], context);
             const speech = result?.content || '过';
             const isAuto = !!(result?.is_auto || player.isBot);
+
+            // 记录发言供后续玩家 prompt 使用
+            this.recentSpeeches.push({ playerId: player.id, playerName: player.name, content: speech });
+
+            // 更新所有玩家的记忆
+            const aliveForMemory = this.players.filter(p => p.isAlive);
+            this.memoryManager.broadcastSpeech(this.day, player.id, player.name, speech, aliveForMemory);
+            this.memoryManager.analyzeSpeechSuspicion(player.id, player.name, speech, aliveForMemory);
 
             // Broadcast speech to all
             this._broadcastPublic('speech', {
@@ -619,6 +662,10 @@ class Game {
 
             votes[player.id] = targetId;
             const target = this.players.find(p => p.id === targetId);
+
+            // 更新投票记忆
+            const aliveForVote = this.players.filter(p => p.isAlive);
+            this.memoryManager.broadcastVote(this.day, player.id, player.name, targetId, target?.name || '未知', aliveForVote);
 
             this._broadcastPublic('vote_cast', {
                 voter_id: player.id,
@@ -698,6 +745,10 @@ class Game {
             });
 
             this._log('death', `${mostVoted.name} 被投票出局（${maxVotes}票）`);
+
+            // 更新记忆：投票出局（公开角色）
+            const aliveAfterVote = this.players.filter(p => p.isAlive);
+            this.memoryManager.broadcastDeath(this.day, mostVoted.id, mostVoted.name, mostVoted.roleName, '被投票出局', aliveAfterVote, true);
 
             // Spectator sees the role
             this._spectatorEvent({
@@ -890,10 +941,8 @@ class Game {
             const requestId = randomUUID();
 
             if (player.isBot) {
-                // Bot auto-responds after short delay
-                setTimeout(() => {
-                    resolve(this._botDecision(player, actionType, validTargets, context));
-                }, 1000 + Math.random() * 2000);
+                // Bot: 优先用 LLM 生成，失败则回退到本地决策
+                this._llmDecision(player, actionType, validTargets, context).then(resolve);
                 return;
             }
 
@@ -933,8 +982,8 @@ class Game {
             const timeoutId = setTimeout(() => {
                 if (this.pendingAction && this.pendingAction.requestId === requestId) {
                     this.pendingAction = null;
-                    const botDecision = this._botDecision(player, actionType, validTargets, context);
-                    botDecision.is_auto = true; // Mark as system-generated due to timeout
+                    const botDecision = this._botFallback(player, actionType, validTargets, context);
+                    botDecision.is_auto = true; // Mark as system-generated due to timeout (仅真人 Agent 超时)
                     // Notify agent that they timed out and bot decided for them
                     this._sendToAgent(player.id, {
                         type: 'action_timeout',
@@ -970,9 +1019,101 @@ class Game {
         return true;
     }
 
-    // ============ BOT DECISIONS ============
+    // ============ LLM-POWERED BOT DECISIONS ============
 
-    _botDecision(player, actionType, validTargets, context) {
+    /**
+     * Bot 的 LLM 决策 — 优先用 LLM，失败回退到 _botFallback
+     */
+    async _llmDecision(player, actionType, validTargets, context) {
+        // 模拟思考延迟（1-3秒，让体验更自然）
+        await this._delay(1000 + Math.random() * 2000);
+
+        if (!llmService.isConfigured) {
+            return this._botFallback(player, actionType, validTargets, context);
+        }
+
+        try {
+            const gameState = {
+                day: this.day,
+                phase: this.phase,
+                players: this.players.map(p => ({
+                    id: p.id,
+                    name: p.name,
+                    isAlive: p.isAlive,
+                    camp: player.camp === 'wolf' ? p.camp : undefined, // 狼人才知道阵营
+                    role: p.id === player.id ? p.role : undefined,
+                })),
+                recentSpeeches: this.recentSpeeches,
+                deathRecords: this.deathRecords,
+            };
+
+            if (actionType === 'speak') {
+                return await this._llmSpeak(player, gameState);
+            } else if (actionType === 'last_words') {
+                return await this._llmLastWords(player, gameState);
+            } else if (actionType === 'vote') {
+                return await this._llmVote(player, gameState, validTargets);
+            } else {
+                return await this._llmNightAction(player, gameState, actionType, validTargets, context);
+            }
+        } catch (err) {
+            console.error(`[LLM] ${player.name} ${actionType} failed:`, err.message);
+            return this._botFallback(player, actionType, validTargets, context);
+        }
+    }
+
+    async _llmSpeak(player, gameState) {
+        const { systemPrompt, userPrompt } = PromptBuilder.buildSpeechPrompt({
+            player, gameState, memory: player._memory,
+        });
+        const content = await llmService.call(systemPrompt, userPrompt, { maxTokens: 200 });
+        return { content };
+    }
+
+    async _llmLastWords(player, gameState) {
+        const { systemPrompt, userPrompt } = PromptBuilder.buildSpeechPrompt({
+            player, gameState, memory: player._memory,
+        });
+        const lastWordsPrompt = userPrompt + '\n\n你即将被出局，请发表你的遗言。遗言要有信息量，帮助你的阵营。30-60字。';
+        const content = await llmService.call(systemPrompt, lastWordsPrompt, { maxTokens: 150 });
+        return { content };
+    }
+
+    async _llmVote(player, gameState, validTargets) {
+        const { systemPrompt, userPrompt } = PromptBuilder.buildVotePrompt({
+            player, gameState, validTargets, memory: player._memory,
+        });
+        const response = await llmService.call(systemPrompt, userPrompt, { maxTokens: 20, temperature: 0.5 });
+        const match = response.match(/(\d+)/);
+        if (match) {
+            const targetId = parseInt(match[1]);
+            if (validTargets.includes(targetId)) {
+                return { target_id: targetId };
+            }
+        }
+        // LLM 返回无效 → fallback
+        return { target_id: validTargets[Math.floor(Math.random() * validTargets.length)] };
+    }
+
+    async _llmNightAction(player, gameState, actionType, validTargets, context) {
+        const { systemPrompt, userPrompt } = PromptBuilder.buildNightActionPrompt({
+            player, gameState, actionType, validTargets, context, memory: player._memory,
+        });
+        const response = await llmService.call(systemPrompt, userPrompt, { maxTokens: 20, temperature: 0.5 });
+        const match = response.match(/-?\d+/);
+        if (match) {
+            const targetId = parseInt(match[0]);
+            if (validTargets.includes(targetId)) {
+                return { target_id: targetId };
+            }
+        }
+        // LLM 返回无效 → fallback
+        return this._botFallback(player, actionType, validTargets, context);
+    }
+
+    // ============ BOT FALLBACK DECISIONS ============
+
+    _botFallback(player, actionType, validTargets, context) {
         switch (actionType) {
             case 'night_kill': {
                 const gods = this.players.filter(p =>
@@ -1008,11 +1149,7 @@ class Game {
             }
 
             case 'speak': {
-                const speeches = [
-                    '大家冷静分析一下', '过', '我觉得需要再观察', '目前信息不多，先听听大家发言',
-                    '我觉得有人在隐藏身份', '我倾向于先投可疑的人', '昨晚的情况很蹊跷',
-                ];
-                return { content: speeches[Math.floor(Math.random() * speeches.length)] };
+                return { content: getFallbackPhrase(player.name, player.role, 'speak') };
             }
 
             case 'vote': {
@@ -1027,8 +1164,7 @@ class Game {
             }
 
             case 'last_words': {
-                const words = ['记住我说的话', '我是好人', '注意场上的形势', '无遗言'];
-                return { content: words[Math.floor(Math.random() * words.length)] };
+                return { content: getFallbackPhrase(player.name, player.role, 'lastWords') };
             }
 
             default:

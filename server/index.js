@@ -155,9 +155,65 @@ const server = http.createServer(async (req, res) => {
         return jsonResponse(res, 200, { ok: true, status: room.status });
     }
 
+    // POST /api/ai/generate — 模拟模式 AI 发言/决策（服务端统一 LLM）
+    if (pathname === '/api/ai/generate' && req.method === 'POST') {
+        const llmService = require('./llm/LLMService');
+        const PromptBuilder = require('./llm/PromptBuilder');
+        const { getFallbackPhrase } = require('./llm/FallbackPhrases');
+
+        try {
+            const body = await readBody(req);
+            const { player, gameState, actionType, validTargets, context } = body;
+
+            if (!player || !gameState || !actionType) {
+                return jsonResponse(res, 400, { error: '缺少 player, gameState, actionType' });
+            }
+
+            // 无 LLM 配置时用 fallback
+            if (!llmService.isConfigured) {
+                if (actionType === 'speak' || actionType === 'last_words') {
+                    return jsonResponse(res, 200, { content: getFallbackPhrase(player.name, player.role, actionType) });
+                }
+                return jsonResponse(res, 200, { target_id: validTargets?.[Math.floor(Math.random() * (validTargets?.length || 1))] });
+            }
+
+            // 用 LLM 生成
+            let result;
+            if (actionType === 'speak') {
+                const { systemPrompt, userPrompt } = PromptBuilder.buildSpeechPrompt({ player, gameState, memory: null });
+                const content = await llmService.call(systemPrompt, userPrompt, { maxTokens: 200 });
+                result = { content };
+            } else if (actionType === 'last_words') {
+                const { systemPrompt, userPrompt } = PromptBuilder.buildSpeechPrompt({ player, gameState, memory: null });
+                const content = await llmService.call(systemPrompt, userPrompt + '\n\n你即将被出局，请发表遗言。30-60字。', { maxTokens: 150 });
+                result = { content };
+            } else if (actionType === 'vote') {
+                const { systemPrompt, userPrompt } = PromptBuilder.buildVotePrompt({ player, gameState, validTargets, memory: null });
+                const response = await llmService.call(systemPrompt, userPrompt, { maxTokens: 20, temperature: 0.5 });
+                const match = response.match(/(\d+)/);
+                result = { target_id: match ? parseInt(match[1]) : validTargets?.[0] };
+            } else {
+                // 夜间行动
+                const { systemPrompt, userPrompt } = PromptBuilder.buildNightActionPrompt({
+                    player, gameState, actionType, validTargets: validTargets || [], context: context || {}, memory: null,
+                });
+                const response = await llmService.call(systemPrompt, userPrompt, { maxTokens: 20, temperature: 0.5 });
+                const match = response.match(/-?\d+/);
+                result = { target_id: match ? parseInt(match[0]) : validTargets?.[0] };
+            }
+
+            return jsonResponse(res, 200, result);
+        } catch (err) {
+            console.error('[AI] Generate failed:', err.message);
+            // fallback
+            const body2 = {}; // body already consumed
+            return jsonResponse(res, 200, { content: '让我想想...', fallback: true });
+        }
+    }
+
     // GET /api/health — health check
     if (pathname === '/api/health') {
-        return jsonResponse(res, 200, { status: 'ok', rooms: rooms.size, uptime: process.uptime() });
+        return jsonResponse(res, 200, { status: 'ok', rooms: rooms.size, uptime: process.uptime(), llm_configured: require('./llm/LLMService').isConfigured });
     }
 
     // ---- Static Files ----
