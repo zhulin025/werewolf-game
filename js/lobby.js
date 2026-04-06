@@ -579,8 +579,8 @@ function handleSpectatorGameEnd(payload) {
             }).join('');
         }
         modal.classList.add('active');
-        // Change button to return to lobby (not start a new local sim game)
-        const playAgainBtn = modal.querySelector('button');
+        // Change "再来一局" button to "返回大厅"（保留"对局分析"按钮不动）
+        const playAgainBtn = modal.querySelector('.btn-primary');
         if (playAgainBtn) {
             playAgainBtn.textContent = '返回大厅';
             playAgainBtn.onclick = () => {
