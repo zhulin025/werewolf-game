@@ -14,7 +14,7 @@ async function generateSmartSpeech(player) {
         if (typeof llmAdapter !== 'undefined' && llmAdapter && (llmAdapter.enabled || llmAdapter.config?.provider === 'local')) {
             // Add timeout to prevent hanging
             const timeout = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('LLM timeout')), 5000)
+                setTimeout(() => reject(new Error('LLM timeout')), 30000)
             );
             const result = await Promise.race([
                 llmAdapter.generateSpeech(context),

@@ -62,7 +62,7 @@ class LLMService {
     async _callAPI(systemPrompt, userPrompt, options = {}) {
         const temperature = options.temperature ?? 0.85;
         const maxTokens = options.maxTokens ?? 800;
-        const timeoutMs = options.timeout ?? 15000;
+        const timeoutMs = options.timeout ?? 30000;
 
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), timeoutMs);
