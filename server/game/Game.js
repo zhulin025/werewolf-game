@@ -1066,7 +1066,7 @@ class Game {
         const { systemPrompt, userPrompt } = PromptBuilder.buildSpeechPrompt({
             player, gameState, memory: player._memory,
         });
-        const content = await llmService.call(systemPrompt, userPrompt, { maxTokens: 200 });
+        const content = await llmService.call(systemPrompt, userPrompt, { maxTokens: 800 });
         return { content };
     }
 
@@ -1075,7 +1075,7 @@ class Game {
             player, gameState, memory: player._memory,
         });
         const lastWordsPrompt = userPrompt + '\n\n你即将被出局，请发表你的遗言。遗言要有信息量，帮助你的阵营。30-60字。';
-        const content = await llmService.call(systemPrompt, lastWordsPrompt, { maxTokens: 150 });
+        const content = await llmService.call(systemPrompt, lastWordsPrompt, { maxTokens: 600 });
         return { content };
     }
 
@@ -1083,7 +1083,7 @@ class Game {
         const { systemPrompt, userPrompt } = PromptBuilder.buildVotePrompt({
             player, gameState, validTargets, memory: player._memory,
         });
-        const response = await llmService.call(systemPrompt, userPrompt, { maxTokens: 20, temperature: 0.5 });
+        const response = await llmService.call(systemPrompt, userPrompt, { maxTokens: 300, temperature: 0.5 });
         const match = response.match(/(\d+)/);
         if (match) {
             const targetId = parseInt(match[1]);
@@ -1099,7 +1099,7 @@ class Game {
         const { systemPrompt, userPrompt } = PromptBuilder.buildNightActionPrompt({
             player, gameState, actionType, validTargets, context, memory: player._memory,
         });
-        const response = await llmService.call(systemPrompt, userPrompt, { maxTokens: 20, temperature: 0.5 });
+        const response = await llmService.call(systemPrompt, userPrompt, { maxTokens: 300, temperature: 0.5 });
         const match = response.match(/-?\d+/);
         if (match) {
             const targetId = parseInt(match[0]);
