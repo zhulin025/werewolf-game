@@ -1,6 +1,6 @@
 {
   "name": "ai-werewolf-server",
-  "version": "3.6.0",
+  "version": "4.0.0",
   "description": "AI狼人杀 - 多Agent对战服务器",
   "main": "server/index.js",
   "scripts": {

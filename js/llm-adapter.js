@@ -112,11 +112,25 @@ class LLMAdapter {
         if (!resp.ok) throw new Error(`Server API ${resp.status}`);
         const data = await resp.json();
 
-        // 发言类返回 content，决策类返回 target_id
+        // 发言类返回 content，决策类返回玩家对象（与本地 fallback 保持一致）
         if (actionType === 'speak' || actionType === 'last_words') {
             return data.content || '让我想想...';
         }
-        return data.target_id ?? data;
+
+        // LLM 返回 target_id（数字），需要转换为玩家对象
+        // 调用方（startVotingPhase 等）统一用 voteTarget.id 取值
+        const targetId = data.target_id ?? data;
+        if (typeof targetId === 'number') {
+            // witch_heal 返回的是 boolean 型数字（0/1）
+            if (actionType === 'witch_heal') {
+                return !!targetId;
+            }
+            // witch_poison 返回 -1 表示不使用
+            if (targetId === -1) return null;
+            const targetPlayer = context.gameState.players.find(p => p.id === targetId);
+            if (targetPlayer) return targetPlayer;
+        }
+        return targetId;
     }
 
     /**

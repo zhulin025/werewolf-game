@@ -60,7 +60,8 @@ function renderRoomList(roomList) {
             </div>
             <div class="room-actions">
                 <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 14px;" onclick="openRoomDetail('${r.room_id}')">📝 详情</button>
-                ${r.status === 'waiting' && r.agent_count > 0 ? `<button class="btn btn-primary" style="font-size: 12px; padding: 6px 14px;" onclick="forceStartRoom('${r.room_id}')">▶ 开始</button>` : ''}
+                ${r.status === 'waiting' ? `<button class="btn btn-primary" style="font-size: 12px; padding: 6px 14px; background: linear-gradient(135deg, #e67e22, #d35400);" onclick="joinRoomAsHuman('${r.room_id}')">🎮 参战</button>` : ''}
+                ${r.status === 'waiting' && (r.player_count || r.agent_count) > 0 ? `<button class="btn btn-primary" style="font-size: 12px; padding: 6px 14px;" onclick="forceStartRoom('${r.room_id}')">▶ 开始</button>` : ''}
                 ${r.status === 'playing' ? `<button class="btn btn-secondary" style="font-size: 12px; padding: 6px 14px;" onclick="spectateRoom('${r.room_id}')">👁 观战</button>` : ''}
             </div>
         </div>
@@ -628,6 +629,12 @@ function openRoomDetail(roomId) {
     roomDetailRefreshTimer = setInterval(() => updateRoomDetail(), 2000);
 }
 
+function joinCurrentRoomAsHuman() {
+    if (currentRoomDetail && typeof joinRoomAsHuman === 'function') {
+        joinRoomAsHuman(currentRoomDetail);
+    }
+}
+
 function closeRoomDetail() {
     if (roomDetailRefreshTimer) { clearInterval(roomDetailRefreshTimer); roomDetailRefreshTimer = null; }
     currentRoomDetail = null;
@@ -759,9 +766,16 @@ async function startRoomGame() {
 }
 
 function exitSpectatoring() {
-    if (confirm('确定要退出观战吗？')) {
+    const msg = isHumanAgentMode ? '确定要退出游戏吗？' : '确定要退出观战吗？';
+    if (confirm(msg)) {
+        // 如果在人类 Agent 模式，先断开
+        if (typeof disconnectHumanAgent === 'function') disconnectHumanAgent();
         stopSpectating();
         document.getElementById('gameReturnBtn').classList.remove('active');
+        document.getElementById('spectatorBadge').classList.remove('active');
+        // 恢复控件
+        const speedCtrl = document.querySelector('.speed-control');
+        if (speedCtrl) speedCtrl.style.display = '';
         // 关闭游戏UI
         const startScreen = document.getElementById('startScreen');
         if (startScreen) startScreen.style.display = '';

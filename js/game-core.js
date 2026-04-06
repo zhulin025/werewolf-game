@@ -268,7 +268,12 @@ function startGame() {
         const gameContainer = document.querySelector('.main-container');
         if (gameContainer) gameContainer.style.display = '';
         
-        addLog('🐺 游戏开始！所有玩家都是AI，人类观众观战', 'system');
+        if (humanModeEnabled && gameState.humanPlayerId >= 0) {
+            const hp = gameState.players[gameState.humanPlayerId];
+            addLog(`🎮 游戏开始！你是 ${hp.number}号 ${hp.roleName}，与AI同台博弈！`, 'system');
+        } else {
+            addLog('🐺 游戏开始！所有玩家都是AI，人类观众观战', 'system');
+        }
 
         // Start first night
         schedulePhase(() => startNight(), 2000);

@@ -23,14 +23,33 @@ function renderPlayers() {
     const centerX = ring.offsetWidth / 2 || 250;
     const centerY = ring.offsetHeight / 2 || 250;
 
+    // 人类参战时的信息隔离：判断哪些玩家角色可见
+    const humanPlayer = (typeof humanModeEnabled !== 'undefined' && humanModeEnabled && gameState.humanPlayerId >= 0)
+        ? gameState.players[gameState.humanPlayerId] : null;
+    const isHumanWolf = humanPlayer && humanPlayer.camp === 'wolf';
+
     gameState.players.forEach((player, index) => {
         const angle = (index / playerCount) * 2 * Math.PI - Math.PI / 2;
         const x = centerX + radius * Math.cos(angle) - offsetW;
         const y = centerY + radius * Math.sin(angle) - offsetH;
 
+        // 信息隔离：人类参战时，只能看到自己的角色（狼人可看到狼队友）
+        // 死亡后或观战模式下 showRoles 可以显示全部
+        let canSeeRole = showRoles;
+        if (humanPlayer && !showRoles) {
+            if (player.id === humanPlayer.id) {
+                canSeeRole = true; // 自己的角色始终可见
+            } else if (isHumanWolf && player.camp === 'wolf' && player.isAlive) {
+                canSeeRole = true; // 狼人看狼队友
+            } else if (!humanPlayer.isAlive) {
+                canSeeRole = true; // 死亡后可看全部
+            }
+        }
+
         const card = document.createElement('div');
         card.className = `player-card ${player.camp === 'wolf' ? 'wolf' : player.camp === 'god' ? 'god' : 'villager'}`;
         if (!player.isAlive) card.classList.add('dead');
+        if (humanPlayer && player.id === humanPlayer.id) card.classList.add('human-self');
         card.style.left = x + 'px';
         card.style.top = y + 'px';
         card.id = `player-${player.id}`;
@@ -39,14 +58,14 @@ function renderPlayers() {
         const roleKey = player.role ? player.role.toUpperCase() : 'UNKNOWN';
         const roleData = window.ROLES ? window.ROLES[roleKey] : null;
         const imgSrc = (roleData && roleData.image) ? encodeURI(roleData.image) : null;
-        
-        const roleLabel = (showRoles && player.roleName && player.roleName !== '?')
+
+        const roleLabel = (canSeeRole && player.roleName && player.roleName !== '?')
             ? `<div style="font-size:9px;color:rgba(255,255,255,0.75);margin-top:1px;text-shadow:0 1px 3px rgba(0,0,0,0.9);">${player.roleName}</div>`
             : '';
 
-        // Avatar: show role image only when showRoles is on; otherwise generic colored circle
+        // Avatar: show role image only when canSeeRole is on; otherwise generic colored circle
         let avatarContent = '', avatarStyle = '';
-        if (showRoles) {
+        if (canSeeRole) {
             if (imgSrc) {
                 avatarStyle = `background:url('${imgSrc}') center/cover no-repeat;`;
                 // Image error fallback
@@ -63,7 +82,7 @@ function renderPlayers() {
         }
 
         // Also hide camp-based border when roles hidden
-        if (!showRoles) {
+        if (!canSeeRole) {
             card.className = 'player-card';
             if (!player.isAlive) card.classList.add('dead');
         }
@@ -806,31 +825,7 @@ async function pausedSleep(ms) {
     return sleep(ms);
 }
 
-function submitAction() {
-    console.log('submitAction called');
-    const input = document.getElementById('actionInput');
-    const text = input.value.trim();
-
-    if (!text) {
-        console.log('No text entered');
-        return;
-    }
-
-    const human = gameState.players[gameState.humanPlayerId];
-    addLog(`💬 ${human.name}（${human.roleName}）：${text}`, 'speak');
-    VoiceSystem.speakAs(`${human.name}说：${text}`, human.role.toLowerCase());
-
-    input.value = '';
-
-    // Advance to next speaker
-    gameState.currentSpeaker++;
-    console.log('currentSpeaker:', gameState.currentSpeaker, 'total:', gameState.speakingOrder.length);
-    if (gameState.currentSpeaker >= gameState.speakingOrder.length) {
-        schedulePhase(() => startVotingPhase(), 1000);
-    } else {
-        schedulePhase(() => simulateAISpeaking(), 1000);
-    }
-}
+// submitAction is defined in human-player.js (local mode) and wrapped by human-agent.js (agent mode)
 
 // ============ FULLSCREEN ============
 function toggleFullscreen() {

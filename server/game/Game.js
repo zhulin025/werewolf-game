@@ -71,7 +71,7 @@ class Game {
         return this.players.length >= this.requiredPlayers;
     }
 
-    addPlayer(agentId, name) {
+    addPlayer(agentId, name, options = {}) {
         if (this.isFull) return null;
         if (this.phase !== 'waiting') return null;
 
@@ -86,6 +86,7 @@ class Game {
             type: null, // 'god', 'villager', 'wolf'
             isAlive: true,
             isBot: false,
+            isHuman: options.isHuman || false,
         };
         this.players.push(player);
         return player;
@@ -974,9 +975,12 @@ class Game {
             });
 
             // Determine timeout based on action type
-            const timeout = actionType === 'speak' ? this.settings.speakTimeout
+            // Human players get longer timeouts for all actions
+            const humanMultiplier = player.isHuman ? 2 : 1;
+            const timeout = (actionType === 'speak' || actionType === 'last_words'
+                ? this.settings.speakTimeout
                 : actionType === 'vote' ? this.settings.voteTimeout
-                : this.settings.actionTimeout;
+                : this.settings.actionTimeout) * humanMultiplier;
 
             // Set timeout for response
             const timeoutId = setTimeout(() => {

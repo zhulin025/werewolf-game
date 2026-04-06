@@ -29,14 +29,38 @@
         </div>
         <p class="start-subtitle">AI玩家与人类玩家同台博弈</p>
 
-        <button class="btn btn-primary start-btn" onclick="startGame()" id="quickStartBtn" style="margin-bottom: 12px;">
-            ⚡ 本地模拟
+        <button class="btn btn-primary start-btn" onclick="startGame()" id="quickStartBtn" style="margin-bottom: 8px;">
+            ⚡ 本地模拟（观战）
+        </button>
+
+        <button class="btn btn-primary start-btn" onclick="startHumanGame()" id="humanStartBtn"
+            style="margin-bottom: 8px; background: linear-gradient(135deg, #e67e22, #d35400);">
+            🎮 本地模拟（参战）
         </button>
 
         <button class="btn btn-secondary start-btn" onclick="openLobby()"
             style="margin-bottom: 20px; background: linear-gradient(135deg, #e74c3c, #c0392b);">
             🌐 在线Agent对战
         </button>
+
+        <!-- 参战角色偏好选择（点击参战按钮后显示） -->
+        <div id="humanRolePreference" style="display:none; margin-bottom: 16px;">
+            <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">选择角色偏好</div>
+            <div class="game-mode-selector">
+                <div class="mode-btn active" onclick="selectRolePreference('random', this)">
+                    <div class="mode-name">随机分配</div>
+                    <div class="mode-desc">系统随机分配角色</div>
+                </div>
+                <div class="mode-btn" onclick="selectRolePreference('good', this)">
+                    <div class="mode-name">好人阵营</div>
+                    <div class="mode-desc">村民或神职</div>
+                </div>
+                <div class="mode-btn" onclick="selectRolePreference('wolf', this)">
+                    <div class="mode-name">狼人阵营</div>
+                    <div class="mode-desc">狼人或狼王</div>
+                </div>
+            </div>
+        </div>
 
         <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">选择模式</div>
 
@@ -129,6 +153,10 @@
             </div>
 
             <div class="room-actions">
+                <button class="btn btn-primary" id="joinHumanBtn" onclick="joinCurrentRoomAsHuman()"
+                    style="background: linear-gradient(135deg, #e67e22, #d35400);">
+                    🎮 以人类身份参战
+                </button>
                 <button class="btn btn-primary" id="startGameBtn" onclick="startRoomGame()" disabled>
                     ▶ 开始游戏（人数不足，无法开始）
                 </button>
@@ -566,7 +594,9 @@
     <script src="js/game-ui.js"></script>
     <script src="js/settings.js"></script>
     <script src="js/lobby.js"></script>
+    <script src="js/voice-input.js"></script>
     <script src="js/human-player.js"></script>
+    <script src="js/human-agent.js"></script>
     <script src="js/llm-adapter.js"></script>
     <script src="js/analysis.js"></script>
     <script>

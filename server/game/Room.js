@@ -81,6 +81,48 @@ class Room {
         return { ok: true, agent_count: this.getAgentCount(), required: this.modeConfig.players };
     }
 
+    addHuman(humanId, ws, name) {
+        // 人类玩家加入（与 Agent 类似但标记为 human 类型）
+        if (this.status === 'playing' && this.game) {
+            const existingPlayer = this.game.getPlayerByAgentId(humanId);
+            if (existingPlayer) {
+                this.connections.set(humanId, { ws, name: existingPlayer.name, type: 'human' });
+                console.log(`[Room] Human ${humanId} reconnected`);
+                ws.send(JSON.stringify({
+                    type: 'reconnected',
+                    payload: {
+                        message: '重新连接成功',
+                        your_id: existingPlayer.id,
+                        your_role: existingPlayer.role,
+                        your_role_name: existingPlayer.roleName,
+                        your_camp: existingPlayer.camp,
+                        players: this.game.getPublicPlayers(),
+                        day: this.game.day,
+                        phase: this.game.phase,
+                    },
+                }));
+                return { ok: true, reconnected: true };
+            }
+            return { ok: false, error: '游戏已开始，无法加入新玩家' };
+        }
+
+        if (this.status !== 'waiting' && this.status !== 'countdown') return { ok: false, error: '房间已开始游戏' };
+
+        const totalPlayers = this.getPlayerCount();
+        if (totalPlayers >= this.modeConfig.players) return { ok: false, error: '房间已满' };
+
+        this.connections.set(humanId, { ws, name, type: 'human' });
+
+        this._broadcastRoomState();
+
+        // Check auto-start
+        if (this.getPlayerCount() >= this.autoStartThreshold && this.status === 'waiting') {
+            this.startCountdown();
+        }
+
+        return { ok: true, player_count: this.getPlayerCount(), required: this.modeConfig.players };
+    }
+
     addSpectator(spectatorId, ws, name) {
         this.connections.set(spectatorId, { ws, name: name || '观众', type: 'spectator' });
 
@@ -117,12 +159,28 @@ class Room {
         return count;
     }
 
+    getPlayerCount() {
+        let count = 0;
+        for (const conn of this.connections.values()) {
+            if (conn.type === 'agent' || conn.type === 'human') count++;
+        }
+        return count;
+    }
+
     getAgents() {
         const agents = [];
         for (const [id, conn] of this.connections.entries()) {
             if (conn.type === 'agent') agents.push({ id, name: conn.name });
         }
         return agents;
+    }
+
+    getHumans() {
+        const humans = [];
+        for (const [id, conn] of this.connections.entries()) {
+            if (conn.type === 'human') humans.push({ id, name: conn.name });
+        }
+        return humans;
     }
 
     // ============ COUNTDOWN ============
@@ -162,10 +220,12 @@ class Room {
 
         this.game = new Game(this.roomId, this.mode, this.gameSettings);
 
-        // Add real agents as players
-        for (const [agentId, conn] of this.connections.entries()) {
+        // Add real agents and human players
+        for (const [connId, conn] of this.connections.entries()) {
             if (conn.type === 'agent') {
-                this.game.addPlayer(agentId, conn.name);
+                this.game.addPlayer(connId, conn.name);
+            } else if (conn.type === 'human') {
+                this.game.addPlayer(connId, conn.name, { isHuman: true });
             }
         }
 
@@ -178,9 +238,9 @@ class Room {
 
         // Wire up game callbacks
         this.game.onBroadcast = (msg) => {
-            // Send to all agents (with information isolation — only public info)
+            // Send to all agents and human players (with information isolation — only public info)
             for (const [id, conn] of this.connections.entries()) {
-                if (conn.type === 'agent' && conn.ws.readyState === 1) {
+                if ((conn.type === 'agent' || conn.type === 'human') && conn.ws.readyState === 1) {
                     try { conn.ws.send(JSON.stringify(msg)); } catch (e) {}
                 }
             }
@@ -265,8 +325,11 @@ class Room {
             mode_name: this.modeConfig.name,
             status: this.status,
             agent_count: this.getAgentCount(),
+            human_count: this.getHumans().length,
+            player_count: this.getPlayerCount(),
             required_players: this.modeConfig.players,
             agents: this.getAgents(),
+            humans: this.getHumans(),
             spectator_count: [...this.connections.values()].filter(c => c.type === 'spectator').length,
             created_at: this.createdAt,
         };

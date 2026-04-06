@@ -2,6 +2,7 @@
 
 let humanModeEnabled = false;
 let humanActionResolve = null;
+let humanRolePreference = 'random'; // 'random' | 'good' | 'wolf'
 
 function toggleHumanMode() {
     humanModeEnabled = !humanModeEnabled;
@@ -17,6 +18,25 @@ function toggleHumanMode() {
     }
 }
 
+// 从开始页面直接启动参战模式
+function startHumanGame() {
+    humanModeEnabled = true;
+    const btn = document.getElementById('humanModeBtn');
+    if (btn) {
+        btn.classList.add('human-mode-active');
+        btn.innerHTML = '🎮 已开启参与';
+    }
+    startGame();
+}
+
+// 角色偏好选择
+function selectRolePreference(pref, btn) {
+    humanRolePreference = pref;
+    const container = btn.parentElement;
+    container.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
+
 // Called from initGame() to set up human player
 function setupHumanPlayer() {
     if (!humanModeEnabled) {
@@ -25,7 +45,24 @@ function setupHumanPlayer() {
     }
 
     const players = gameState.players;
-    const humanIdx = Math.floor(Math.random() * players.length);
+    let humanIdx;
+
+    if (humanRolePreference === 'good') {
+        // 优先分配好人阵营
+        const goodIndices = players.map((p, i) => p.camp === 'good' ? i : -1).filter(i => i >= 0);
+        humanIdx = goodIndices.length > 0
+            ? goodIndices[Math.floor(Math.random() * goodIndices.length)]
+            : Math.floor(Math.random() * players.length);
+    } else if (humanRolePreference === 'wolf') {
+        // 优先分配狼人阵营
+        const wolfIndices = players.map((p, i) => p.camp === 'wolf' ? i : -1).filter(i => i >= 0);
+        humanIdx = wolfIndices.length > 0
+            ? wolfIndices[Math.floor(Math.random() * wolfIndices.length)]
+            : Math.floor(Math.random() * players.length);
+    } else {
+        humanIdx = Math.floor(Math.random() * players.length);
+    }
+
     const human = players[humanIdx];
     human.isAI = false;
     human.isHuman = true;
@@ -179,7 +216,7 @@ function showHumanNightAction(player, actionType) {
     }
 }
 
-// Show speech input for human
+// Show speech input for human (with voice support)
 function showHumanSpeechInput() {
     const panel = document.getElementById('actionPanel');
     const speakRow = document.getElementById('actionSpeakRow');
@@ -191,9 +228,14 @@ function showHumanSpeechInput() {
     targetsDiv.style.display = 'none';
     hint.textContent = '💬 轮到你发言了！';
     input.value = '';
-    input.placeholder = '输入你的发言...';
     panel.style.display = '';
     input.focus();
+
+    _setupVoiceButton('speak');
+
+    // 根据是否有麦克风按钮更新 placeholder
+    const hasVoice = speakRow.querySelector('.voice-record-btn');
+    input.placeholder = hasVoice ? '输入你的发言，或按住麦克风说话...' : '输入你的发言，按回车或点发送...';
 }
 
 // Show vote targets for human
@@ -218,7 +260,7 @@ function showHumanVoteTargets(voteable) {
     });
 }
 
-// Show last words input
+// Show last words input (with voice support)
 function showHumanLastWords() {
     const panel = document.getElementById('actionPanel');
     const speakRow = document.getElementById('actionSpeakRow');
@@ -230,9 +272,13 @@ function showHumanLastWords() {
     targetsDiv.style.display = 'none';
     hint.textContent = '📜 你被淘汰了，留下遗言吧';
     input.value = '';
-    input.placeholder = '输入你的遗言...';
     panel.style.display = '';
     input.focus();
+
+    _setupVoiceButton('last_words');
+
+    const hasVoice = speakRow.querySelector('.voice-record-btn');
+    input.placeholder = hasVoice ? '输入你的遗言，或按住麦克风说话...' : '输入你的遗言，按回车或点发送...';
 }
 
 function hideActionPanel() {
@@ -252,4 +298,79 @@ function submitAction() {
 // Check if current player is human
 function isHumanPlayer(player) {
     return player && player.isHuman === true && gameState.humanPlayerId >= 0;
+}
+
+// ============ VOICE INPUT INTEGRATION ============
+
+function _setupVoiceButton(actionType) {
+    // 确保语音输入可用
+    if (typeof VoiceInput === 'undefined' || !VoiceInput.isSupported()) return;
+
+    const speakRow = document.getElementById('actionSpeakRow');
+    // 避免重复添加
+    if (speakRow.querySelector('.voice-record-btn')) return;
+
+    const voiceBtn = document.createElement('button');
+    voiceBtn.className = 'btn voice-record-btn';
+    voiceBtn.innerHTML = '🎙️';
+    voiceBtn.title = '点击开始录音';
+
+    let isRecording = false;
+
+    const startRec = async () => {
+        if (isRecording) return;
+        isRecording = true;
+        voiceBtn.classList.add('recording');
+        voiceBtn.innerHTML = '⏹️';
+        voiceBtn.title = '点击停止录音';
+        try {
+            await VoiceInput.startRecording();
+        } catch (err) {
+            showToast(err.message);
+            isRecording = false;
+            voiceBtn.classList.remove('recording');
+            voiceBtn.innerHTML = '🎙️';
+            voiceBtn.title = '点击开始录音';
+        }
+    };
+
+    const stopRec = async () => {
+        if (!isRecording) return;
+        isRecording = false;
+        voiceBtn.classList.remove('recording');
+        voiceBtn.innerHTML = '🎙️';
+        voiceBtn.title = '点击开始录音';
+
+        try {
+            showToast('正在转写语音...');
+            const text = await VoiceInput.stopAndTranscribe();
+            if (text) {
+                const input = document.getElementById('actionInput');
+                input.value = text;
+                submitAction();
+            } else {
+                showToast('未检测到语音内容，请重试');
+            }
+        } catch (err) {
+            showToast('语音转写失败: ' + err.message);
+        }
+    };
+
+    // 点击切换模式：点一下开始录音，再点一下停止并转写
+    voiceBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (isRecording) {
+            stopRec();
+        } else {
+            startRec();
+        }
+    });
+
+    // 插入到 submit 按钮之前
+    const submitBtn = speakRow.querySelector('button[onclick="submitAction()"]') || speakRow.querySelector('button');
+    if (submitBtn) {
+        speakRow.insertBefore(voiceBtn, submitBtn);
+    } else {
+        speakRow.appendChild(voiceBtn);
+    }
 }

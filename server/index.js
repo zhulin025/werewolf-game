@@ -48,6 +48,41 @@ function readBody(req) {
     });
 }
 
+// 简易 multipart/form-data 解析（用于 STT 音频上传）
+function parseMultipart(body, boundary) {
+    const parts = [];
+    const boundaryBuf = Buffer.from(`--${boundary}`);
+    const endBuf = Buffer.from(`--${boundary}--`);
+
+    let start = body.indexOf(boundaryBuf) + boundaryBuf.length + 2; // skip boundary + \r\n
+    while (start < body.length) {
+        const nextBoundary = body.indexOf(boundaryBuf, start);
+        if (nextBoundary === -1) break;
+
+        const partData = body.slice(start, nextBoundary - 2); // -2 for \r\n before boundary
+        const headerEnd = partData.indexOf('\r\n\r\n');
+        if (headerEnd === -1) { start = nextBoundary + boundaryBuf.length + 2; continue; }
+
+        const headerStr = partData.slice(0, headerEnd).toString('utf8');
+        const data = partData.slice(headerEnd + 4);
+
+        const nameMatch = headerStr.match(/name="([^"]+)"/);
+        const filenameMatch = headerStr.match(/filename="([^"]+)"/);
+        const ctMatch = headerStr.match(/Content-Type:\s*(.+)/i);
+
+        parts.push({
+            name: nameMatch ? nameMatch[1] : '',
+            filename: filenameMatch ? filenameMatch[1] : null,
+            contentType: ctMatch ? ctMatch[1].trim() : null,
+            data,
+        });
+
+        start = nextBoundary + boundaryBuf.length + 2;
+        if (body.indexOf(endBuf, nextBoundary) === nextBoundary) break;
+    }
+    return parts;
+}
+
 // MIME types for static files
 const MIME = {
     '.html': 'text/html',
@@ -157,6 +192,69 @@ const server = http.createServer(async (req, res) => {
         return jsonResponse(res, 200, { ok: true, status: room.status });
     }
 
+    // POST /api/stt — 语音转文字
+    if (pathname === '/api/stt' && req.method === 'POST') {
+        const sttService = require('./stt/STTService');
+
+        if (!sttService.isConfigured) {
+            return jsonResponse(res, 500, { error: 'STT 未配置：缺少 API Key' });
+        }
+
+        try {
+            // 读取原始 body（音频二进制）
+            const chunks = [];
+            let totalSize = 0;
+            const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+
+            await new Promise((resolve, reject) => {
+                req.on('data', chunk => {
+                    totalSize += chunk.length;
+                    if (totalSize > MAX_SIZE) {
+                        reject(new Error('音频文件过大，最大 5MB'));
+                        return;
+                    }
+                    chunks.push(chunk);
+                });
+                req.on('end', resolve);
+                req.on('error', reject);
+            });
+
+            const rawBody = Buffer.concat(chunks);
+            const contentType = req.headers['content-type'] || '';
+
+            // 支持两种上传方式：
+            // 1. 直接发送音频 binary（Content-Type: audio/webm 等）
+            // 2. multipart/form-data（带 file 字段）
+            let audioBuffer, mimeType;
+
+            if (contentType.startsWith('audio/')) {
+                // 直接二进制上传
+                audioBuffer = rawBody;
+                mimeType = contentType.split(';')[0].trim();
+            } else if (contentType.includes('multipart/form-data')) {
+                // 解析 multipart — 提取第一个文件字段
+                const boundaryMatch = contentType.match(/boundary=(.+)/);
+                if (!boundaryMatch) return jsonResponse(res, 400, { error: '缺少 multipart boundary' });
+
+                const boundary = boundaryMatch[1].trim();
+                const parts = parseMultipart(rawBody, boundary);
+                const filePart = parts.find(p => p.filename);
+                if (!filePart) return jsonResponse(res, 400, { error: '缺少音频文件' });
+
+                audioBuffer = filePart.data;
+                mimeType = filePart.contentType || 'audio/webm';
+            } else {
+                return jsonResponse(res, 400, { error: '不支持的 Content-Type，请使用 audio/* 或 multipart/form-data' });
+            }
+
+            const text = await sttService.transcribe(audioBuffer, mimeType);
+            return jsonResponse(res, 200, { text });
+        } catch (err) {
+            console.error('[STT] 转写失败:', err.message);
+            return jsonResponse(res, 500, { error: `语音转写失败: ${err.message}` });
+        }
+    }
+
     // POST /api/ai/generate — 模拟模式 AI 发言/决策（服务端统一 LLM）
     if (pathname === '/api/ai/generate' && req.method === 'POST') {
         const llmService = require('./llm/LLMService');
@@ -262,7 +360,7 @@ wss.on('connection', (ws, req) => {
 
     const connectionId = q.agent_id || q.id || `anon-${genId()}`;
     const roomId = q.room_id;
-    const connType = q.type || 'agent'; // 'agent' | 'spectator'
+    const connType = q.type || 'agent'; // 'agent' | 'spectator' | 'human'
     const name = q.name || connectionId;
 
     console.log(`[WS] 连接: ${connectionId} (${connType}) → 房间 ${roomId || '无'}`);
@@ -294,6 +392,8 @@ wss.on('connection', (ws, req) => {
     let joinResult;
     if (connType === 'spectator') {
         joinResult = room.addSpectator(connectionId, ws, name);
+    } else if (connType === 'human') {
+        joinResult = room.addHuman(connectionId, ws, name);
     } else {
         joinResult = room.addAgent(connectionId, ws, name);
     }
@@ -314,8 +414,10 @@ wss.on('connection', (ws, req) => {
             connection_type: connType,
             room: room.getRoomInfo(),
             spectate_url: `${baseUrl}/?spectate=${roomId}`,
-            guidance: connType === 'agent' 
-                ? "你已成功进入房间。目前正在大厅等待其他玩家加入。游戏满员后会自动开始，请保持连接，不要退出，直到收到 game_end 消息。" 
+            guidance: connType === 'human'
+                ? "你已作为人类玩家加入房间。等待其他玩家加入后游戏将自动开始。"
+                : connType === 'agent'
+                ? "你已成功进入房间。目前正在大厅等待其他玩家加入。游戏满员后会自动开始，请保持连接，不要退出，直到收到 game_end 消息。"
                 : "欢迎来到观战模式。"
         },
     }));
@@ -330,8 +432,8 @@ wss.on('connection', (ws, req) => {
                 heartbeatPayload.game_phase = room.game.phase;
                 heartbeatPayload.game_day = room.game.day;
                 heartbeatPayload.alive_count = room.game.players.filter(p => p.isAlive).length;
-                // For agents, include their role if assigned
-                if (connType === 'agent') {
+                // For agents and human players, include their role if assigned
+                if (connType === 'agent' || connType === 'human') {
                     const player = room.game.getPlayerByAgentId(connectionId);
                     if (player) {
                         heartbeatPayload.your_id = player.id;
