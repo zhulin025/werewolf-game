@@ -8,8 +8,8 @@
 class LLMService {
     constructor() {
         this.apiKey = process.env.LLM_API_KEY || '';
-        this.baseUrl = (process.env.LLM_BASE_URL || 'https://api.siliconflow.cn/v1').replace(/\/$/, '');
-        this.model = process.env.LLM_MODEL || 'deepseek-chat';
+        this.baseUrl = (process.env.LLM_BASE_URL || 'https://api.minimaxi.com/v1').replace(/\/$/, '');
+        this.model = process.env.LLM_MODEL || 'MiniMax-M2.7';
         this.maxConcurrent = 3;
         this.activeRequests = 0;
         this.queue = [];
@@ -61,7 +61,7 @@ class LLMService {
 
     async _callAPI(systemPrompt, userPrompt, options = {}) {
         const temperature = options.temperature ?? 0.85;
-        const maxTokens = options.maxTokens ?? 300;
+        const maxTokens = options.maxTokens ?? 800;
         const timeoutMs = options.timeout ?? 15000;
 
         const controller = new AbortController();
@@ -92,8 +92,11 @@ class LLMService {
             }
 
             const data = await response.json();
-            const content = data.choices?.[0]?.message?.content?.trim();
+            let content = data.choices?.[0]?.message?.content?.trim();
             if (!content) throw new Error('LLM returned empty content');
+            // 去掉思考模型的 <think>...</think> 标签，只保留正文
+            content = content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+            if (!content) throw new Error('LLM returned only think tags, no actual content');
             return content;
         } finally {
             clearTimeout(timer);

@@ -6,6 +6,8 @@
  * 静态文件:  前端页面
  */
 
+require('dotenv').config();
+
 const http = require('http');
 const url = require('url');
 const WebSocket = require('ws');
@@ -161,53 +163,62 @@ const server = http.createServer(async (req, res) => {
         const PromptBuilder = require('./llm/PromptBuilder');
         const { getFallbackPhrase } = require('./llm/FallbackPhrases');
 
+        // 先解析 body，保存引用供 catch fallback 使用
+        let parsedBody = {};
         try {
-            const body = await readBody(req);
-            const { player, gameState, actionType, validTargets, context } = body;
+            parsedBody = await readBody(req);
+        } catch (parseErr) {
+            return jsonResponse(res, 400, { error: 'Invalid request body' });
+        }
 
-            if (!player || !gameState || !actionType) {
-                return jsonResponse(res, 400, { error: '缺少 player, gameState, actionType' });
+        const { player, gameState: gs, actionType, validTargets, context } = parsedBody;
+
+        if (!player || !gs || !actionType) {
+            return jsonResponse(res, 400, { error: '缺少 player, gameState, actionType' });
+        }
+
+        // 无 LLM 配置时用 fallback
+        if (!llmService.isConfigured) {
+            if (actionType === 'speak' || actionType === 'last_words') {
+                return jsonResponse(res, 200, { content: getFallbackPhrase(player.name, player.role, actionType) });
             }
+            return jsonResponse(res, 200, { target_id: validTargets?.[Math.floor(Math.random() * (validTargets?.length || 1))] });
+        }
 
-            // 无 LLM 配置时用 fallback
-            if (!llmService.isConfigured) {
-                if (actionType === 'speak' || actionType === 'last_words') {
-                    return jsonResponse(res, 200, { content: getFallbackPhrase(player.name, player.role, actionType) });
-                }
-                return jsonResponse(res, 200, { target_id: validTargets?.[Math.floor(Math.random() * (validTargets?.length || 1))] });
-            }
-
+        try {
             // 用 LLM 生成
             let result;
             if (actionType === 'speak') {
-                const { systemPrompt, userPrompt } = PromptBuilder.buildSpeechPrompt({ player, gameState, memory: null });
-                const content = await llmService.call(systemPrompt, userPrompt, { maxTokens: 200 });
+                const { systemPrompt, userPrompt } = PromptBuilder.buildSpeechPrompt({ player, gameState: gs, memory: null });
+                const content = await llmService.call(systemPrompt, userPrompt, { maxTokens: 800 });
                 result = { content };
             } else if (actionType === 'last_words') {
-                const { systemPrompt, userPrompt } = PromptBuilder.buildSpeechPrompt({ player, gameState, memory: null });
-                const content = await llmService.call(systemPrompt, userPrompt + '\n\n你即将被出局，请发表遗言。30-60字。', { maxTokens: 150 });
+                const { systemPrompt, userPrompt } = PromptBuilder.buildSpeechPrompt({ player, gameState: gs, memory: null });
+                const content = await llmService.call(systemPrompt, userPrompt + '\n\n你即将被出局，请发表遗言。30-60字。', { maxTokens: 600 });
                 result = { content };
             } else if (actionType === 'vote') {
-                const { systemPrompt, userPrompt } = PromptBuilder.buildVotePrompt({ player, gameState, validTargets, memory: null });
-                const response = await llmService.call(systemPrompt, userPrompt, { maxTokens: 20, temperature: 0.5 });
+                const { systemPrompt, userPrompt } = PromptBuilder.buildVotePrompt({ player, gameState: gs, validTargets, memory: null });
+                const response = await llmService.call(systemPrompt, userPrompt, { maxTokens: 300, temperature: 0.5 });
                 const match = response.match(/(\d+)/);
                 result = { target_id: match ? parseInt(match[1]) : validTargets?.[0] };
             } else {
                 // 夜间行动
                 const { systemPrompt, userPrompt } = PromptBuilder.buildNightActionPrompt({
-                    player, gameState, actionType, validTargets: validTargets || [], context: context || {}, memory: null,
+                    player, gameState: gs, actionType, validTargets: validTargets || [], context: context || {}, memory: null,
                 });
-                const response = await llmService.call(systemPrompt, userPrompt, { maxTokens: 20, temperature: 0.5 });
+                const response = await llmService.call(systemPrompt, userPrompt, { maxTokens: 300, temperature: 0.5 });
                 const match = response.match(/-?\d+/);
                 result = { target_id: match ? parseInt(match[0]) : validTargets?.[0] };
             }
 
             return jsonResponse(res, 200, result);
         } catch (err) {
-            console.error('[AI] Generate failed:', err.message);
-            // fallback
-            const body2 = {}; // body already consumed
-            return jsonResponse(res, 200, { content: '让我想想...', fallback: true });
+            console.error('[AI] LLM generate failed, using fallback:', err.message);
+            // LLM 失败时用个性化 fallback（而非固定"让我想想"）
+            if (actionType === 'speak' || actionType === 'last_words') {
+                return jsonResponse(res, 200, { content: getFallbackPhrase(player.name, player.role, actionType), fallback: true });
+            }
+            return jsonResponse(res, 200, { target_id: validTargets?.[Math.floor(Math.random() * (validTargets?.length || 1))], fallback: true });
         }
     }
 

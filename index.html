@@ -587,6 +587,7 @@
                 SoundSystem.init();
                 VoiceSystem.init();
                 if (typeof loadAIConfig === 'function') loadAIConfig();
+                if (typeof llmAdapter !== 'undefined' && llmAdapter.init) llmAdapter.init();
                 initGame();
                 updateAchievementBadge();
 
