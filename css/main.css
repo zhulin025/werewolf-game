@@ -248,6 +248,39 @@
             }
         }
 
+        @keyframes thinking-dots {
+            0%, 20% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        .thinking-dots {
+            display: inline-flex;
+            gap: 4px;
+            margin-left: 8px;
+        }
+
+        .thinking-dots span {
+            animation: thinking-dots 1.4s infinite;
+            font-weight: bold;
+            color: var(--secondary);
+        }
+
+        .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        .voice-warning-icon {
+            font-size: 18px;
+            animation: pulse-simple 2s infinite;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        @keyframes pulse-simple {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.2); opacity: 1; }
+        }
+
         @keyframes ghostFloat {
 
             0%,

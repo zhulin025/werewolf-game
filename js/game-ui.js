@@ -235,18 +235,21 @@ function getOrCreateBubbleLayer() {
     return layer;
 }
 
-function showSpeechBubble(card, player, text, isAuto = false) {
+function showSpeechBubble(card, player, text, isAuto = false, isThinking = false) {
     hideSpeechBubble(); // Remove any existing bubble
 
     const layer = getOrCreateBubbleLayer();
     const bubble = document.createElement('div');
-    bubble.className = 'speech-bubble' + (isAuto ? ' auto-bubble' : '');
+    bubble.className = 'speech-bubble' + (isAuto ? ' auto-bubble' : '') + (isThinking ? ' thinking' : '');
     bubble.id = 'currentSpeechBubble';
     const autoLabel = isAuto ? '<div class="speech-bubble-auto">🤖 系统代发（Agent超时）</div>' : '';
+    const thinkingLabel = isThinking ? '<div class="thinking-dots"><span>.</span><span>.</span><span>.</span></div>' : '';
+    
     bubble.innerHTML = `
         <div class="speech-bubble-role">${player.icon} ${player.name}（${player.roleName}）</div>
-        <div class="speech-bubble-text">"${text}"</div>
+        <div class="speech-bubble-text">${isThinking ? '正在思考...' : `"${text}"`}</div>
         ${autoLabel}
+        ${thinkingLabel}
     `;
 
     layer.appendChild(bubble);
@@ -818,11 +821,28 @@ function hidePauseIndicator() {
 // Enhanced pause-aware sleep
 async function pausedSleep(ms) {
     if (window.isPaused) {
+        console.log('[UI] Game paused, waiting for resume...');
         await new Promise(resolve => {
             pauseResolve = resolve;
         });
+        console.log('[UI] Game resumed');
     }
     return sleep(ms);
+}
+
+/**
+ * Global resume function
+ */
+function resumeGame() {
+    if (window.isPaused) {
+        window.isPaused = false;
+        if (typeof pauseResolve === 'function') {
+            pauseResolve();
+            pauseResolve = null;
+        }
+        hidePauseIndicator();
+        console.log('[UI] resumeGame called');
+    }
 }
 
 // submitAction is defined in human-player.js (local mode) and wrapped by human-agent.js (agent mode)

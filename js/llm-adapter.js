@@ -109,7 +109,11 @@ class LLMAdapter {
             body: JSON.stringify(body),
         });
 
-        if (!resp.ok) throw new Error(`Server API ${resp.status}`);
+        if (!resp.ok) {
+            const errText = await resp.text();
+            console.error(`[LLM] Server API error: ${resp.status}`, errText);
+            throw new Error(`Server API ${resp.status}: ${errText.substring(0, 50)}`);
+        }
         const data = await resp.json();
 
         // 发言类返回 content，决策类返回玩家对象（与本地 fallback 保持一致）

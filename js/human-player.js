@@ -4,6 +4,34 @@ let humanModeEnabled = false;
 let humanActionResolve = null;
 let humanRolePreference = 'random'; // 'random' | 'good' | 'wolf'
 
+// Server configuration status
+let serverConfig = {
+    stt_configured: false,
+    llm_configured: false,
+    stt_provider: 'none'
+};
+
+/**
+ * Fetch server configuration on init
+ */
+async function fetchServerConfig() {
+    try {
+        const response = await fetch('/api/health');
+        if (response.ok) {
+            const data = await response.json();
+            serverConfig.stt_configured = data.stt_configured;
+            serverConfig.llm_configured = data.llm_configured;
+            serverConfig.stt_provider = data.stt_provider;
+            console.log('[Config] Server state:', serverConfig);
+        }
+    } catch (e) {
+        console.warn('[Config] Failed to fetch server health:', e);
+    }
+}
+
+// Initial fetch
+fetchServerConfig();
+
 function toggleHumanMode() {
     humanModeEnabled = !humanModeEnabled;
     const btn = document.getElementById('humanModeBtn');
@@ -98,6 +126,14 @@ function resolveHumanAction(value) {
     if (humanActionResolve) {
         const resolve = humanActionResolve;
         humanActionResolve = null;
+        
+        // Ensure game is not paused when resolving human action
+        if (window.isPaused) {
+            console.log('[Human] Action resolved, clearing pause state');
+            window.isPaused = false;
+            if (typeof resumeGame === 'function') resumeGame();
+        }
+        
         resolve(value);
     }
 }
@@ -303,12 +339,32 @@ function isHumanPlayer(player) {
 // ============ VOICE INPUT INTEGRATION ============
 
 function _setupVoiceButton(actionType) {
-    // 确保语音输入可用
-    if (typeof VoiceInput === 'undefined' || !VoiceInput.isSupported()) return;
-
     const speakRow = document.getElementById('actionSpeakRow');
+    if (!speakRow) return;
+
     // 避免重复添加
-    if (speakRow.querySelector('.voice-record-btn')) return;
+    if (speakRow.querySelector('.voice-record-btn') || speakRow.querySelector('.voice-warning-icon')) return;
+
+    // 检查浏览器支持情况
+    const isBrowserSupported = typeof VoiceInput !== 'undefined' && VoiceInput.isSupported();
+
+    // 如果服务端配置了 STT 但浏览器不支持（通常是由于非 HTTPS），显示警告
+    if (serverConfig.stt_configured && !isBrowserSupported) {
+        const warning = document.createElement('span');
+        warning.className = 'voice-warning-icon';
+        warning.innerHTML = '⚠️';
+        warning.title = '语音输入需要 HTTPS 环境或浏览器授权';
+        warning.style.cursor = 'help';
+        warning.style.marginRight = '8px';
+        warning.onclick = () => showToast('提示：语音录入需要 HTTPS 安全环境（或 localhost）才能启用。');
+        
+        const submitBtn = speakRow.querySelector('button[onclick="submitAction()"]') || speakRow.querySelector('button');
+        if (submitBtn) speakRow.insertBefore(warning, submitBtn);
+        return;
+    }
+
+    // 如果都不支持且没配置，直接返回
+    if (!isBrowserSupported) return;
 
     const voiceBtn = document.createElement('button');
     voiceBtn.className = 'btn voice-record-btn';

@@ -848,12 +848,25 @@ async function simulateAISpeaking() {
         // Generate speech — human or AI
         let speechText;
         if (player.isHuman && typeof showHumanSpeechInput === 'function') {
+            const startTime = Date.now();
+            console.log(`[Human] Waiting for ${player.name} to speak...`);
             showHumanSpeechInput();
             speechText = await waitForHumanAction();
+            console.log(`[Human] Speech received after ${((Date.now() - startTime) / 1000).toFixed(1)}s: ${speechText}`);
         } else {
+            // Show thinking indicator for AI
+            if (speakerCard) {
+                const bubble = showSpeechBubble(speakerCard, player, '正在思考...', false, true);
+                bubble?.classList.add('thinking');
+            }
+            
+            console.log(`[AI] ${player.name} is thinking...`);
             speechText = await generateSmartSpeech(player);
+            
+            // Remove thinking state
+            hideSpeechBubble();
         }
-        console.log('Got speech for', player.name, ':', (speechText || '').substring(0, 30));
+        console.log(`[Game] Got speech for ${player.name}: "${(speechText || '').substring(0, 50)}..."`);
 
         addLog(`💬 ${player.name}（${player.roleName}）：${speechText}`, 'speak');
         if (typeof gameAnalytics !== 'undefined') gameAnalytics.recordSpeech(gameState.day, player, speechText);
