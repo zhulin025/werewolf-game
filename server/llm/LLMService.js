@@ -88,16 +88,27 @@ class LLMService {
 
             if (!response.ok) {
                 const text = await response.text().catch(() => '');
+                console.error(`[LLM] API Error ${response.status}:`, text.slice(0, 500));
                 throw new Error(`LLM API ${response.status}: ${text.slice(0, 200)}`);
             }
 
             const data = await response.json();
             let content = data.choices?.[0]?.message?.content?.trim();
-            if (!content) throw new Error('LLM returned empty content');
+            if (!content) {
+                console.error('[LLM] API returned invalid format:', JSON.stringify(data));
+                throw new Error('LLM returned empty content');
+            }
             // 去掉思考模型的 <think>...</think> 标签，只保留正文
             content = content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
             if (!content) throw new Error('LLM returned only think tags, no actual content');
             return content;
+        } catch (err) {
+            if (err.name === 'AbortError') {
+                console.error(`[LLM] Request timed out after ${timeoutMs}ms`);
+            } else {
+                console.error(`[LLM] Request failed (${this.model}):`, err.message);
+            }
+            throw err;
         } finally {
             clearTimeout(timer);
         }

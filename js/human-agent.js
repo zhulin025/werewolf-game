@@ -480,16 +480,16 @@ function _setupVoiceButtonForAgent(requestId) {
 
     const startRec = async () => {
         if (isRecording) return;
-        isRecording = true;
-        voiceBtn.classList.add('recording');
-        voiceBtn.innerHTML = '⏹️';
-        voiceBtn.title = '点击停止录音';
-        try { await VoiceInput.startRecording(); } catch (err) {
-            showToast(err.message);
+        try { 
+            await VoiceInput.startRecording(); 
+            isRecording = true;
+            voiceBtn.classList.add('recording');
+            voiceBtn.innerHTML = '⏹️';
+            voiceBtn.title = '点击停止并识别';
+            showToast('🎙️ 录音中，说完请再次点击...');
+        } catch (err) {
+            showToast('❌ ' + err.message);
             isRecording = false;
-            voiceBtn.classList.remove('recording');
-            voiceBtn.innerHTML = '🎙️';
-            voiceBtn.title = '点击开始录音';
         }
     };
 
@@ -499,29 +499,31 @@ function _setupVoiceButtonForAgent(requestId) {
         voiceBtn.classList.remove('recording');
         voiceBtn.innerHTML = '🎙️';
         voiceBtn.title = '点击开始录音';
+        
         try {
-            showToast('正在转写语音...');
+            showToast('🔄 正在识别语音，请稍候...');
             const text = await VoiceInput.stopAndTranscribe();
-            if (text) {
-                hideActionPanel();
-                sendHumanActionResponse(requestId, { content: text });
+            if (text && text.trim()) {
+                input.value = text;
+                showToast('✅ 识别成功');
+                // 不要自动提交，让用户确认/修改
             } else {
-                showToast('未检测到语音内容，请重试');
+                showToast('❓ 未检测到语音内容，请重试');
             }
         } catch (err) {
-            showToast('语音转写失败: ' + err.message);
+            showToast('❌ 识别失败: ' + err.message);
         }
     };
 
     // 点击切换模式：点一下开始录音，再点一下停止并转写
-    voiceBtn.addEventListener('click', (e) => {
+    voiceBtn.onclick = (e) => {
         e.preventDefault();
         if (isRecording) {
             stopRec();
         } else {
             startRec();
         }
-    });
+    };
 
     const submitBtn = speakRow.querySelector('button[onclick="submitAction()"]') || speakRow.querySelector('.btn-primary');
     if (submitBtn) speakRow.insertBefore(voiceBtn, submitBtn);

@@ -322,7 +322,16 @@ const server = http.createServer(async (req, res) => {
 
     // GET /api/health — health check
     if (pathname === '/api/health') {
-        return jsonResponse(res, 200, { status: 'ok', rooms: rooms.size, uptime: process.uptime(), llm_configured: require('./llm/LLMService').isConfigured });
+        const llmService = require('./llm/LLMService');
+        const sttService = require('./stt/STTService');
+        return jsonResponse(res, 200, {
+            status: 'ok',
+            rooms: rooms.size,
+            uptime: process.uptime(),
+            llm_configured: llmService.isConfigured,
+            stt_configured: sttService.isConfigured,
+            stt_provider: sttService.provider,
+        });
     }
 
     // ---- Static Files ----

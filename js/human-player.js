@@ -319,18 +319,16 @@ function _setupVoiceButton(actionType) {
 
     const startRec = async () => {
         if (isRecording) return;
-        isRecording = true;
-        voiceBtn.classList.add('recording');
-        voiceBtn.innerHTML = '⏹️';
-        voiceBtn.title = '点击停止录音';
         try {
             await VoiceInput.startRecording();
+            isRecording = true;
+            voiceBtn.classList.add('recording');
+            voiceBtn.innerHTML = '⏹️';
+            voiceBtn.title = '点击停止录音';
+            showToast('🎙️ 录音中，完成后再次点击...');
         } catch (err) {
-            showToast(err.message);
+            showToast('❌ ' + err.message);
             isRecording = false;
-            voiceBtn.classList.remove('recording');
-            voiceBtn.innerHTML = '🎙️';
-            voiceBtn.title = '点击开始录音';
         }
     };
 
@@ -342,29 +340,29 @@ function _setupVoiceButton(actionType) {
         voiceBtn.title = '点击开始录音';
 
         try {
-            showToast('正在转写语音...');
+            showToast('🔄 正在转写语音...');
             const text = await VoiceInput.stopAndTranscribe();
-            if (text) {
+            if (text && text.trim()) {
                 const input = document.getElementById('actionInput');
                 input.value = text;
-                submitAction();
+                showToast('✅ 转写成功');
             } else {
-                showToast('未检测到语音内容，请重试');
+                showToast('未检测到有效语音');
             }
         } catch (err) {
-            showToast('语音转写失败: ' + err.message);
+            showToast('❌ 语音转写失败: ' + err.message);
         }
     };
 
     // 点击切换模式：点一下开始录音，再点一下停止并转写
-    voiceBtn.addEventListener('click', (e) => {
+    voiceBtn.onclick = (e) => {
         e.preventDefault();
         if (isRecording) {
             stopRec();
         } else {
             startRec();
         }
-    });
+    };
 
     // 插入到 submit 按钮之前
     const submitBtn = speakRow.querySelector('button[onclick="submitAction()"]') || speakRow.querySelector('button');

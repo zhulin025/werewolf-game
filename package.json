@@ -8,6 +8,8 @@
     "dev": "node server/index.js"
   },
   "dependencies": {
+    "@alicloud/pop-core": "^1.8.0",
+    "alibabacloud-nls": "^1.0.4",
     "dotenv": "^17.4.1",
     "ws": "^8.14.0"
   },
