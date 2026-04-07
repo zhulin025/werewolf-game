@@ -345,8 +345,13 @@ function _setupVoiceButton(actionType) {
     // 避免重复添加
     if (speakRow.querySelector('.voice-record-btn') || speakRow.querySelector('.voice-warning-icon')) return;
 
-    // 检查浏览器支持情况
-    const isBrowserSupported = typeof VoiceInput !== 'undefined' && VoiceInput.isSupported();
+    // 检查浏览器支持情况（try-catch 防止异常导致游戏崩溃）
+    let isBrowserSupported = false;
+    try {
+        isBrowserSupported = typeof VoiceInput !== 'undefined' && VoiceInput && typeof VoiceInput.isSupported === 'function' && VoiceInput.isSupported();
+    } catch (e) {
+        console.warn('[Voice] VoiceInput check failed:', e.message);
+    }
 
     // 如果服务端配置了 STT 但浏览器不支持（通常是由于非 HTTPS），显示警告
     if (serverConfig.stt_configured && !isBrowserSupported) {

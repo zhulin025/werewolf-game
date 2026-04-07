@@ -4,7 +4,7 @@
  * 封装浏览器录音 (MediaRecorder) 并上传至后端 STT 接口
  */
 
-class VoiceInput {
+class VoiceInputImpl {
     constructor() {
         this.mediaRecorder = null;
         this.audioChunks = [];
@@ -101,4 +101,4 @@ class VoiceInput {
 }
 
 // 单例代理
-window.VoiceInput = new VoiceInput();
+window.VoiceInput = new VoiceInputImpl();
