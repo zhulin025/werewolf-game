@@ -598,7 +598,8 @@ async function nightPhase(roleKey, roleName, actionFn) {
     // Special handling for wolf team (参战模式下只有人类是狼时才展示)
     if (roleKey === 'WOLF' || roleKey === 'WOLF_KING') {
         if (!isHumanPlaying() || humanIsWolf()) {
-            await showWolfTeamVision(player);
+            // 人类是狼时，展示狼队展示但不预先设置 wolfTarget，由人类自己选择
+            await showWolfTeamVision(player, player.isHuman);
         }
     }
 
@@ -615,12 +616,14 @@ async function nightPhase(roleKey, roleName, actionFn) {
             const actionMap = { WOLF: 'wolf_kill', WOLF_KING: 'wolf_kill', PROPHET: 'prophet_check', GUARD: 'guard_protect', HUNTER: 'hunter_shoot' };
             const actionType = actionMap[roleKey];
             if (actionType) {
+                console.log(`[Human] 轮到人类进行夜间行动: ${actionType}`);
                 showHumanNightAction(player, actionType);
                 const target = await waitForHumanAction();
+                console.log(`[Human] 夜间行动已选择:`, target);
                 if (target) {
                     if (roleKey === 'WOLF' || roleKey === 'WOLF_KING') {
                         result = target;
-                        nightActions.wolfTarget = target;
+                        nightActions.wolfTarget = target; // 以人类选择覆盖狼队讨论结果
                         addLog(`🐺 你选择了击杀 ${target.name}`, 'night');
                     } else {
                         result = await actionFn(player, target);
@@ -647,7 +650,8 @@ async function nightPhase(roleKey, roleName, actionFn) {
 }
 
 // Show wolf team their teammates
-async function showWolfTeamVision(leadingWolf) {
+// humanMode: true 表示人类是狼人，只运行展示动画，不预先设对 nightActions.wolfTarget
+async function showWolfTeamVision(leadingWolf, humanMode = false) {
     const wolves = gameState.players.filter(p => p.camp === 'wolf' && p.isAlive);
 
     // Show wolves each other's roles
@@ -656,7 +660,7 @@ async function showWolfTeamVision(leadingWolf) {
         SoundSystem.playWolfTeam();
 
         // Wolf team discussion
-        await wolfTeamDiscussion(wolves);
+        await wolfTeamDiscussion(wolves, humanMode);
     } else {
         // Only one wolf, they act alone
         addLog(`🐺 狼人独自行动...`, 'night');
@@ -666,7 +670,8 @@ async function showWolfTeamVision(leadingWolf) {
 }
 
 // Wolf team discussion during night
-async function wolfTeamDiscussion(wolves) {
+// humanMode: true 表示人类是狼人，不设置 wolfTarget（由人类自己选择）
+async function wolfTeamDiscussion(wolves, humanMode = false) {
     // Simulate wolf team discussing who to kill
     const aliveGood = gameState.players.filter(p => p.isAlive && p.camp === 'good');
     if (aliveGood.length === 0) return;
@@ -684,26 +689,30 @@ async function wolfTeamDiscussion(wolves) {
     wolfVision.className = 'wolf-team-vision';
     document.body.appendChild(wolfVision);
 
-    // Show discussion
-    const wolfLeader = wolves.find(w => w.role === 'WOLF_KING') || wolves[0];
-    addLog(`🐺 ${wolfLeader.name}建议刀${selectedTarget.name}`, 'night');
+    // Show discussion—人类是狼人时，不展示其他狼的建议（没有其他狼队友）
+    const aiWolves = wolves.filter(w => !w.isHuman);
+    if (aiWolves.length > 0) {
+        const wolfLeader = aiWolves.find(w => w.role === 'WOLF_KING') || aiWolves[0];
+        addLog(`🐺 ${wolfLeader.name}建议刀${selectedTarget.name}`, 'night');
 
-    await sleep(1000);
+        await sleep(1000);
 
-    // Other wolves agree or suggest alternative
-    for (let i = 1; i < wolves.length; i++) {
-        const wolf = wolves[i];
-        const agree = Math.random() > 0.2; // 80% agree
+        // Other AI wolves agree or suggest alternative
+        for (let i = 0; i < aiWolves.length; i++) {
+            const wolf = aiWolves[i];
+            if (wolf.id === wolfLeader.id) continue; // Skip leader
+            const agree = Math.random() > 0.2; // 80% agree
 
-        if (agree) {
-            addLog(`🐺 ${wolf.name}同意`, 'night');
-        } else {
-            const altTarget = aliveGood[Math.floor(Math.random() * aliveGood.length)];
-            addLog(`🐺 ${wolf.name}建议刀${altTarget.name}`, 'night');
-            selectedTarget = altTarget;
+            if (agree) {
+                addLog(`🐺 ${wolf.name}同意`, 'night');
+            } else {
+                const altTarget = aliveGood[Math.floor(Math.random() * aliveGood.length)];
+                addLog(`🐺 ${wolf.name}建议刀${altTarget.name}`, 'night');
+                selectedTarget = altTarget;
+            }
+
+            await sleep(600);
         }
-
-        await sleep(600);
     }
 
     // Remove wolf vision overlay
@@ -711,8 +720,10 @@ async function wolfTeamDiscussion(wolves) {
     wolfVision.style.transition = 'opacity 0.5s';
     setTimeout(() => wolfVision.remove(), 500);
 
-    // Remember the target for voting
-    nightActions.wolfTarget = selectedTarget;
+    // 人类是狼时不设置 wolfTarget，等人类自己选择
+    if (!humanMode) {
+        nightActions.wolfTarget = selectedTarget;
+    }
 }
 
 // ============ GAME MODES ============
@@ -917,30 +928,28 @@ async function simulateAISpeaking() {
 
         // Generate speech — human or AI
         let speechText;
-        try {
-            if (player.isHuman && typeof showHumanSpeechInput === 'function') {
-                const startTime = Date.now();
-                console.log(`[Human] Waiting for ${player.name} to speak...`);
-                showHumanSpeechInput();
-                speechText = await waitForHumanAction();
-                console.log(`[Human] Speech received after ${((Date.now() - startTime) / 1000).toFixed(1)}s: ${speechText}`);
-            } else {
-                // Show thinking indicator for AI
+        if (player.isHuman && typeof showHumanSpeechInput === 'function') {
+            // 人类发言：显示输入框并等待确认
+            // 注意：不能用 try/catch 包裹 waitForHumanAction，否则任何错误都会导致误判断为"跳过"
+            console.log(`[Human] 轮到 ${player.name} 发言...`);
+            showHumanSpeechInput();
+            speechText = await waitForHumanAction();
+            if (!speechText || !speechText.trim()) speechText = '过';
+            console.log(`[Human] 获得发言: ${speechText}`);
+        } else {
+            // AI 发言：显示思考动画
+            try {
                 if (speakerCard) {
-                    const bubble = showSpeechBubble(speakerCard, player, '正在思考...', false, true);
-                    bubble?.classList.add('thinking');
+                    showSpeechBubble(speakerCard, player, '正在思考...', false, true);
                 }
-
-                console.log(`[AI] ${player.name} is thinking...`);
+                console.log(`[AI] ${player.name} 思考中...`);
                 speechText = await generateSmartSpeech(player);
-
-                // Remove thinking state
+                hideSpeechBubble();
+            } catch (speechErr) {
+                console.error(`[AI] ${player.name} 发言失败:`, speechErr);
+                speechText = generateAISpeak(player); // 直接用模板库
                 hideSpeechBubble();
             }
-        } catch (speechErr) {
-            console.error(`[Game] Speech error for ${player.name}:`, speechErr);
-            speechText = '...';
-            hideSpeechBubble();
         }
         console.log(`[Game] Got speech for ${player.name}: "${(speechText || '').substring(0, 50)}..."`);
 
