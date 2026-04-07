@@ -30,6 +30,26 @@ const PLAYER_NAMES = [
     'Kimi', 'Claude', 'Claude Ops', 'GLM', 'Minimax', '小米'
 ];
 
+// ============ 人类参战时的信息过滤 ============
+// 判断当前是否有人类玩家参战（非观战）
+function isHumanPlaying() {
+    return humanModeEnabled && gameState.humanPlayerId >= 0;
+}
+
+// 判断人类玩家是否拥有指定角色
+function humanHasRole(roleKey) {
+    if (!isHumanPlaying()) return false;
+    const human = gameState.players[gameState.humanPlayerId];
+    return human && human.role === roleKey;
+}
+
+// 判断人类玩家是否属于狼人阵营
+function humanIsWolf() {
+    if (!isHumanPlaying()) return false;
+    const human = gameState.players[gameState.humanPlayerId];
+    return human && human.camp === 'wolf';
+}
+
 // ============ GAME STATE ============
 let gameState = {
     phase: 'waiting', // waiting, night, day, vote, end
@@ -98,9 +118,11 @@ function renderDeathRecords() {
             'vote': '投票出局',
             'killed': '狼人击杀',
             'hunter': '猎人带走',
-            'wolfking': '狼王带走'
+            'wolfking': '狼王带走',
+            'poisoned': '女巫毒杀'
         }[record.cause] || record.cause;
 
+        // 死者身份在人类参战时同样公开揭示（这是狼人杀的正常规则：死亡后翻牌）
         div.innerHTML = `
             <div class="main-info">
                 <span class="order">${index + 1}</span>
@@ -256,8 +278,8 @@ function startGame() {
             actionPanel.style.display = 'none';
         }
 
-        // Show role toggle + back button
-        document.getElementById('toggleRolesBtn').style.display = '';
+        // Show role toggle + back button (参战模式隐藏角色按钮防作弊)
+        document.getElementById('toggleRolesBtn').style.display = humanModeEnabled ? 'none' : '';
         document.getElementById('headerBackBtn').style.display = '';
 
         // Reset game
@@ -353,7 +375,9 @@ async function startNight() {
 
     // 1. 狼人睁眼：确认队友，共同刀1人
     await nightPhase('WOLF', '狼人', async (players) => {
-        addLog(`🐺 狼人们正在讨论今晚要刀谁...`, 'night');
+        if (!isHumanPlaying() || humanIsWolf()) {
+            addLog(`🐺 狼人们正在讨论今晚要刀谁...`, 'night');
+        }
         VoiceSystem.announce('狼人团队正在讨论击杀目标');
         await pausedSleep(2000);
 
@@ -361,17 +385,23 @@ async function startNight() {
         const target = await makeAIDecisionAsync(wolfLeader, 'wolf_kill');
         nightActions.wolfTarget = target;
         if (typeof gameAnalytics !== 'undefined') gameAnalytics.recordKeyMoment(gameState.day, 'night', 'wolf_kill', `狼人击杀 ${target.name}（${target.roleName}）`, wolfLeader);
-        addLog(`🐺 狼人决定击杀 ${target.name}（${target.roleName}）`, 'night');
-        VoiceSystem.announce(`狼人决定今晚击杀${target.roleName}`);
+        if (!isHumanPlaying() || humanIsWolf()) {
+            addLog(`🐺 狼人决定击杀 ${target.name}（${target.roleName}）`, 'night');
+            VoiceSystem.announce(`狼人决定今晚击杀${target.roleName}`);
+        }
         return target;
     });
 
     // 2. 女巫睁眼：得知被刀玩家，可解药救人或毒药毒人
     await nightPhase('WITCH', '女巫', async (player) => {
         const victim = nightActions.wolfTarget;
+        const witchIsHuman = player.isHuman;
+
         if (victim) {
-            addLog(`🧪 女巫得知 ${victim.name} 被狼人杀害`, 'night');
-            VoiceSystem.announce(`女巫得知${victim.name}被狼人杀害`);
+            if (witchIsHuman || !isHumanPlaying()) {
+                addLog(`🧪 女巫得知 ${victim.name} 被狼人杀害`, 'night');
+            }
+            VoiceSystem.announce(`女巫得知有人被狼人杀害`);
         }
         await pausedSleep(1500);
 
@@ -379,7 +409,7 @@ async function startNight() {
         const canSelfSave = isSelfKilled && gameState.day === 1;
 
         // Human witch
-        if (player.isHuman && typeof showHumanNightAction === 'function') {
+        if (witchIsHuman && typeof showHumanNightAction === 'function') {
             // Step 1: Save?
             if (victim && aiState.witchHasAntidote && (canSelfSave || !isSelfKilled)) {
                 showHumanNightAction(player, 'witch_save');
@@ -410,7 +440,7 @@ async function startNight() {
             return { action: 'none' };
         }
 
-        // AI witch
+        // AI witch — 参战模式下不泄露 AI 女巫的操作细节
         if (victim && aiState.witchHasAntidote) {
             if (canSelfSave || !isSelfKilled) {
                 const shouldHeal = await makeAIDecisionAsync(player, 'witch_heal');
@@ -418,12 +448,12 @@ async function startNight() {
                     aiState.witchHasAntidote = false;
                     nightActions.witchSaved = true;
                     if (typeof gameAnalytics !== 'undefined') gameAnalytics.recordKeyMoment(gameState.day, 'night', 'witch_save', `女巫使用解药救人`, player);
-                    addLog(`🧪 女巫使用了解药救人`, 'night');
+                    if (!isHumanPlaying()) addLog(`🧪 女巫使用了解药救人`, 'night');
                     VoiceSystem.announce('女巫使用了解药救人');
                     return { action: 'heal' };
                 }
             } else if (isSelfKilled && !canSelfSave) {
-                addLog(`🧪 女巫被刀但非首夜，不可自救`, 'night');
+                if (!isHumanPlaying()) addLog(`🧪 女巫被刀但非首夜，不可自救`, 'night');
             }
         }
 
@@ -433,13 +463,13 @@ async function startNight() {
                 aiState.witchHasPoison = false;
                 nightActions.witchPoisonTarget = poisonTarget;
                 if (typeof gameAnalytics !== 'undefined') gameAnalytics.recordKeyMoment(gameState.day, 'night', 'witch_poison', `女巫毒杀 ${poisonTarget.name}`, player);
-                addLog(`🧪 女巫使用毒药毒杀 ${poisonTarget.name}`, 'night');
+                if (!isHumanPlaying()) addLog(`🧪 女巫使用毒药毒杀 ${poisonTarget.name}`, 'night');
                 VoiceSystem.announce(`女巫使用了毒药`);
                 return { action: 'poison', target: poisonTarget };
             }
         }
 
-        addLog(`🧪 女巫选择不使用药水`, 'night');
+        if (!isHumanPlaying()) addLog(`🧪 女巫选择不使用药水`, 'night');
         VoiceSystem.announce('女巫今晚没有使用药水');
         return { action: 'none' };
     });
@@ -457,9 +487,14 @@ async function startNight() {
         };
 
         const resultText = isWolf ? '查杀' : '金水';
-        if (typeof gameAnalytics !== 'undefined') gameAnalytics.recordKeyMoment(gameState.day, 'night', 'prophet_check', `预言家查验 ${target.name} → ${resultText}`, player);
-        addLog(`🔮 预言家查验：${target.name}（${target.roleName}）→ ${resultText}`, 'night');
-        VoiceSystem.announce(`预言家查验${target.name}，${resultText}`);
+        if (typeof gameAnalytics !== 'undefined') gameAnalytics.recordKeyMoment(gameState.day, 'night', 'prophet_check', `预言家查验 ${target.name} -> ${resultText}`, player);
+        // 人类参战时，只有人类是预言家才能看到AI查验详情
+        if (!isHumanPlaying() || player.isHuman) {
+            addLog(`🔮 预言家查验：${target.name}（${target.roleName}）→ ${resultText}`, 'night');
+        } else {
+            addLog(`🔮 预言家完成了查验`, 'night');
+        }
+        VoiceSystem.announce(`预言家完成了查验`);
         return { target, isWolf };
     });
 
@@ -469,15 +504,25 @@ async function startNight() {
         nightActions.guardTarget = target;
         aiState.lastGuardTarget = target;
         const targetName = target?.name || '无';
-        addLog(`🛡️ 守卫 ${player.name} 选择了守护 ${targetName}`, 'night');
-        VoiceSystem.announce(`守卫选择了守护${targetName}`);
+        // 人类参战时，只有人类是守卫才能看到守护目标
+        if (!isHumanPlaying() || player.isHuman) {
+            addLog(`🛡️ 守卫 ${player.name} 选择了守护 ${targetName}`, 'night');
+        } else {
+            addLog(`🛡️ 守卫完成了守护`, 'night');
+        }
+        VoiceSystem.announce(`守卫完成了守护`);
         return target;
     });
 
     // 5. 猎人：仅首夜睁眼确认身份
     if (gameState.day === 1) {
         await nightPhase('HUNTER', '猎人', async (player) => {
-            addLog(`🏹 猎人 ${player.name} 确认了自己的身份`, 'night');
+            // 人类参战时，只有人类是猎人才能看到猎人身份确认
+            if (!isHumanPlaying() || player.isHuman) {
+                addLog(`🏹 猎人 ${player.name} 确认了自己的身份`, 'night');
+            } else {
+                addLog(`🏹 猎人确认了身份`, 'night');
+            }
             VoiceSystem.announce('猎人确认身份');
             return null;
         });
@@ -504,19 +549,32 @@ async function nightPhase(roleKey, roleName, actionFn) {
     // Play role-specific sound
     SoundSystem.play(roleKey.toLowerCase());
 
+    // 判断当前行动角色是否是人类玩家自己
+    const isHumanActing = player.isHuman;
+    const shouldHideDetails = isHumanPlaying() && !isHumanActing;
+
     // Show night action indicator
     const indicator = document.createElement('div');
     indicator.className = 'night-action-indicator';
-    indicator.innerHTML = `
-        <div class="night-action-icon">${player.icon}</div>
-        <div class="night-action-text">${player.name}（${player.roleName}）请睁眼</div>
-        <div class="night-action-hint">AI正在决策...</div>
-    `;
+    if (shouldHideDetails) {
+        // 参战模式下，非人类角色行动不显示具体玩家
+        indicator.innerHTML = `
+            <div class="night-action-icon">${ROLES[roleKey]?.icon || '🌙'}</div>
+            <div class="night-action-text">${roleName}请睁眼</div>
+            <div class="night-action-hint">正在行动...</div>
+        `;
+    } else {
+        indicator.innerHTML = `
+            <div class="night-action-icon">${player.icon}</div>
+            <div class="night-action-text">${player.name}（${player.roleName}）请睁眼</div>
+            <div class="night-action-hint">${isHumanActing ? '等待你的决策...' : 'AI正在决策...'}</div>
+        `;
+    }
     document.body.appendChild(indicator);
 
-    // Highlight the acting player
+    // Highlight the acting player (参战模式下不高亮非人类角色，防止暴露身份)
     const playerCard = document.getElementById(`player-${player.id}`);
-    if (playerCard) {
+    if (playerCard && !shouldHideDetails) {
         playerCard.classList.add('night-acting');
     }
 
@@ -529,13 +587,19 @@ async function nightPhase(roleKey, roleName, actionFn) {
         'HUNTER': `猎人请睁眼，确认身份`
     };
     if (openEyeMessages[roleKey]) {
-        addLog(`👁️ ${player.name}请睁眼`, 'night');
+        if (shouldHideDetails) {
+            addLog(`👁️ ${roleName}请睁眼`, 'night');
+        } else {
+            addLog(`👁️ ${player.name}请睁眼`, 'night');
+        }
         VoiceSystem.announce(openEyeMessages[roleKey]);
     }
 
-    // Special handling for wolf team
+    // Special handling for wolf team (参战模式下只有人类是狼时才展示)
     if (roleKey === 'WOLF' || roleKey === 'WOLF_KING') {
-        await showWolfTeamVision(player);
+        if (!isHumanPlaying() || humanIsWolf()) {
+            await showWolfTeamVision(player);
+        }
     }
 
     await pausedSleep(2000);
@@ -712,13 +776,15 @@ async function resolveNightDeaths() {
         // 女巫解药救人
         if (nightActions.witchSaved) {
             wolfKillSaved = true;
-            addLog(`🧪 女巫使用解药，${wolfTarget.name} 被救活`, 'night');
+            addLog(`🧪 女巫使用了解药`, 'night');
         }
 
         // 守卫守护
         if (!wolfKillSaved && nightActions.guardTarget && nightActions.guardTarget.id === wolfTarget.id) {
             wolfKillSaved = true;
-            addLog(`🛡️ 守卫守护成功，${wolfTarget.name} 安全`, 'night');
+            if (!isHumanPlaying()) {
+                addLog(`🛡️ 守卫守护成功，${wolfTarget.name} 安全`, 'night');
+            }
         }
 
         if (!wolfKillSaved) {
@@ -806,7 +872,11 @@ async function startDay() {
     const aliveGood = alivePlayers.filter(p => p.camp === 'good').length;
     const aliveWolf = alivePlayers.filter(p => p.camp === 'wolf').length;
 
-    addLog(`📊 存活统计：好人 ${aliveGood}人 | 狼人 ${aliveWolf}人`, 'system');
+    if (!isHumanPlaying()) {
+        addLog(`📊 存活统计：好人 ${aliveGood}人 | 狼人 ${aliveWolf}人`, 'system');
+    } else {
+        addLog(`📊 存活人数：${alivePlayers.length}人`, 'system');
+    }
 
     // Show day announcement
     const human = gameState.players[gameState.humanPlayerId];
@@ -847,28 +917,38 @@ async function simulateAISpeaking() {
 
         // Generate speech — human or AI
         let speechText;
-        if (player.isHuman && typeof showHumanSpeechInput === 'function') {
-            const startTime = Date.now();
-            console.log(`[Human] Waiting for ${player.name} to speak...`);
-            showHumanSpeechInput();
-            speechText = await waitForHumanAction();
-            console.log(`[Human] Speech received after ${((Date.now() - startTime) / 1000).toFixed(1)}s: ${speechText}`);
-        } else {
-            // Show thinking indicator for AI
-            if (speakerCard) {
-                const bubble = showSpeechBubble(speakerCard, player, '正在思考...', false, true);
-                bubble?.classList.add('thinking');
+        try {
+            if (player.isHuman && typeof showHumanSpeechInput === 'function') {
+                const startTime = Date.now();
+                console.log(`[Human] Waiting for ${player.name} to speak...`);
+                showHumanSpeechInput();
+                speechText = await waitForHumanAction();
+                console.log(`[Human] Speech received after ${((Date.now() - startTime) / 1000).toFixed(1)}s: ${speechText}`);
+            } else {
+                // Show thinking indicator for AI
+                if (speakerCard) {
+                    const bubble = showSpeechBubble(speakerCard, player, '正在思考...', false, true);
+                    bubble?.classList.add('thinking');
+                }
+
+                console.log(`[AI] ${player.name} is thinking...`);
+                speechText = await generateSmartSpeech(player);
+
+                // Remove thinking state
+                hideSpeechBubble();
             }
-            
-            console.log(`[AI] ${player.name} is thinking...`);
-            speechText = await generateSmartSpeech(player);
-            
-            // Remove thinking state
+        } catch (speechErr) {
+            console.error(`[Game] Speech error for ${player.name}:`, speechErr);
+            speechText = '...';
             hideSpeechBubble();
         }
         console.log(`[Game] Got speech for ${player.name}: "${(speechText || '').substring(0, 50)}..."`);
 
-        addLog(`💬 ${player.name}（${player.roleName}）：${speechText}`, 'speak');
+        // 人类参战时隐藏其他玩家的角色（防止推身份作弊），自己发言显示完整信息
+        const speakerLabel = isHumanPlaying() && !player.isHuman
+            ? player.name
+            : `${player.name}（${player.roleName}）`;
+        addLog(`💬 ${speakerLabel}：${speechText}`, 'speak');
         if (typeof gameAnalytics !== 'undefined') gameAnalytics.recordSpeech(gameState.day, player, speechText);
         SoundSystem.play('speak');
 

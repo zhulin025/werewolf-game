@@ -129,15 +129,30 @@ function updateGameStats() {
     const aliveWolf = alivePlayers.filter(p => p.camp === 'wolf').length;
     const deadCount = gameState.players.filter(p => !p.isAlive).length;
 
+    // 人类参战时判断：不能暴露好人/狼人分阵营人数（等于作弊）
+    const humanPlayerForStats = (typeof humanModeEnabled !== 'undefined' && humanModeEnabled && gameState.humanPlayerId >= 0)
+        ? gameState.players[gameState.humanPlayerId] : null;
+
     const dayEl = document.getElementById('statDay');
     const goodEl = document.getElementById('statAliveGood');
     const wolfEl = document.getElementById('statAliveWolf');
     const deadEl = document.getElementById('statDeaths');
+    const aliveEl = document.getElementById('statAlive');
 
     if (dayEl) dayEl.textContent = gameState.day;
-    if (goodEl) goodEl.textContent = aliveGood;
-    if (wolfEl) wolfEl.textContent = aliveWolf;
     if (deadEl) deadEl.textContent = deadCount;
+
+    if (humanPlayerForStats && humanPlayerForStats.isAlive) {
+        // 人类参战中：只显示总存活数，隐藏好人/狼人明细
+        if (goodEl) goodEl.textContent = '?';
+        if (wolfEl) wolfEl.textContent = '?';
+        if (aliveEl) aliveEl.textContent = alivePlayers.length;
+    } else {
+        // 观战/游戏结束/人类已死：显示完整信息
+        if (goodEl) goodEl.textContent = aliveGood;
+        if (wolfEl) wolfEl.textContent = aliveWolf;
+        if (aliveEl) aliveEl.textContent = alivePlayers.length;
+    }
 
     // Update center round display
     const centerRound = document.getElementById('centerRound');
