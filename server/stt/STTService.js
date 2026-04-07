@@ -50,11 +50,11 @@ class AliyunTokenManager {
 
 class STTService {
     constructor() {
-        this.provider = process.env.STT_PROVIDER || ''; // 必须显式设置 aliyun 或 openai
+        this.provider = process.env.STT_PROVIDER || 'openai'; // 'openai' or 'aliyun'
         
         // OpenAI / MiniMax 配置
-        this.apiKey = process.env.STT_API_KEY || ''; // 不再默认共用 LLM_API_KEY，避免误判
-        this.baseUrl = (process.env.STT_BASE_URL || 'https://api.minimaxi.com/v1').replace(/\/$/, '');
+        this.apiKey = process.env.STT_API_KEY || process.env.LLM_API_KEY || '';
+        this.baseUrl = (process.env.STT_BASE_URL || process.env.LLM_BASE_URL || 'https://api.minimaxi.com/v1').replace(/\/$/, '');
         this.model = process.env.STT_MODEL || 'whisper-1';
         
         // Aliyun 配置
@@ -67,8 +67,6 @@ class STTService {
     }
 
     get isConfigured() {
-        if (!this.provider) return false;
-
         if (this.provider === 'aliyun') {
             const hasId = !!process.env.ALIYUN_ACCESS_KEY_ID;
             const hasSecret = !!process.env.ALIYUN_ACCESS_KEY_SECRET;
@@ -78,9 +76,8 @@ class STTService {
             }
             return hasId && hasSecret && hasApp;
         }
-        
         const hasKey = !!this.apiKey;
-        if (!hasKey) console.warn(`[STT] ${this.provider} API Key missing`);
+        if (!hasKey) console.warn('[STT] OpenAI/MiniMax API Key missing');
         return hasKey;
     }
 
