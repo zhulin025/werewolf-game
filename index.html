@@ -9,11 +9,50 @@
         href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@400;500;600&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/game3d.css">
+    <script type="importmap">
+    {
+      "imports": {
+        "three":            "https://cdn.jsdelivr.net/npm/three@0.169/build/three.module.js",
+        "three/addons/":    "https://cdn.jsdelivr.net/npm/three@0.169/examples/jsm/"
+      }
+    }
+    </script>
 </head>
 
 <body>
     <!-- Stars Background -->
     <div class="stars" id="stars"></div>
+
+    <!-- 3D Canvas (hidden in 2D mode) -->
+    <canvas id="canvas3d"></canvas>
+
+    <!-- 3D Nameplate / SpeechBubble Layer -->
+    <div id="nameplate-layer"></div>
+
+    <!-- 3D Stats Overlay (bottom-left) -->
+    <div class="stats-overlay-3d" id="statsOverlay3d">
+        <div class="s3-row">
+            <span class="s3-icon">☀️</span>
+            <span class="s3-label">天数</span>
+            <span class="s3-val" id="s3Day">0</span>
+        </div>
+        <div class="s3-row">
+            <span class="s3-icon">👥</span>
+            <span class="s3-label">存活好人</span>
+            <span class="s3-val" id="s3Good">0</span>
+        </div>
+        <div class="s3-row">
+            <span class="s3-icon">🐺</span>
+            <span class="s3-label">存活狼人</span>
+            <span class="s3-val" id="s3Wolf">0</span>
+        </div>
+        <div class="s3-row">
+            <span class="s3-icon">💀</span>
+            <span class="s3-label">死亡</span>
+            <span class="s3-val" id="s3Dead">0</span>
+        </div>
+    </div>
 
     <!-- Spectator Badge -->
     <div class="spectator-badge" id="spectatorBadge">
@@ -28,6 +67,21 @@
             <span>AI狼人杀</span>
         </div>
         <p class="start-subtitle">AI玩家与人类玩家同台博弈</p>
+
+        <!-- 画面风格选择 -->
+        <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 10px;">选择画面风格</div>
+        <div class="view-style-selector" id="viewStyleSelector">
+            <div class="view-style-btn active" id="styleBtn2d" onclick="selectViewStyle('2d', this)">
+                <span class="style-icon">🎴</span>
+                <span class="style-name">2D 经典</span>
+                <span class="style-desc">原版界面</span>
+            </div>
+            <div class="view-style-btn" id="styleBtn3d" onclick="selectViewStyle('3d', this)">
+                <span class="style-icon">🌐</span>
+                <span class="style-name">3D 沉浸</span>
+                <span class="style-desc">写实场景</span>
+            </div>
+        </div>
 
         <button class="btn btn-primary start-btn" onclick="startGame()" id="quickStartBtn" style="margin-bottom: 8px;">
             ⚡ 本地模拟（观战）
@@ -599,6 +653,7 @@
     <script src="js/human-agent.js"></script>
     <script src="js/llm-adapter.js"></script>
     <script src="js/analysis.js"></script>
+    <script type="module" src="js/game3d.js"></script>
     <script>
         // ============ GLOBAL ERROR HANDLER ============
         window.onerror = function (message, source, lineno, colno, error) {
@@ -611,6 +666,25 @@
         };
 
         // ============ INIT ============
+        // ============ VIEW STYLE (2D / 3D) ============
+        window.gameStyle = localStorage.getItem('gameStyle') || '2d';
+
+        function selectViewStyle(style, btn) {
+            window.gameStyle = style;
+            localStorage.setItem('gameStyle', style);
+            document.querySelectorAll('.view-style-btn').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+
+            if (style === '3d') {
+                document.body.classList.add('mode-3d');
+                if (window.Scene3D && !window.Scene3D.initialized) {
+                    window.Scene3D.init();
+                }
+            } else {
+                document.body.classList.remove('mode-3d');
+            }
+        }
+
         window.onload = function () {
             try {
                 initStars();
@@ -620,6 +694,14 @@
                 if (typeof llmAdapter !== 'undefined' && llmAdapter.init) llmAdapter.init();
                 initGame();
                 updateAchievementBadge();
+
+                // Restore view style preference
+                if (window.gameStyle === '3d') {
+                    selectViewStyle('3d', document.getElementById('styleBtn3d'));
+                } else {
+                    document.getElementById('styleBtn2d')?.classList.add('active');
+                    document.getElementById('styleBtn3d')?.classList.remove('active');
+                }
 
                 // Auto-spectate if URL contains ?spectate=roomId
                 const urlParams = new URLSearchParams(window.location.search);

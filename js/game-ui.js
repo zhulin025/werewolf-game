@@ -1,3 +1,31 @@
+// ============ 3D BRIDGE HELPER ============
+const is3D = () => window.gameStyle === '3d' && window.Scene3D && window.Scene3D.initialized;
+
+// Sync 3D stats overlay
+function sync3DStats() {
+    if (!is3D()) return;
+    const alivePlayers = gameState.players.filter(p => p.isAlive);
+    const aliveGood = alivePlayers.filter(p => p.camp === 'good').length;
+    const aliveWolf = alivePlayers.filter(p => p.camp === 'wolf').length;
+    const dead = gameState.players.filter(p => !p.isAlive).length;
+    const hp = (typeof humanModeEnabled !== 'undefined' && humanModeEnabled && gameState.humanPlayerId >= 0)
+        ? gameState.players[gameState.humanPlayerId] : null;
+
+    const s3d = document.getElementById('s3Day');
+    const s3g = document.getElementById('s3Good');
+    const s3w = document.getElementById('s3Wolf');
+    const s3x = document.getElementById('s3Dead');
+    if (s3d) s3d.textContent = gameState.day;
+    if (s3x) s3x.textContent = dead;
+    if (hp && hp.isAlive) {
+        if (s3g) s3g.textContent = '?';
+        if (s3w) s3w.textContent = '?';
+    } else {
+        if (s3g) s3g.textContent = aliveGood;
+        if (s3w) s3w.textContent = aliveWolf;
+    }
+}
+
 // ============ RENDERING ============
 function renderPlayers() {
     const ring = document.getElementById('playersRing');
@@ -96,6 +124,13 @@ function renderPlayers() {
 
         ring.appendChild(card);
     });
+
+    // 3D scene sync
+    if (is3D()) {
+        window._g3dShowRoles = showRoles; // 让 game3d.js（module）能读到
+        window.Scene3D.updateAllPlayers(gameState.players);
+        sync3DStats();
+    }
 }
 
 function updatePhaseDisplay() {
@@ -121,6 +156,12 @@ function updatePhaseDisplay() {
     }
 
     updateGameStats();
+
+    // 3D 场景日夜同步（phase 变化后立即对齐，无需等动画）
+    if (is3D()) {
+        if (gameState.phase === 'night') window.Scene3D.setNightInstant?.();
+        else if (gameState.phase === 'day' || gameState.phase === 'vote') window.Scene3D.setDayInstant?.();
+    }
 }
 
 function updateGameStats() {
@@ -153,6 +194,8 @@ function updateGameStats() {
         if (wolfEl) wolfEl.textContent = aliveWolf;
         if (aliveEl) aliveEl.textContent = alivePlayers.length;
     }
+
+    sync3DStats();
 
     // Update center round display
     const centerRound = document.getElementById('centerRound');
@@ -251,6 +294,10 @@ function getOrCreateBubbleLayer() {
 }
 
 function showSpeechBubble(card, player, text, isAuto = false, isThinking = false) {
+    if (is3D()) {
+        window.Scene3D.showSpeechBubble(player, text, isThinking);
+        return;
+    }
     hideSpeechBubble(); // Remove any existing bubble
 
     const layer = getOrCreateBubbleLayer();
@@ -302,6 +349,10 @@ function showSpeechBubble(card, player, text, isAuto = false, isThinking = false
 }
 
 function hideSpeechBubble() {
+    if (is3D()) {
+        window.Scene3D.hideSpeechBubble();
+        return;
+    }
     if (currentSpeechBubble) {
         currentSpeechBubble.remove();
         currentSpeechBubble = null;
@@ -309,9 +360,8 @@ function hideSpeechBubble() {
 }
 
 // ============ NIGHT ANIMATION ============
-
-// ============ NIGHT ANIMATION ============
 function playNightAnimation() {
+    if (is3D()) return window.Scene3D.playNightTransition();
     return new Promise(resolve => {
         // Dim all player cards with animation
         document.querySelectorAll('.player-card').forEach((card, i) => {
@@ -386,6 +436,7 @@ function playNightAnimation() {
 }
 
 function playDayAnimation() {
+    if (is3D()) return window.Scene3D.playDayTransition();
     return new Promise(resolve => {
         const overlay = document.createElement('div');
         overlay.id = 'day-overlay';
@@ -512,20 +563,21 @@ function onPlayerClick(player) {
     if (!player) return;
 
     if (!player.isAlive) {
-        // Show death particles
-        createDeathParticles(player);
+        if (!is3D()) createDeathParticles(player);
         return;
     }
 
     // Highlight selected player
     try {
-        document.querySelectorAll('.player-card').forEach(card => {
-            card.classList.remove('selected');
-        });
-        const card = document.getElementById(`player-${player.id}`);
-        if (card) {
-            card.classList.add('selected');
-            createClickParticles(card);
+        if (!is3D()) {
+            document.querySelectorAll('.player-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            const card = document.getElementById(`player-${player.id}`);
+            if (card) {
+                card.classList.add('selected');
+                createClickParticles(card);
+            }
         }
     } catch (e) {
         console.error('Player click error:', e);
@@ -614,6 +666,12 @@ function showPhaseAnnouncement(text, color = 'white', duration = 2000) {
 
 // Draw voting line animation - enhanced
 function drawVoteLine(fromCard, toPlayerId) {
+    if (is3D()) {
+        // fromCard.id is "player-N"
+        const fromId = fromCard?.id ? parseInt(fromCard.id.replace('player-', '')) : null;
+        if (fromId !== null && !isNaN(fromId)) window.Scene3D.showVoteEffect(fromId, toPlayerId);
+        return;
+    }
     const toCard = document.getElementById(`player-${toPlayerId}`);
     if (!toCard) return;
 
@@ -731,6 +789,10 @@ function drawDeathEffect(playerId) {
 
 // Show death animation with dramatic effect
 function showDeathAnimation(playerId, callback) {
+    if (is3D()) {
+        window.Scene3D.showDeathEffect(playerId, callback);
+        return;
+    }
     const card = document.getElementById(`player-${playerId}`);
     if (!card) {
         if (callback) callback();
