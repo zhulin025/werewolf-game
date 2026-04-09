@@ -320,6 +320,14 @@ function _buildArena() {
     S.moonMesh.position.set(10, 38, -32);
     S.scene.add(S.moonMesh);
 
+    // Sun
+    S.sunMesh = new THREE.Mesh(
+        new THREE.SphereGeometry(3.5, 32, 16),
+        new THREE.MeshBasicMaterial({ color: 0xffffff })
+    );
+    S.sunMesh.position.set(-10, 38, 32); 
+    S.scene.add(S.sunMesh);
+
     // Stars
     const starCount = 600;
     const starPos = new Float32Array(starCount * 3);
@@ -409,26 +417,10 @@ function _buildDustParticles() {
 // PLAYER AVATARS
 // ============================================================
 const SEAT_RADIUS = 3.85;
-const OUTFIT_COLORS = [
-    0x4a3a8a, 0x8a2a2a, 0x2a6a3a, 0x7a5a18,
-    0x2a4a7a, 0x6a2a6a, 0x3a6020, 0x8a3a18,
-    0x1a3a6a, 0x5a1a5a, 0x5a4a10, 0x1a5a5a,
-];
-const SKIN_COLORS  = [0xfcd5b0, 0xf0be8a, 0xdda06a, 0xcb8848];
-const HAIR_COLORS  = [0x120600, 0x221000, 0x7a5c10, 0x301808, 0x080808, 0x505050];
 
-function _createHuman(player) {
+function _createAnimal(player, index) {
     const group = new THREE.Group();
-    const sc = SKIN_COLORS[player.id % SKIN_COLORS.length];
-    const oc = OUTFIT_COLORS[player.id % OUTFIT_COLORS.length];
-    const hc = HAIR_COLORS[player.id % HAIR_COLORS.length];
-
-    const skinM = new THREE.MeshStandardMaterial({ color: sc, roughness: 0.55, metalness: 0 });
-    const outfM = new THREE.MeshStandardMaterial({ color: oc, roughness: 0.85, metalness: 0 });
-    const hairM = new THREE.MeshStandardMaterial({ color: hc, roughness: 0.92, metalness: 0 });
-    const eyeM  = new THREE.MeshStandardMaterial({ color: 0x111111 });
-    const whtM  = new THREE.MeshStandardMaterial({ color: 0xffffff });
-
+    
     const add = (geo, mat, px, py, pz, rx = 0, ry = 0, rz = 0, sx = 1, sy = 1, sz = 1) => {
         const m = new THREE.Mesh(geo, mat);
         m.position.set(px, py, pz);
@@ -439,40 +431,79 @@ function _createHuman(player) {
         return m;
     };
 
+    const getMat = (color) => new THREE.MeshStandardMaterial({ color, roughness: 0.8, metalness: 0 });
+    const whtMat = getMat(0xffffff);
+    const blkMat = getMat(0x111111);
+    const eyeMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+
+    const animalType = index % 12;
+    // 0:Cat, 1:Dog, 2:Rabbit, 3:Panda, 4:Fox, 5:Bear, 6:Pig, 7:Koala, 8:Frog, 9:Chicken, 10:Penguin, 11:Cow
+    const colors = [
+        0xff9900, 0x8b4513, 0xffffff, 0xffffff, 0xff4500, 0xa0522d, 
+        0xffb6c1, 0x808080, 0x32cd32, 0xffff00, 0x222222, 0xffffff
+    ];
+    
+    const mat = getMat(colors[animalType]);
+    const bodyMat = (animalType === 3 || animalType === 10 || animalType === 11) ? whtMat : mat;
+
     // Head
-    add(new THREE.SphereGeometry(0.205, 22, 16), skinM, 0, 1.53, 0);
-    // Hair cap
-    add(new THREE.SphereGeometry(0.218, 22, 10, 0, Math.PI * 2, 0, Math.PI * 0.52), hairM, 0, 1.565, -0.01);
-    // Eye whites
-    add(new THREE.SphereGeometry(0.040, 8, 8), whtM, -0.077, 1.535, 0.168);
-    add(new THREE.SphereGeometry(0.040, 8, 8), whtM,  0.077, 1.535, 0.168);
-    // Pupils
-    add(new THREE.SphereGeometry(0.028, 8, 8), eyeM, -0.077, 1.534, 0.178);
-    add(new THREE.SphereGeometry(0.028, 8, 8), eyeM,  0.077, 1.534, 0.178);
-    // Nose
-    const noseC = new THREE.Color(sc); noseC.offsetHSL(0, -0.1, -0.1);
-    add(new THREE.SphereGeometry(0.022, 6, 6), new THREE.MeshStandardMaterial({ color: noseC, roughness: 0.6 }), 0, 1.505, 0.192);
-    // Neck
-    add(new THREE.CylinderGeometry(0.075, 0.09, 0.17, 10), skinM, 0, 1.34, 0);
-    // Collar
-    const colC = new THREE.Color(oc); colC.offsetHSL(0, 0, -0.12);
-    add(new THREE.CylinderGeometry(0.13, 0.15, 0.09, 10), new THREE.MeshStandardMaterial({ color: colC, roughness: 0.9 }), 0, 1.235, 0);
-    // Torso
-    add(new THREE.BoxGeometry(0.40, 0.44, 0.24), outfM, 0, 0.99, 0);
-    // Shoulders
-    add(new THREE.SphereGeometry(0.125, 10, 8), outfM, -0.235, 1.18, 0, 0, 0, 0, 1, 0.8, 0.8);
-    add(new THREE.SphereGeometry(0.125, 10, 8), outfM,  0.235, 1.18, 0, 0, 0, 0, 1, 0.8, 0.8);
-    // Upper arms
-    add(new THREE.CylinderGeometry(0.072, 0.065, 0.33, 10), outfM, -0.29, 1.02, 0.04, -0.28, 0,  Math.PI / 7.5);
-    add(new THREE.CylinderGeometry(0.072, 0.065, 0.33, 10), outfM,  0.29, 1.02, 0.04, -0.28, 0, -Math.PI / 7.5);
-    // Forearms (resting on table)
-    add(new THREE.CylinderGeometry(0.065, 0.058, 0.34, 10), skinM, -0.22, 0.855, 0.28, -Math.PI / 2.2, 0, 0.14);
-    add(new THREE.CylinderGeometry(0.065, 0.058, 0.34, 10), skinM,  0.22, 0.855, 0.28, -Math.PI / 2.2, 0, -0.14);
+    add(new THREE.SphereGeometry(0.3, 24, 16), mat, 0, 1.45, 0);
+    // Body
+    add(new THREE.CylinderGeometry(0.18, 0.22, 0.45, 16), bodyMat, 0, 1.05, 0);
+    
     // Hands
-    add(new THREE.SphereGeometry(0.072, 8, 8), skinM, -0.20, 0.825, 0.49, 0, 0, 0, 1.1, 0.72, 1.35);
-    add(new THREE.SphereGeometry(0.072, 8, 8), skinM,  0.20, 0.825, 0.49, 0, 0, 0, 1.1, 0.72, 1.35);
-    // Lap
-    add(new THREE.BoxGeometry(0.40, 0.15, 0.44), outfM, 0, 0.72, 0.13);
+    add(new THREE.SphereGeometry(0.08, 12, 12), mat, -0.22, 0.9, 0.2, 0, 0, 0, 1, 1, 1.2);
+    add(new THREE.SphereGeometry(0.08, 12, 12), mat,  0.22, 0.9, 0.2, 0, 0, 0, 1, 1, 1.2);
+
+    // Eyes
+    add(new THREE.SphereGeometry(0.05, 12, 12), whtMat, -0.1, 1.5, 0.26);
+    add(new THREE.SphereGeometry(0.05, 12, 12), whtMat,  0.1, 1.5, 0.26);
+    add(new THREE.SphereGeometry(0.025, 12, 12), eyeMat, -0.1, 1.5, 0.30);
+    add(new THREE.SphereGeometry(0.025, 12, 12), eyeMat,  0.1, 1.5, 0.30);
+
+    // Specific features
+    if (animalType === 0) { // Cat ears
+        add(new THREE.ConeGeometry(0.08, 0.2, 8), mat, -0.15, 1.7, 0, 0, 0, 0.3);
+        add(new THREE.ConeGeometry(0.08, 0.2, 8), mat,  0.15, 1.7, 0, 0, 0, -0.3);
+    } else if (animalType === 1) { // Dog ears / snout
+        add(new THREE.BoxGeometry(0.1, 0.25, 0.05), mat, -0.2, 1.55, 0.1, 0, 0, 0.2);
+        add(new THREE.BoxGeometry(0.1, 0.25, 0.05), mat,  0.2, 1.55, 0.1, 0, 0, -0.2);
+        add(new THREE.SphereGeometry(0.08, 12, 12), whtMat, 0, 1.4, 0.3);
+        add(new THREE.SphereGeometry(0.03, 8, 8), blkMat, 0, 1.42, 0.38);
+    } else if (animalType === 2) { // Rabbit
+        add(new THREE.CapsuleGeometry(0.06, 0.25, 8, 8), mat, -0.1, 1.75, 0);
+        add(new THREE.CapsuleGeometry(0.06, 0.25, 8, 8), mat,  0.1, 1.75, 0);
+    } else if (animalType === 3) { // Panda
+        add(new THREE.SphereGeometry(0.08, 12, 12), blkMat, -0.2, 1.65, 0);
+        add(new THREE.SphereGeometry(0.08, 12, 12), blkMat,  0.2, 1.65, 0);
+        add(new THREE.SphereGeometry(0.07, 12, 12), blkMat, -0.1, 1.5, 0.25); // eye patch
+        add(new THREE.SphereGeometry(0.07, 12, 12), blkMat,  0.1, 1.5, 0.25);
+    } else if (animalType === 4) { // Fox
+        add(new THREE.ConeGeometry(0.1, 0.25, 8), mat, -0.18, 1.7, 0, 0, 0, 0.2);
+        add(new THREE.ConeGeometry(0.1, 0.25, 8), mat,  0.18, 1.7, 0, 0, 0, -0.2);
+        add(new THREE.ConeGeometry(0.08, 0.15, 8), whtMat, 0, 1.4, 0.33, Math.PI/2);
+    } else if (animalType === 5 || animalType === 7) { // Bear / Koala
+        add(new THREE.SphereGeometry(0.1, 12, 12), mat, -0.25, 1.65, 0);
+        add(new THREE.SphereGeometry(0.1, 12, 12), mat,  0.25, 1.65, 0);
+        add(new THREE.SphereGeometry(0.05, 8, 8), blkMat, 0, 1.42, 0.32);
+    } else if (animalType === 6) { // Pig
+        add(new THREE.CylinderGeometry(0.06, 0.06, 0.05, 12), getMat(0xff69b4), 0, 1.4, 0.32, Math.PI/2);
+        add(new THREE.ConeGeometry(0.08, 0.15, 8), mat, -0.15, 1.65, 0);
+        add(new THREE.ConeGeometry(0.08, 0.15, 8), mat,  0.15, 1.65, 0);
+    } else if (animalType === 8) { // Frog
+        add(new THREE.SphereGeometry(0.08, 12, 12), mat, -0.12, 1.65, 0.15);
+        add(new THREE.SphereGeometry(0.08, 12, 12), mat,  0.12, 1.65, 0.15);
+    } else if (animalType === 9) { // Chicken
+        add(new THREE.ConeGeometry(0.05, 0.15, 8), getMat(0xff8c00), 0, 1.4, 0.33, Math.PI/2);
+        add(new THREE.BoxGeometry(0.05, 0.1, 0.05), getMat(0xff0000), 0, 1.7, 0);
+    } else if (animalType === 10) { // Penguin
+        add(new THREE.ConeGeometry(0.05, 0.15, 8), getMat(0xff8c00), 0, 1.4, 0.33, Math.PI/2);
+    } else if (animalType === 11) { // Cow
+        add(new THREE.CylinderGeometry(0.03, 0.03, 0.15, 8), getMat(0xdddddd), -0.15, 1.65, 0, 0, 0, 0.2);
+        add(new THREE.CylinderGeometry(0.03, 0.03, 0.15, 8), getMat(0xdddddd),  0.15, 1.65, 0, 0, 0, -0.2);
+        add(new THREE.BoxGeometry(0.12, 0.12, 0.02), blkMat, 0.1, 1.3, 0.28); // spots
+        add(new THREE.BoxGeometry(0.15, 0.15, 0.02), blkMat, -0.1, 1.1, 0.2);
+    }
 
     group.rotation.x = 0.04;
     return group;
@@ -503,7 +534,7 @@ function _initPlayers(players) {
         const x = SEAT_RADIUS * Math.cos(angle);
         const z = SEAT_RADIUS * Math.sin(angle);
 
-        const group = _createHuman(player);
+        const group = _createAnimal(player, index);
         group.position.set(x, 0, z);
         group.rotation.y = Math.PI / 2 - angle;
         group.traverse(c => { if (c.isMesh) c.userData.playerId = player.id; });
@@ -672,16 +703,19 @@ function _setSelectGlow(id, on) {
 function _nightTransition() {
     return new Promise(resolve => {
         S.isNight = true;
-        addTween(S.ambientLight, { intensity: 0.3  }, 2.2);
-        addTween(S.mainLight,    { intensity: 0.4  }, 2.2);
-        addTween(S.scene.fog,    { density: 0.048 }, 2.2);
-        addTween(S.bloomPass,    { strength: 0.75 }, 2.2);
-        S.mainLight.color.setHex(0x2233bb);
-        S.ambientLight.color.setHex(0x1a1030);
+        addTween(S.ambientLight, { intensity: 2.2  }, 2.2); // raised from 0.3 to 2.2
+        addTween(S.mainLight,    { intensity: 1.8  }, 2.2); // raised from 0.4 to 1.8
+        addTween(S.scene.fog,    { density: 0.012 }, 2.2);  // cleared up matching day
+        addTween(S.bloomPass,    { strength: 0.4 }, 2.2);
+        S.mainLight.color.setHex(0xaaaaee);
+        S.ambientLight.color.setHex(0xa0a0c0);
         if (S.sunBeam) addTween(S.sunBeam, { intensity: 0 }, 1.5);
-        // 点亮火把/蜡烛
+        if (S.sunMesh) addTween(S.sunMesh.position, { y: -20 }, 2.0);
+        if (S.moonMesh) addTween(S.moonMesh.position, { y: 38 }, 2.0);
+
+        // Keep torches off to match bright day theme
         S.torchLights.forEach(tl => {
-            addTween(tl.light, { intensity: tl.baseIntensity * 2.1 }, 1.8);
+            addTween(tl.light, { intensity: 0 }, 1.8);
         });
         _showPhaseOverlay('🌙', '天黑请闭眼', '#4466ff');
         setTimeout(resolve, 3200);
@@ -691,13 +725,16 @@ function _nightTransition() {
 function _dayTransition() {
     return new Promise(resolve => {
         S.isNight = false;
-        addTween(S.ambientLight, { intensity: 2.8 }, 2.2);
-        addTween(S.mainLight,    { intensity: 2.5 }, 2.2);
-        addTween(S.scene.fog,    { density: 0.012 }, 2.2);
+        addTween(S.ambientLight, { intensity: 3.2 }, 2.2); // raised from 2.8 to 3.2 for extra brightness
+        addTween(S.mainLight,    { intensity: 3.0 }, 2.2); // raised from 2.5 to 3.0
+        addTween(S.scene.fog,    { density: 0.005 }, 2.2); // less dense fog
         addTween(S.bloomPass,    { strength: 0.28 }, 2.2);
-        S.mainLight.color.setHex(0xfff5cc);
-        S.ambientLight.color.setHex(0xfff0e0);
-        if (S.sunBeam) addTween(S.sunBeam, { intensity: 4.0 }, 2.0);
+        S.mainLight.color.setHex(0xffffff);
+        S.ambientLight.color.setHex(0xffffff);
+        if (S.sunBeam) addTween(S.sunBeam, { intensity: 5.0 }, 2.0);
+        if (S.sunMesh) addTween(S.sunMesh.position, { y: 38 }, 2.0);
+        if (S.moonMesh) addTween(S.moonMesh.position, { y: -20 }, 2.0);
+        
         // 熄灭火把/蜡烛
         S.torchLights.forEach(tl => {
             addTween(tl.light, { intensity: 0 }, 2.0);
