@@ -656,7 +656,7 @@
             position: relative;
             z-index: 1;
             display: grid;
-            grid-template-columns: 240px 1fr 310px;
+            grid-template-columns: 240px 1fr;
             gap: 16px;
             padding: 16px;
             max-width: 1600px;
@@ -667,7 +667,7 @@
 
         @media (max-width: 1024px) {
             .game-container {
-                grid-template-columns: 200px 1fr 280px;
+                grid-template-columns: 200px 1fr;
                 gap: 10px;
                 padding: 10px;
             }
@@ -1874,28 +1874,79 @@
             transform: scale(1.1);
         }
 
-        /* Chronicles Panel */
+        /* Chronicles Panel - Floating */
         .chronicles {
-            background: rgba(45, 27, 78, 0.8);
+            position: fixed;
+            right: 20px;
+            top: 60px;
+            width: 320px;
+            height: 60vh;
+            min-height: 300px;
+            background: rgba(30, 20, 50, 0.45);
+            backdrop-filter: blur(10px);
             border-radius: 20px;
             padding: 20px;
             display: flex;
             flex-direction: column;
-            border: 1px solid rgba(108, 92, 231, 0.2);
-            height: 100%;
+            border: 1px solid rgba(108, 92, 231, 0.3);
             overflow: hidden;
+            z-index: 900;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            transform: translateX(120%);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: auto;
+        }
+        
+        .chronicles.expanded {
+            transform: translateX(0);
+        }
+
+        /* Float Toggle Button for Logs */
+        .chronicles-toggle {
+            position: fixed;
+            right: 20px;
+            top: 80px;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: rgba(108, 92, 231, 0.8);
+            backdrop-filter: blur(5px);
+            color: white;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 901;
+            box-shadow: 0 4px 15px rgba(108, 92, 231, 0.5);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .chronicles-toggle:hover {
+            transform: scale(1.1);
+            background: var(--primary);
         }
 
         .chronicles-header {
             font-family: 'Orbitron', sans-serif;
             font-size: 16px;
-            padding-bottom: 16px;
+            padding-bottom: 12px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            margin-bottom: 16px;
+            margin-bottom: 12px;
             display: flex;
             align-items: center;
+            justify-content: space-between;
             gap: 8px;
         }
+
+        .chronicles-close {
+            cursor: pointer;
+            font-size: 14px;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        .chronicles-close:hover { opacity: 1; }
 
         .chronicles-log {
             flex: 1;
@@ -2400,7 +2451,7 @@
         /* Responsive - Tablet */
         @media (max-width: 1024px) {
             .game-container {
-                grid-template-columns: 200px 1fr 280px;
+                grid-template-columns: 200px 1fr;
                 gap: 12px;
                 padding: 12px;
             }
@@ -2408,7 +2459,7 @@
 
         @media (max-width: 900px) {
             .game-container {
-                grid-template-columns: 1fr 260px;
+                grid-template-columns: 1fr;
             }
             .death-list {
                 display: none;

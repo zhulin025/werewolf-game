@@ -508,9 +508,12 @@ async function startVotingPhase() {
                 const speakerCard = document.getElementById(`player-${player.id}`);
                 if (speakerCard) speakerCard.classList.add('speaking');
 
-                let speechText;
+                let speechText = '';
+                let speechEmotion = 'normal';
+                
                 if (prefetchedSpeechText !== null) {
-                    speechText = prefetchedSpeechText;
+                    speechText = prefetchedSpeechText.text || prefetchedSpeechText;
+                    speechEmotion = prefetchedSpeechText.emotion || 'normal';
                     prefetchedSpeechText = null;
                 } else {
                     if (player.isHuman && typeof showHumanSpeechInput === 'function') {
@@ -520,19 +523,22 @@ async function startVotingPhase() {
                     } else {
                         try {
                             if (speakerCard) showSpeechBubble(speakerCard, player, '正在思考...', false, true);
-                            speechText = await generateSmartSpeech(player);
+                            const result = await generateSmartSpeech(player);
+                            speechText = typeof result === 'string' ? result : result.text;
+                            if(result.emotion) speechEmotion = result.emotion;
                             hideSpeechBubble();
                         } catch (e) {
-                            speechText = generateAISpeak(player);
+                            const result = generateAISpeak(player);
+                            speechText = typeof result === 'string' ? result : (result.text || result);
                             hideSpeechBubble();
                         }
                     }
                 }
 
                 const speakerLabel = (typeof isHumanPlaying !== 'undefined' && isHumanPlaying()) && !player.isHuman ? player.name : `${player.name}（${player.roleName}）`;
-                addLog(`💬 ${speakerLabel} (PK辩护)：${speechText}`, 'speak');
+                addLog(`💬 ${speakerLabel} (PK辩护)：${speechText}`, 'speak', speechEmotion);
                 SoundSystem.play('speak');
-                showSpeechBubble(speakerCard, player, speechText);
+                showSpeechBubble(speakerCard, player, speechText, false, false, speechEmotion);
                 VoiceSystem.speakAs(`${player.name}辩护说：${speechText}`, player.role.toLowerCase());
 
                 const voiceRate = (typeof VoiceSystem !== 'undefined' && VoiceSystem.speechRate) ? VoiceSystem.speechRate : 1.0;
@@ -545,7 +551,10 @@ async function startVotingPhase() {
                     if (nextPlayer.isHuman && typeof showHumanSpeechInput === 'function') {
                         prefetchPromise = Promise.resolve(null);
                     } else {
-                        prefetchPromise = generateSmartSpeech(nextPlayer).catch(e => generateAISpeak(nextPlayer));
+                        prefetchPromise = generateSmartSpeech(nextPlayer).catch(e => {
+                            const retryResult = generateAISpeak(nextPlayer);
+                            return { text: typeof retryResult === 'string' ? retryResult : retryResult.text, emotion: 'normal' };
+                        });
                     }
                 }
 
@@ -852,13 +861,10 @@ function endGame(winner) {
 
     // Update stats
     const deadPlayers = gameState.players.filter(p => !p.isAlive);
-    const wolfKills = gameState.deathRecords.filter(r => r.cause === 'killed').length;
-    const voteOut = gameState.deathRecords.filter(r => r.cause === 'vote').length;
-
-    document.getElementById('statRounds').textContent = gameState.day;
-    document.getElementById('statDeaths').textContent = deadPlayers.length;
-    document.getElementById('statWolfKills').textContent = wolfKills;
-    document.getElementById('statVotes').textContent = voteOut;
+    if (document.getElementById('goStatRounds')) document.getElementById('goStatRounds').textContent = gameState.day;
+    if (document.getElementById('goStatDeaths')) document.getElementById('goStatDeaths').textContent = deadPlayers.length;
+    if (document.getElementById('goStatWolfKills')) document.getElementById('goStatWolfKills').textContent = gameState.deathRecords.filter(r => r.cause === 'killed').length;
+    if (document.getElementById('goStatVotes')) document.getElementById('goStatVotes').textContent = gameState.deathRecords.filter(r => r.cause === 'vote').length;
 
     // Populate death summary
     const deathSummaryList = document.getElementById('deathSummaryList');
@@ -882,7 +888,7 @@ function endGame(winner) {
         survivors.forEach(player => {
             const span = document.createElement('span');
             span.className = 'survivor-badge';
-            span.innerHTML = `${player.icon} ${player.name}`;
+            span.innerHTML = `${player.icon} ${player.name}（${player.roleName || '未知'}）`;
             survivorsContent.appendChild(span);
         });
     }

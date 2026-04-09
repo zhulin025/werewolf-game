@@ -199,55 +199,42 @@ body.mode-3d .arena-column {
 body.mode-3d .death-list { display: none !important; }
 body.mode-3d .mobile-death-btn { display: none !important; }
 
-/* game-container 变成右侧浮动面板载体 */
+/* game-container 不再作为 3D 模式的侧边栏容器，改为透传 */
 body.mode-3d .game-container {
-    position: fixed;
-    top: 0; right: 0;
-    width: 300px;
-    height: 100vh;
-    z-index: 100;
-    display: flex !important;
-    flex-direction: column;
-    padding: 0;
-    gap: 0;
-    background: rgba(10, 5, 25, 0.82);
-    backdrop-filter: blur(18px);
-    border-left: 1px solid rgba(108, 92, 231, 0.28);
-    overflow: hidden;
+    position: static;
+    width: auto;
+    height: auto;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    border-left: none !important;
+    pointer-events: none;
 }
 
+/* 3D 模式下的日志面板使用 main.css 的浮动样式，这里仅微调层级 */
 body.mode-3d .chronicles {
-    width: 100% !important;
-    height: 100% !important;
-    flex: 1;
-    border-radius: 0 !important;
-    background: transparent !important;
-    border: none !important;
-    max-height: none !important;
-    display: flex;
-    flex-direction: column;
+    z-index: 1000;
+    pointer-events: auto;
+}
+
+body.mode-3d .chronicles-toggle {
+    z-index: 1001;
+    pointer-events: auto !important;
+    cursor: pointer !important;
 }
 
 body.mode-3d .chronicles-header {
-    padding-top: 68px; /* clearance for fixed header */
-}
-
-body.mode-3d .chronicles-log {
-    flex: 1;
-    overflow-y: auto;
-    max-height: none !important;
+    /* 如果需要，可以在这里针对3D顶部做微调 */
 }
 
 /* 浮动操作面板 */
 body.mode-3d #actionPanel {
     position: fixed !important;
     bottom: 0; left: 0;
-    right: 300px;
+    right: 0; /* 取消右侧偏移，恢复全宽 */
     z-index: 200;
     background: rgba(10, 5, 25, 0.88) !important;
     backdrop-filter: blur(14px);
     border-top: 1px solid rgba(108, 92, 231, 0.28);
-    border-right: 1px solid rgba(108, 92, 231, 0.15);
     border-radius: 0 !important;
     padding: 12px 16px;
 }

@@ -602,10 +602,11 @@ class Game {
 
             const result = await this._requestAction(player, 'speak', [], context);
             const speech = result?.content || '过';
+            const emotion = result?.emotion || 'normal';
             const isAuto = !!(result?.is_auto || player.isBot);
 
             // 记录发言供后续玩家 prompt 使用
-            this.recentSpeeches.push({ playerId: player.id, playerName: player.name, content: speech });
+            this.recentSpeeches.push({ playerId: player.id, playerName: player.name, content: speech, emotion });
 
             // 更新所有玩家的记忆
             const aliveForMemory = this.players.filter(p => p.isAlive);
@@ -617,6 +618,7 @@ class Game {
                 player_id: player.id,
                 player_name: player.name,
                 content: speech,
+                emotion: emotion,
                 is_auto: isAuto,
             });
 
@@ -860,12 +862,14 @@ class Game {
         const context = { action_desc: '请发表遗言' };
         const result = await this._requestAction(player, 'last_words', [], context);
         const words = result?.content || '无遗言';
+        const emotion = result?.emotion || 'normal';
         const isAuto = !!(result?.is_auto || player.isBot);
 
         this._broadcastPublic('last_words', {
             player_id: player.id,
             player_name: player.name,
             content: words,
+            emotion: emotion,
             is_auto: isAuto,
         });
 
@@ -1070,8 +1074,8 @@ class Game {
         const { systemPrompt, userPrompt } = PromptBuilder.buildSpeechPrompt({
             player, gameState, memory: player._memory,
         });
-        const content = await llmService.call(systemPrompt, userPrompt, { maxTokens: 800 });
-        return { content };
+        const rawContent = await llmService.call(systemPrompt, userPrompt, { maxTokens: 800 });
+        return PromptBuilder.parseSpeechResponse(rawContent);
     }
 
     async _llmLastWords(player, gameState) {
@@ -1079,8 +1083,8 @@ class Game {
             player, gameState, memory: player._memory,
         });
         const lastWordsPrompt = userPrompt + '\n\n你即将被出局，请发表你的遗言。遗言要有信息量，帮助你的阵营。30-60字。';
-        const content = await llmService.call(systemPrompt, lastWordsPrompt, { maxTokens: 600 });
-        return { content };
+        const rawContent = await llmService.call(systemPrompt, lastWordsPrompt, { maxTokens: 600 });
+        return PromptBuilder.parseSpeechResponse(rawContent);
     }
 
     async _llmVote(player, gameState, validTargets) {

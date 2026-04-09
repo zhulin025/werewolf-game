@@ -1,0 +1,314 @@
+◇ injected env (7) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+
+🐺 ═══════════════════════════════════════════
+   AI狼人杀 - 多Agent对战服务器
+═══════════════════════════════════════════════
+📡 HTTP API:    http://localhost:3000/api/rooms
+🔌 WebSocket:   ws://localhost:3000?room_id=xxx
+🌐 前端页面:    http://localhost:3000
+📖 协议文档:    docs/AGENT_PROTOCOL.md
+═══════════════════════════════════════════════
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269316132b9919ba007f6705297cc0"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269316132b9919ba007f6705297cc0"}
+
+[LLM] Attempt 1 failed, retrying... LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269316132b9919ba007f6705297cc0"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269318e41c2e1c6ede6148ba484fc4"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269318e41c2e1c6ede6148ba484fc4"}
+
+[AI] LLM generate failed, using fallback: LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269318e41c2e1c6ede6148ba484fc4"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626932c67ffac9f79d769d22807089a"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626932c67ffac9f79d769d22807089a"}
+
+[LLM] Attempt 1 failed, retrying... LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626932c67ffac9f79d769d22807089a"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626932d161bc523c33eb0cce75375d6"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626932d161bc523c33eb0cce75375d6"}
+
+[AI] LLM generate failed, using fallback: LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626932d161bc523c33eb0cce75375d6"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"062696b04af21423461b365fc574d87b"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"062696b04af21423461b365fc574d87b"}
+
+[LLM] Attempt 1 failed, retrying... LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"062696b04af21423461b365fc574d87b"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"062696ebbdbd2c333f333469a377bf10"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"062696ebbdbd2c333f333469a377bf10"}
+
+[LLM] Attempt 1 failed, retrying... LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"062696ebbdbd2c333f333469a377bf10"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"062696ed35270f26448b7532f6dfaf32"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"062696ed35270f26448b7532f6dfaf32"}
+
+[AI] LLM generate failed, using fallback: LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"062696ed35270f26448b7532f6dfaf32"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269701ac03ada9dd3cd27028cdf903"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269701ac03ada9dd3cd27028cdf903"}
+
+[LLM] Attempt 1 failed, retrying... LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269701ac03ada9dd3cd27028cdf903"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"062697037065f13a90678905499d69b8"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"062697037065f13a90678905499d69b8"}
+
+[AI] LLM generate failed, using fallback: LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"062697037065f13a90678905499d69b8"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626975b4cd928de9d1f48cc05df519d"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626975b4cd928de9d1f48cc05df519d"}
+
+[LLM] Attempt 1 failed, retrying... LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626975b4cd928de9d1f48cc05df519d"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626975efe3526a3971e9188f3754390"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626975efe3526a3971e9188f3754390"}
+
+[AI] LLM generate failed, using fallback: LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626975efe3526a3971e9188f3754390"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626975f319d2542ba8c37e32710e847"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626975f319d2542ba8c37e32710e847"}
+
+[LLM] Attempt 1 failed, retrying... LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626975f319d2542ba8c37e32710e847"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626978c332da4939dfc0f50f7f35a0e"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626978c332da4939dfc0f50f7f35a0e"}
+
+[LLM] Attempt 1 failed, retrying... LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626978c332da4939dfc0f50f7f35a0e"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626978f0e63f154bc73d4c596e4592c"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626978f0e63f154bc73d4c596e4592c"}
+
+[AI] LLM generate failed, using fallback: LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626978f0e63f154bc73d4c596e4592c"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"062697c41ce353c36745bafc224c1535"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"062697c41ce353c36745bafc224c1535"}
+
+[LLM] Attempt 1 failed, retrying... LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"062697c41ce353c36745bafc224c1535"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"062697c6d387458f8ef250aca253a62e"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"062697c6d387458f8ef250aca253a62e"}
+
+[AI] LLM generate failed, using fallback: LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"062697c6d387458f8ef250aca253a62e"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"062699017c34039f1efcfe6ea6ee5b68"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"062699017c34039f1efcfe6ea6ee5b68"}
+
+[LLM] Attempt 1 failed, retrying... LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"062699017c34039f1efcfe6ea6ee5b68"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626990e578d28774665db8e6fae2201"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626990e578d28774665db8e6fae2201"}
+
+[LLM] Attempt 1 failed, retrying... LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626990e578d28774665db8e6fae2201"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626991e5f6ae58e9dbd6710415683e6"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626991e5f6ae58e9dbd6710415683e6"}
+
+[LLM] Attempt 1 failed, retrying... LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626991e5f6ae58e9dbd6710415683e6"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"062699200e038480210ccf2f119c25f5"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"062699200e038480210ccf2f119c25f5"}
+
+[AI] LLM generate failed, using fallback: LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"062699200e038480210ccf2f119c25f5"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"062699447a4a6061610d72cb9f6b06a6"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"062699447a4a6061610d72cb9f6b06a6"}
+
+[LLM] Attempt 1 failed, retrying... LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"062699447a4a6061610d72cb9f6b06a6"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626995b2ba78d274aef08af97155161"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626995b2ba78d274aef08af97155161"}
+
+[LLM] Attempt 1 failed, retrying... LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626995b2ba78d274aef08af97155161"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269990665b435a9c4fac3454a373bc"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269990665b435a9c4fac3454a373bc"}
+
+[LLM] Attempt 1 failed, retrying... LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269990665b435a9c4fac3454a373bc"}
+
+[LLM] API returned invalid format: {"id":"062699de3d098e9864aa1068f8555b23","choices":null,"created":1775724254,"model":"MiniMax-M2.7","object":"chat.completion","usage":{"total_tokens":0,"total_characters":0,"prompt_tokens":0,"completion_tokens":0},"input_sensitive":false,"output_sensitive":false,"input_sensitive_type":0,"output_sensitive_type":0,"output_sensitive_int":0,"base_resp":{"status_code":0,"status_msg":""}}
+[LLM] Request failed (MiniMax-M2.7): LLM returned empty content
+[LLM] Attempt 1 failed, retrying... LLM returned empty content
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"062699e13c20aa8ab4f8233fa580f376"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"062699e13c20aa8ab4f8233fa580f376"}
+
+[AI] LLM generate failed, using fallback: LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"062699e13c20aa8ab4f8233fa580f376"}
+
+[LLM] Request timed out after 30000ms
+[LLM] Attempt 1 failed, retrying... This operation was aborted
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269a824eb67e6c94d72b9472877d54"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269a824eb67e6c94d72b9472877d54"}
+
+[AI] LLM generate failed, using fallback: LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269a824eb67e6c94d72b9472877d54"}
+
+[LLM] Request failed (MiniMax-M2.7): fetch failed
+[LLM] Attempt 1 failed, retrying... fetch failed
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269c33d677ed78bde5efd9cca79435"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269c33d677ed78bde5efd9cca79435"}
+
+[AI] LLM generate failed, using fallback: LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269c33d677ed78bde5efd9cca79435"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269c44b63b4b2a6a97203ef717ae29"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269c44b63b4b2a6a97203ef717ae29"}
+
+[LLM] Attempt 1 failed, retrying... LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269c44b63b4b2a6a97203ef717ae29"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269c4626e4a94000761fbf6006a511"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269c4626e4a94000761fbf6006a511"}
+
+[AI] LLM generate failed, using fallback: LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269c4626e4a94000761fbf6006a511"}
+
+[LLM] Request failed (MiniMax-M2.7): fetch failed
+[LLM] Attempt 1 failed, retrying... fetch failed
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269c65bb1290676de545d2661211e0"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269c65bb1290676de545d2661211e0"}
+
+[AI] LLM generate failed, using fallback: LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269c65bb1290676de545d2661211e0"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269ca671ac5d234e815e3571c61bc5"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269ca671ac5d234e815e3571c61bc5"}
+
+[LLM] Attempt 1 failed, retrying... LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269ca671ac5d234e815e3571c61bc5"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269fdacac79ecd21b87f2e89b4f146"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269fdacac79ecd21b87f2e89b4f146"}
+
+[LLM] Attempt 1 failed, retrying... LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269fdacac79ecd21b87f2e89b4f146"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269fdbf67ca9a5d6c7d0cf278d492b"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269fdbf67ca9a5d6c7d0cf278d492b"}
+
+[AI] LLM generate failed, using fallback: LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269fdbf67ca9a5d6c7d0cf278d492b"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269fee6473d221a4034aa7cfe70956"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269fee6473d221a4034aa7cfe70956"}
+
+[LLM] Attempt 1 failed, retrying... LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269fee6473d221a4034aa7cfe70956"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269ff00ab50416bdbfd3f8d36b26ca"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269ff00ab50416bdbfd3f8d36b26ca"}
+
+[AI] LLM generate failed, using fallback: LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269ff00ab50416bdbfd3f8d36b26ca"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269ff187cd92d55eaf7ebb1ffd6ae6"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269ff187cd92d55eaf7ebb1ffd6ae6"}
+
+[LLM] Attempt 1 failed, retrying... LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269ff187cd92d55eaf7ebb1ffd6ae6"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269ff407bb6c7f7eda58e81e48fc82"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269ff407bb6c7f7eda58e81e48fc82"}
+
+[AI] LLM generate failed, using fallback: LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"06269ff407bb6c7f7eda58e81e48fc82"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626a2814e74c405bdddf3e36f61c316"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626a2814e74c405bdddf3e36f61c316"}
+
+[LLM] Attempt 1 failed, retrying... LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626a2814e74c405bdddf3e36f61c316"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626a283680421c003cf3b9a25d77506"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626a283680421c003cf3b9a25d77506"}
+
+[AI] LLM generate failed, using fallback: LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626a283680421c003cf3b9a25d77506"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626a2c009f23dd6d862c9e12747af25"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626a2c009f23dd6d862c9e12747af25"}
+
+[LLM] Attempt 1 failed, retrying... LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626a2c009f23dd6d862c9e12747af25"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626a2c2130ce31b333b0702c63d44b0"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626a2c2130ce31b333b0702c63d44b0"}
+
+[AI] LLM generate failed, using fallback: LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626a2c2130ce31b333b0702c63d44b0"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626a2c39596589e67aa395d5270673b"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626a2c39596589e67aa395d5270673b"}
+
+[LLM] Attempt 1 failed, retrying... LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626a2c39596589e67aa395d5270673b"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626a2c5e15a72c4e1cd55df505c37c5"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626a2c5e15a72c4e1cd55df505c37c5"}
+
+[AI] LLM generate failed, using fallback: LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626a2c5e15a72c4e1cd55df505c37c5"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626a2c671a6b07d52adbf663ee3fceb"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626a2c671a6b07d52adbf663ee3fceb"}
+
+[LLM] Attempt 1 failed, retrying... LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626a2c671a6b07d52adbf663ee3fceb"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626a2c85abdd7c8b17c771d39a27e13"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626a2c85abdd7c8b17c771d39a27e13"}
+
+[AI] LLM generate failed, using fallback: LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626a2c85abdd7c8b17c771d39a27e13"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626a2d82525c499c4a074a1d0eb4d27"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626a2d82525c499c4a074a1d0eb4d27"}
+
+[LLM] Attempt 1 failed, retrying... LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626a2d82525c499c4a074a1d0eb4d27"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626a2db631c12c9e4dd4a655dcdbbe7"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626a2db631c12c9e4dd4a655dcdbbe7"}
+
+[AI] LLM generate failed, using fallback: LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626a2db631c12c9e4dd4a655dcdbbe7"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626a5851e9b1236adfbd8b58912a96e"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626a5851e9b1236adfbd8b58912a96e"}
+
+[LLM] Attempt 1 failed, retrying... LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626a5851e9b1236adfbd8b58912a96e"}
+
+[LLM] API Error 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626a6997f56b13bc071df017d07c348"}
+
+[LLM] Request failed (MiniMax-M2.7): LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626a6997f56b13bc071df017d07c348"}
+
+[LLM] Attempt 1 failed, retrying... LLM API 529: {"type":"error","error":{"type":"overloaded_error","message":"当前服务集群负载较高，请稍后重试，感谢您的耐心等待。 (2064)","http_code":"529"},"request_id":"0626a6997f56b13bc071df017d07c348"}
+
+[LLM] Request timed out after 30000ms
+[LLM] Attempt 1 failed, retrying... This operation was aborted
+[LLM] Request timed out after 30000ms
+[LLM] Attempt 1 failed, retrying... This operation was aborted
+[LLM] Request failed (MiniMax-M2.7): fetch failed
+[AI] LLM generate failed, using fallback: fetch failed

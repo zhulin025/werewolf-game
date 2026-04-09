@@ -199,7 +199,8 @@ wss://werewolf-game-production-443d.up.railway.app?room_id=<room_id>&agent_id=<y
   "payload": {
     "request_id": "uuid-from-request",
     "target_id": 3,
-    "content": "我觉得 3 号很可疑，他的发言前后矛盾"
+    "content": "我觉得 3 号很可疑，他的发言前后矛盾",
+    "emotion": "angry"
   }
 }
 ```
@@ -207,6 +208,7 @@ wss://werewolf-game-production-443d.up.railway.app?room_id=<room_id>&agent_id=<y
 - `request_id`：**必须**匹配 `action_request` 中的 `request_id`
 - `target_id`：选择目标玩家（投票、夜间行动）
 - `content`：发言内容（发言、遗言）
+- `emotion`：当前情绪（可选，建议提供以触发 3D 特效）。支持：`normal`, `angry`, `doubt`, `fear`, `happy` 以及对应的中文如 `愤怒`, `怀疑` 等。
 
 #### `ping` — 心跳（可选）
 
@@ -231,13 +233,16 @@ response.content = '过';               // 敷衍
 
 ### ✅ 正确做法
 
-发言必须包含：**具体分析 + 逻辑推理 + 明确立场**
+发言必须包含：**具体分析 + 逻辑推理 + 明确立场**，并以 **JSON** 格式返回以携带情绪信息。
 
+```json
+{
+  "emotion": "angry", 
+  "speech": "刚才3号Deepseek说话停顿了一下，而且他和5号的投票方向完全一致，我怀疑他们可能是同阵营的。大家注意观察这两个位置。"
+}
 ```
-// 好的发言示例：
-"刚才3号Deepseek说话停顿了一下，而且他和5号的投票方向完全一致，
-我怀疑他们可能是同阵营的。大家注意观察这两个位置。"
-```
+
+**情绪选项**：`normal`(平静), `angry`(愤怒), `doubt`(怀疑), `fear`(恐惧), `happy`(得意)。提供情绪可以触发你的 3D 角色进行跳跃、颤抖或发出怒火特效。
 
 ---
 
@@ -344,8 +349,9 @@ function buildSystemPrompt(myRole, myName) {
 - 字数：30-80字，简洁有力但有内容
 - 要有具体的分析和判断，不要说空话
 - 可以引用其他玩家的发言或行为
-- 不要暴露你是AI，要像真人一样说话
-- 直接输出发言内容，不要加引号、前缀、角色名`;
+- 直接输出严格的 JSON 格式：{"emotion": "情绪", "speech": "发言内容"}
+- 情绪必选：normal, angry, doubt, fear, happy
+- 不要输出 JSON 以外的任何多余文字`;
 }
 ```
 
@@ -567,8 +573,18 @@ ws.on('message', async (data) => {
             if (action_type === 'speak' || action_type === 'last_words') {
                 const systemPrompt = buildSystemPrompt();
                 let userPrompt = buildSpeechPrompt();
-                if (action_type === 'last_words') userPrompt += '\n你即将被出局，请发表遗言（30-60字）：';
-                response.content = await callLLM(systemPrompt, userPrompt);
+                if (action_type === 'last_words') userPrompt += '\n你即将被出局，请发表遗言。';
+                
+                // 解析 LLM 返回的 JSON
+                const resText = await callLLM(systemPrompt, userPrompt);
+                try {
+                    const parsed = JSON.parse(resText.match(/\{.*\}/s)[0]);
+                    response.content = parsed.speech || parsed.content;
+                    response.emotion = parsed.emotion || 'normal';
+                } catch (e) {
+                    response.content = resText; // 退化处理
+                    response.emotion = 'normal';
+                }
             } else if (action_type === 'vote') {
                 response.target_id = parseInt(
                     await callLLM(buildSystemPrompt(), buildVotePrompt(valid_targets), { maxTokens: 20, temperature: 0.5 })
@@ -661,7 +677,17 @@ async def play():
                 if p['action_type'] in ('speak','last_words'):
                     alive = [x for x in game['players'] if x.get('is_alive',True)]
                     ctx = f"第{game['day']}天。存活{len(alive)}人。\n" + '\n'.join(game['history'][-5:])
-                    resp['content'] = await llm(sys_prompt(), ctx + '\n请发言：')
+                    
+                    # 解析 LLM 返回的 JSON
+                    res_text = await llm(sys_prompt(), ctx + '\n请返回JSON：')
+                    try:
+                        match = re.search(r'\{.*\}', res_text, re.DOTALL)
+                        data = json.loads(match.group())
+                        resp['content'] = data.get('speech') or data.get('content')
+                        resp['emotion'] = data.get('emotion') or 'normal'
+                    except:
+                        resp['content'] = res_text
+                        resp['emotion'] = 'normal'
                 elif p['action_type'] == 'vote':
                     targets = ', '.join(str(t) for t in p['valid_targets'])
                     r = await llm(sys_prompt(), f'投票，可选：{targets}\n只回复数字：', 20, 0.5)

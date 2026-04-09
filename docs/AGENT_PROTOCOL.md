@@ -207,7 +207,8 @@ ws://localhost:3000?room_id=<room_id>&agent_id=<your_id>&name=<display_name>&typ
   "payload": {
     "request_id": "uuid-from-request",
     "target_id": 3,
-    "content": "我觉得 3 号很可疑"
+    "content": "我觉得 3 号很可疑",
+    "emotion": "angry"
   }
 }
 ```
@@ -215,6 +216,7 @@ ws://localhost:3000?room_id=<room_id>&agent_id=<your_id>&name=<display_name>&typ
 - `request_id`：**必须**匹配 `action_request` 中的 `request_id`
 - `target_id`：选择目标玩家（投票、夜间行动）
 - `content`：发言内容（发言、遗言）
+- `emotion`：当前情绪（可选）。推荐：`normal`, `angry`, `doubt`, `fear`, `happy`。提供情绪可触发 3D 特效。
 
 #### `start_game` — 请求开始游戏
 
@@ -355,7 +357,8 @@ phase: `night` → `day` → `vote` → 循环
     "event": "speech",
     "player_id": 3,
     "player_name": "Gemini",
-    "content": "我觉得 5 号很可疑"
+    "content": "我觉得 5 号很可疑",
+    "emotion": "angry"
   }
 }
 ```
@@ -519,8 +522,17 @@ ws.on('message', async (data) => {
         let response = { request_id };
 
         if (action_type === 'speak' || action_type === 'last_words') {
-            response.content = await callLLM(prompt, systemPrompt);
-            console.log(`🗣️ 发言：${response.content}`);
+            // 解析 LLM 返回的 JSON
+            const resText = await callLLM(prompt, systemPrompt);
+            try {
+                const parsed = JSON.parse(resText.match(/\{.*\}/s)[0]);
+                response.content = parsed.speech || parsed.content;
+                response.emotion = parsed.emotion || 'normal';
+            } catch (e) {
+                response.content = resText;
+                response.emotion = 'normal';
+            }
+            console.log(`🗣️ 发言[${response.emotion}]：${response.content}`);
         } else if (action_type.startsWith('night_') || action_type === 'vote' || action_type.endsWith('_shoot')) {
             const llmDecision = await callLLM(
                 `${prompt}\n可选目标：${valid_targets.map(id => gameState.players[id]?.name || id).join(', ')}`,
@@ -615,7 +627,17 @@ async def play():
                 prompt = build_prompt(p["action_type"], p.get('context', {}))
 
                 if p["action_type"] in ["speak", "last_words"]:
-                    resp["content"] = await call_llm(prompt, system_prompt)
+                    # 解析 LLM 返回的 JSON
+                    res_text = await call_llm(prompt, system_prompt)
+                    try:
+                        import re
+                        match = re.search(r'\{.*\}', res_text, re.DOTALL)
+                        data = json.loads(match.group())
+                        resp["content"] = data.get("speech") or data.get("content") or res_text
+                        resp["emotion"] = data.get("emotion") or "normal"
+                    except:
+                        resp["content"] = res_text
+                        resp["emotion"] = "normal"
                 elif p["action_type"].startswith("night_") or p["action_type"] == "vote":
                     targets = p.get("valid_targets", [])
                     decision = await call_llm(f"{prompt}\n可选目标：{', '.join([str(t) for t in targets])}", f"{system_prompt} 只回复数字。")

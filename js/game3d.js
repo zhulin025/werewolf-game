@@ -461,8 +461,17 @@ function _applyAliveState(id, alive) {
         // Topple & grey
         _playDeathAnimation(id, null);
     } else {
-        po.group.rotation.x = 0.04;
-        po.group.position.y = 0;
+        po.isDeadAnimPlayed = false;
+        
+        // BUG FIX: Only reset position if NOT currently speaking with an emotion animation
+        const isSpeakingWithEmotion = S.currentBubble && S.currentBubble.playerId === id && S.currentBubble.emotionId;
+        if (!isSpeakingWithEmotion) {
+            po.group.rotation.x = 0.04; 
+            po.group.position.y = 0;
+            // No need to reset X/Z here as they should stay at their layout positions
+            // RY is reset by _hideSpeech when bubble is removed.
+        }
+        
         po.group.traverse(c => {
             if (c.isMesh) {
                 c.material = c.material.clone();
@@ -528,27 +537,116 @@ function _showSpeech(player, text, isThinking = false, emotion = 'normal') {
     const el = document.createElement('div');
     el.className = 'speech-bubble-3d' + (isThinking ? ' thinking-3d' : '');
     
-    const emotionMap = {
-        'normal': '',
-        'angry': '💢 ',
-        'doubt': '🤔 ',
-        'fear': '😰 ',
-        'happy': '😆 '
+    // Emotion mapping & Styling
+    const emotionStyles = {
+        'normal': { icon: '', label: '', color: '#ffd700' },
+        'angry': { icon: '💢', label: '[愤怒]', color: '#ef4444' },
+        '愤怒': { icon: '💢', label: '[愤怒]', color: '#ef4444' },
+        '反击': { icon: '💢', label: '[愤怒]', color: '#ef4444' },
+        'doubt': { icon: '🤔', label: '[怀疑]', color: '#a29bfe' },
+        '怀疑': { icon: '🤔', label: '[怀疑]', color: '#a29bfe' },
+        'fear': { icon: '😰', label: '[恐惧]', color: '#81ecec' },
+        '恐惧': { icon: '😰', label: '[恐惧]', color: '#81ecec' },
+        '心虚': { icon: '😰', label: '[恐惧]', color: '#81ecec' },
+        'happy': { icon: '😆', label: '[开心]', color: '#fab1a0' },
+        '开心': { icon: '😆', label: '[开心]', color: '#fab1a0' },
+        '得意': { icon: '😆', label: '[开心]', color: '#fab1a0' }
     };
-    const emoIcon = emotionMap[emotion] || '';
+    const style = emotionStyles[emotion] || emotionStyles['normal'];
+    const emoIcon = style.icon ? style.icon + ' ' : '';
+    const emoLabel = style.label ? `<span style="font-size:10px; color:${style.color}; background:rgba(0,0,0,0.4); padding:1px 4px; border-radius:3px; margin-left:4px;">${style.label}</span>` : '';
 
     el.innerHTML = `
-        <div class="sb-name">${emoIcon}${player.icon || '👤'} ${player.name}</div>
+        <div class="sb-name">${emoIcon}${player.icon || '👤'} ${player.name}${emoLabel}</div>
         <div class="sb-text">${isThinking ? '正在思考' : `"${text}"`}</div>
     `;
     S.nameplateLayer.appendChild(el);
-    S.currentBubble = { el, playerId: player.id };
+    S.currentBubble = { el, playerId: player.id, emotionId: null };
 
     _setSpeakGlow(player.id, true);
+
+    // Apply physical 3D micro-animations based on emotion
+    const po = S.players[player.id];
+    if (po && po.isAlive) {
+        const startY = po.group.position.y;
+        const startX = po.group.position.x;
+        const startRY = po.group.rotation.y;
+        let t = 0;
+        
+        // Normalize emotion for animation logic
+        let animMode = 'normal';
+        if (emotion === 'angry' || emotion === '愤怒' || emotion === '反击') animMode = 'angry';
+        else if (emotion === 'happy' || emotion === '开心' || emotion === '得意') animMode = 'happy';
+        else if (emotion === 'fear' || emotion === '恐惧' || emotion === '心虚') animMode = 'fear';
+        else if (emotion === 'doubt' || emotion === '怀疑') animMode = 'doubt';
+
+        if (animMode === 'happy') {
+            // Jump jump - More enthusiastic jumping
+            S.currentBubble.emotionId = setInterval(() => {
+                t += 0.25;
+                po.group.position.y = startY + Math.abs(Math.sin(t)) * 0.8; 
+                po.group.scale.set(1 + Math.sin(t)*0.1, 1 - Math.sin(t)*0.1, 1 + Math.sin(t)*0.1); // Squashing effect
+                if (po.speakLight) {
+                    po.speakLight.color.setHex(0xfab1a0);
+                    po.speakLight.intensity = 3.0 + Math.sin(t) * 1.5;
+                }
+            }, 30);
+        } else if (animMode === 'angry') {
+            // Shake - More violent shaking + Pulsing red light
+            S.currentBubble.emotionId = setInterval(() => {
+                t += 0.5;
+                po.group.position.x = startX + Math.sin(t * 10) * 0.15;
+                po.group.position.z = po.group.position.z + Math.cos(t * 10) * 0.05;
+                // Pulsing red glow
+                if (po.speakLight) {
+                    po.speakLight.color.setHex(0xff0000);
+                    po.speakLight.intensity = 5.0 + Math.sin(t * 8) * 3.0;
+                }
+            }, 30);
+        } else if (animMode === 'fear') {
+            // Shiver - Faster and tighter shiver + Shrink slightly
+            po.group.scale.set(0.85, 0.85, 0.85); // Shrink more noticeably
+            S.currentBubble.emotionId = setInterval(() => {
+                t += 0.8;
+                po.group.position.x = startX + (Math.random() - 0.5) * 0.15;
+                po.group.position.z = (po.group.position.z || 0) + (Math.random() - 0.5) * 0.08;
+                if (po.speakLight) {
+                    po.speakLight.color.setHex(0x81ecec);
+                    po.speakLight.intensity = 2.0 + Math.random();
+                }
+            }, 30);
+        } else if (animMode === 'doubt') {
+            // Rotate slightly back and forth - More pronounced tilting
+            S.currentBubble.emotionId = setInterval(() => {
+                t += 0.15;
+                po.group.rotation.z = Math.sin(t) * 0.25; // Tilt side to side
+                po.group.rotation.y = startRY + Math.cos(t) * 0.5;
+                if (po.speakLight) {
+                    po.speakLight.color.setHex(0xa29bfe);
+                    po.speakLight.intensity = 3.0 + Math.sin(t * 2) * 1.0;
+                }
+            }, 30);
+        }
+    }
 }
 
 function _hideSpeech() {
     if (S.currentBubble) {
+        if (S.currentBubble.emotionId) {
+            clearInterval(S.currentBubble.emotionId);
+            const po = S.players[S.currentBubble.playerId];
+            if (po && po.isAlive) {
+                po.group.position.y = 0;
+                // Don't perfectly reset X or RY to allow organic settlement, but reset them roughly 
+                // wait, it's safer to just reset them to their base layout positions. 
+                // Let's reset y to 0, which is enough. The model will sort it out.
+                // Wait, S.nameplates might not be aligned perfectly if we don't reset.
+                // Actually, _applyAliveState does `rotation.x = 0.04`, `position.y = 0`.
+                // Let's reset here:
+                po.group.position.y = 0;
+            }
+        }
+        
         S.currentBubble.el.remove();
         _setSpeakGlow(S.currentBubble.playerId, false);
         S.currentBubble = null;
@@ -655,6 +753,8 @@ function _showPhaseOverlay(icon, text, color) {
 function _playDeathAnimation(id, cb) {
     const po = S.players[id];
     if (!po) { cb && cb(); return; }
+    if (po.isDeadAnimPlayed) { cb && cb(); return; }
+    po.isDeadAnimPlayed = true;
     const { group } = po;
 
     // Red flash
@@ -726,14 +826,20 @@ function _showVoteEffect(fromId, toId) {
     const tp = _worldPos(toId,   0, 1.55, 0);
     if (!fp || !tp) return;
 
-    // Dashed line
-    const geo = new THREE.BufferGeometry().setFromPoints([fp, tp]);
-    const mat = new THREE.LineBasicMaterial({ color: 0xff6b6b, transparent: true, opacity: 1.0 });
-    const line = new THREE.Line(geo, mat);
+    // Solid thick line using Cylinder
+    const distance = fp.distanceTo(tp);
+    const geo = new THREE.CylinderGeometry(0.08, 0.08, distance, 8);
+    const mat = new THREE.MeshBasicMaterial({ color: 0xff6b6b, transparent: true, opacity: 0.8 });
+    const line = new THREE.Mesh(geo, mat);
+    
+    // Position halfway and align
+    line.position.copy(fp).lerp(tp, 0.5);
+    line.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tp.clone().sub(fp).normalize());
+    
     S.scene.add(line);
-    let op = 1.0;
+    let op = 0.8;
     const fd = setInterval(() => {
-        op -= 0.055;
+        op -= 0.04;
         mat.opacity = op;
         if (op <= 0) { clearInterval(fd); S.scene.remove(line); geo.dispose(); mat.dispose(); }
     }, 40);
@@ -1021,7 +1127,12 @@ function _init() {
     if (!canvas) { console.error('[3D] canvas3d not found'); return; }
 
     // Renderer
-    S.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+    S.renderer = new THREE.WebGLRenderer({ 
+        canvas, 
+        antialias: true, 
+        powerPreference: 'high-performance',
+        preserveDrawingBuffer: true 
+    });
     S.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     S.renderer.setSize(window.innerWidth, window.innerHeight);
     S.renderer.shadowMap.enabled = true;
@@ -1128,6 +1239,22 @@ window.Scene3D = {
     focusPlayer:         _focusPlayer,
     resetCamera:         _resetCamera,
     isNight:             () => S.isNight,
+    // 强制渲染一帧并抓取截图，确保缓冲区非空
+    captureSnapshot: function(quality = 0.85) {
+        if (!S.initialized || !S.renderer || !S.scene || !S.camera) return null;
+        try {
+            // 关键：在抓取 toDataURL 前强制执行一次渲染
+            if (S.composer) {
+                S.composer.render();
+            } else {
+                S.renderer.render(S.scene, S.camera);
+            }
+            return S.renderer.domElement.toDataURL('image/jpeg', quality);
+        } catch (e) {
+            console.error('[Scene3D] Snapshot failed:', e);
+            return null;
+        }
+    }
 };
 
 // Auto-init when style is 3d

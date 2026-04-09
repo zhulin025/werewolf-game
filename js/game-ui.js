@@ -214,7 +214,14 @@ function updateGameStats() {
     }
 }
 
-function addLog(message, type = 'system') {
+function addLog(message, type = 'system', emotion = 'normal') {
+    // Keep a global track of logs for AI analysis
+    window._gLogs = window._gLogs || [];
+    window._gLogs.push({ message, type, emotion, timestamp: Date.now() });
+    
+    // Limit logs to keep memory clean
+    if (window._gLogs.length > 100) window._gLogs.shift();
+
     const log = document.getElementById('chroniclesLog');
     if (!log) return;
 
@@ -234,7 +241,20 @@ function addLog(message, type = 'system') {
         speak: '💬'
     };
 
-    const icon = icons[type] || '•';
+    let icon = icons[type] || '•';
+    
+    // 如果是发言且有情绪，叠加情绪图标
+    if (type === 'speak' && emotion !== 'normal') {
+        const emotionMap = {
+            'angry': '💢',
+            'doubt': '🤔',
+            'fear': '😰',
+            'happy': '😆'
+        };
+        if (emotionMap[emotion]) {
+            icon = `${icon}${emotionMap[emotion]}`;
+        }
+    }
 
     // Highlight keywords
     let highlightedMessage = message;
@@ -307,18 +327,33 @@ function showSpeechBubble(card, player, text, isAuto = false, isThinking = false
     const autoLabel = isAuto ? '<div class="speech-bubble-auto">🤖 系统代发（Agent超时）</div>' : '';
     const thinkingLabel = isThinking ? '<div class="thinking-dots"><span>.</span><span>.</span><span>.</span></div>' : '';
     
-    // Emotion mapping
-    const emotionMap = {
-        'normal': '',
-        'angry': '💢 ',
-        'doubt': '🤔 ',
-        'fear': '😰 ',
-        'happy': '😆 '
+    // Emotion mapping & Styling — Added Chinese aliases to support various LLM outputs
+    const emotionStyles = {
+        'normal': { icon: '', label: '', color: 'rgba(255, 215, 0, 0.8)' },
+        'angry': { icon: '💢', label: '[愤怒]', color: '#ef4444' },
+        '愤怒': { icon: '💢', label: '[愤怒]', color: '#ef4444' },
+        '反击': { icon: '💢', label: '[愤怒]', color: '#ef4444' },
+        'doubt': { icon: '🤔', label: '[怀疑]', color: '#a29bfe' },
+        '怀疑': { icon: '🤔', label: '[怀疑]', color: '#a29bfe' },
+        'fear': { icon: '😰', label: '[恐惧]', color: '#81ecec' },
+        '恐惧': { icon: '😰', label: '[恐惧]', color: '#81ecec' },
+        '心虚': { icon: '😰', label: '[恐惧]', color: '#81ecec' },
+        'happy': { icon: '😆', label: '[开心]', color: '#fab1a0' },
+        'happy': { icon: '😆', label: '[开心]', color: '#fab1a0' },
+        '开心': { icon: '😆', label: '[开心]', color: '#fab1a0' },
+        '得意': { icon: '😆', label: '[开心]', color: '#fab1a0' }
     };
-    const emoIcon = emotionMap[emotion] || '';
+    const style = emotionStyles[emotion] || emotionStyles['normal'];
+    const emoIcon = style.icon ? style.icon + ' ' : '';
+    const emoLabel = style.label ? `<span style="font-size:10px; color:${style.color}; font-weight:900; background:rgba(0,0,0,0.3); padding:2px 4px; border-radius:4px; margin-left:4px;">${style.label}</span>` : '';
+
+    bubble.style.borderColor = style.color;
+    if (emotion !== 'normal' && style.label) {
+        bubble.style.boxShadow = `0 8px 32px rgba(0, 0, 0, 0.6), 0 0 20px ${style.color}44`;
+    }
 
     bubble.innerHTML = `
-        <div class="speech-bubble-role">${emoIcon}${player.icon} ${player.name}（${player.roleName}）</div>
+        <div class="speech-bubble-role">${emoIcon}${player.icon} ${player.name}（${player.roleName}）${emoLabel}</div>
         <div class="speech-bubble-text">${isThinking ? '正在思考...' : `"${text}"`}</div>
         ${autoLabel}
         ${thinkingLabel}
@@ -703,8 +738,9 @@ function drawVoteLine(fromCard, toPlayerId) {
     const filter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
     filter.setAttribute('id', 'glow');
     filter.innerHTML = `
-        <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+        <feGaussianBlur stdDeviation="5" result="coloredBlur"/>
         <feMerge>
+            <feMergeNode in="coloredBlur"/>
             <feMergeNode in="coloredBlur"/>
             <feMergeNode in="SourceGraphic"/>
         </feMerge>
@@ -735,10 +771,10 @@ function drawVoteLine(fromCard, toPlayerId) {
     document.body.appendChild(svg);
 
     // Animate line to target
-    requestAnimationFrame(() => {
+    setTimeout(() => {
         dashLine.setAttribute('x2', x2);
         dashLine.setAttribute('y2', y2);
-    });
+    }, 50);
 
     // Add vote icon at target
     setTimeout(() => {
@@ -1095,3 +1131,38 @@ document.addEventListener('click', (e) => {
     }
 });
 
+
+/**
+ * 抓取当前游戏画面的高光瞬间作为战报配图
+ * @param {string} reason - 记录抓取原因（如：第一晚死者）
+ */
+async function captureGameHighlight(reason = 'high-light') {
+    console.log(`[Highlight] Capturing game moment: ${reason}`);
+    let dataUrl = '';
+    
+    try {
+        if (window.gameStyle === '3d' && window.Scene3D && typeof window.Scene3D.captureSnapshot === 'function') {
+            // 3D 模式截图：使用高可靠性方案
+            dataUrl = window.Scene3D.captureSnapshot(0.85);
+        } else {
+            // 2D 模式截图：利用 html2canvas
+            const arena = document.querySelector('.arena');
+            if (arena && typeof html2canvas !== 'undefined') {
+                const canvas = await html2canvas(arena, { 
+                    backgroundColor: '#1a1a2e',
+                    scale: 1,
+                    logging: false,
+                    useCORS: true
+                });
+                dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+            }
+        }
+        
+        if (dataUrl) {
+            window._gameHighlight = dataUrl;
+            console.log(`[Highlight] Successfully captured ${reason}`);
+        }
+    } catch (err) {
+        console.warn('[Highlight] Capture failed:', err);
+    }
+}

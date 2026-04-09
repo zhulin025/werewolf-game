@@ -349,6 +349,11 @@ function handlePublicEvent(payload) {
                     VoiceSystem.speak(`${d.player_name}昨夜死亡`);
                     markPlayerDead(d.player_id);
                 }
+                // 捕捉高光时刻 (例如第一位玩家死亡瞬间)
+                if (gameState.day === 1 && typeof captureGameHighlight === 'function') {
+                    console.log('[Lobby] First night deaths detected, capturing highlight...');
+                    setTimeout(() => captureGameHighlight(), 1000); // 延迟1秒待3D聚焦
+                }
             } else {
                 addLog('🌿 昨夜平安无事', 'system');
             }
@@ -359,7 +364,7 @@ function handlePublicEvent(payload) {
         case 'speech': {
             const autoTag = payload.is_auto ? ' 🤖[系统代发]' : '';
             const logClass = payload.is_auto ? 'speak auto-action' : 'speak';
-            addLog(`💬 ${payload.player_name}：${payload.content}${autoTag}`, logClass);
+            addLog(`💬 ${payload.player_name}：${payload.content}${autoTag}`, logClass, payload.emotion || 'normal');
             VoiceSystem.speak(`${payload.player_name}说：${payload.content}`);
             // Show speech bubble on player card (same as local simulation)
             const speakerCard = document.getElementById(`player-${payload.player_id}`);
@@ -367,7 +372,7 @@ function handlePublicEvent(payload) {
                 speakerCard.classList.add('speaking');
                 const speakerPlayer = gameState.players.find(p => p.id === payload.player_id);
                 if (speakerPlayer) {
-                    showSpeechBubble(speakerCard, speakerPlayer, payload.content, payload.is_auto);
+                    showSpeechBubble(speakerCard, speakerPlayer, payload.content, payload.is_auto, false, payload.emotion || 'normal');
                 }
                 setTimeout(() => {
                     speakerCard.classList.remove('speaking');
@@ -560,16 +565,18 @@ function handleSpectatorGameEnd(payload) {
             if (typeof showPhaseAnnouncement === 'function') showPhaseAnnouncement('🐺 狼人胜利', '#e74c3c');
         }
         // Stats
-        const deadPlayers = gameState.players.filter(p => !p.isAlive);
-        document.getElementById('statRounds').textContent = payload.day || gameState.day;
-        document.getElementById('statDeaths').textContent = deadPlayers.length;
-        document.getElementById('statWolfKills').textContent = gameState.deathRecords.filter(r => r.cause === 'killed').length;
-        document.getElementById('statVotes').textContent = gameState.deathRecords.filter(r => r.cause === 'vote').length;
+        if (document.getElementById('goStatRounds')) document.getElementById('goStatRounds').textContent = payload.day || gameState.day;
+        if (document.getElementById('goStatDeaths')) document.getElementById('goStatDeaths').textContent = (payload.death_records ? payload.death_records.length : gameState.deathRecords.length);
+        if (document.getElementById('goStatWolfKills')) document.getElementById('goStatWolfKills').textContent = gameState.deathRecords.filter(r => r.cause === 'killed').length;
+        if (document.getElementById('goStatVotes')) document.getElementById('goStatVotes').textContent = gameState.deathRecords.filter(r => r.cause === 'vote').length;
         // Survivors
         const survivors = gameState.players.filter(p => p.isAlive);
         const survivorsContent = document.getElementById('survivorsListContent');
         if (survivorsContent) {
-            survivorsContent.innerHTML = survivors.map(p => `<span class="survivor-badge">${p.icon} ${p.name}</span>`).join('');
+            survivorsContent.innerHTML = survivors.map(p => {
+                const roleLabel = p.roleName ? `（${p.roleName}）` : '';
+                return `<span class="survivor-badge">${p.icon} ${p.name}${roleLabel}</span>`;
+            }).join('');
         }
         // Death summary
         const deathSummaryList = document.getElementById('deathSummaryList');

@@ -358,9 +358,12 @@
             </div>
         </div>
 
-        <div class="chronicles">
+        <div class="chronicles-toggle" onclick="document.getElementById('chroniclesPanel').classList.toggle('expanded')" title="Toggle Logs">📋</div>
+        
+        <div class="chronicles" id="chroniclesPanel">
             <div class="chronicles-header">
-                📜 CHRONICLES
+                <span>📜 游戏日志</span>
+                <span class="chronicles-close" onclick="document.getElementById('chroniclesPanel').classList.remove('expanded')">✕ 收起</span>
             </div>
             <div class="chronicles-log" id="chroniclesLog">
                 <!-- Log entries will be added here -->
@@ -401,22 +404,22 @@
                 <div class="game-over-stats" id="gameOverStats">
                     <div class="go-stat">
                         <span class="go-stat-icon">☀️</span>
-                        <span class="go-stat-value" id="statRounds">0</span>
+                        <span class="go-stat-value" id="goStatRounds">0</span>
                         <span class="go-stat-label">游戏轮次</span>
                     </div>
                     <div class="go-stat">
                         <span class="go-stat-icon">💀</span>
-                        <span class="go-stat-value" id="statDeaths">0</span>
+                        <span class="go-stat-value" id="goStatDeaths">0</span>
                         <span class="go-stat-label">死亡人数</span>
                     </div>
                     <div class="go-stat">
                         <span class="go-stat-icon">☠️</span>
-                        <span class="go-stat-value" id="statWolfKills">0</span>
+                        <span class="go-stat-value" id="goStatWolfKills">0</span>
                         <span class="go-stat-label">狼人击杀</span>
                     </div>
                     <div class="go-stat">
                         <span class="go-stat-icon">🗳️</span>
-                        <span class="go-stat-value" id="statVotes">0</span>
+                        <span class="go-stat-value" id="goStatVotes">0</span>
                         <span class="go-stat-label">投票出局</span>
                     </div>
                 </div>
@@ -433,7 +436,7 @@
 
                 <div style="display:flex;gap:10px;margin-top:8px;">
                     <button class="btn btn-secondary" onclick="showAnalysis()" style="flex:1; padding: 10px 5px; font-size: 13px;">📊 对局分析</button>
-                    <button class="btn btn-secondary" onclick="generateSharePoster()" style="flex:1; padding: 10px 5px; font-size: 13px; background: linear-gradient(135deg, #8e44ad, #9b59b6); color: white;">📸 生成战报</button>
+                    <button class="btn btn-secondary" id="generatePosterBtn" onclick="generateSharePoster()" style="flex:1; padding: 10px 5px; font-size: 13px; background: linear-gradient(135deg, #8e44ad, #9b59b6); margin-left: 2px; color: white;">📸 生成战报</button>
                     <button class="btn btn-primary" onclick="playAgain()" style="flex:1; padding: 10px 5px; font-size: 13px;">🔄 再来一局</button>
                 </div>
             </div>
@@ -696,6 +699,10 @@
 
             if (style === '3d') {
                 document.body.classList.add('mode-3d');
+                // 3D模式下默认展开日志区域
+                const panel = document.getElementById('chroniclesPanel');
+                if (panel) panel.classList.add('expanded');
+                
                 if (window.Scene3D && !window.Scene3D.initialized) {
                     window.Scene3D.init();
                 }

@@ -289,39 +289,11 @@ const server = http.createServer(async (req, res) => {
             if (actionType === 'speak') {
                 const { systemPrompt, userPrompt } = PromptBuilder.buildSpeechPrompt({ player, gameState: gs, memory: null, themePrompt: parsedBody.themePrompt });
                 const rawContent = await llmService.call(systemPrompt, userPrompt, { maxTokens: 800 });
-                let content = rawContent;
-                let emotion = 'normal';
-                
-                try {
-                    const cleaned = rawContent.replace(/```json/g, '').replace(/```/g, '').trim();
-                    const parsed = JSON.parse(cleaned);
-                    if (parsed.speech) {
-                        content = parsed.speech;
-                        emotion = parsed.emotion || 'normal';
-                    }
-                } catch (e) {
-                    const match = rawContent.match(/"speech"\s*:\s*"([^"]+)"/);
-                    if (match) content = match[1];
-                }
-                result = { content, emotion };
+                result = PromptBuilder.parseSpeechResponse(rawContent);
             } else if (actionType === 'last_words') {
                 const { systemPrompt, userPrompt } = PromptBuilder.buildSpeechPrompt({ player, gameState: gs, memory: null, themePrompt: parsedBody.themePrompt });
                 const rawContent = await llmService.call(systemPrompt, userPrompt + '\n\n你即将被出局，请发表遗言。30-60字。', { maxTokens: 600 });
-                let content = rawContent;
-                let emotion = 'fear';
-                
-                try {
-                    const cleaned = rawContent.replace(/```json/g, '').replace(/```/g, '').trim();
-                    const parsed = JSON.parse(cleaned);
-                    if (parsed.speech) {
-                        content = parsed.speech;
-                        emotion = parsed.emotion || 'normal';
-                    }
-                } catch (e) {
-                    const match = rawContent.match(/"speech"\s*:\s*"([^"]+)"/);
-                    if (match) content = match[1];
-                }
-                result = { content, emotion };
+                result = PromptBuilder.parseSpeechResponse(rawContent);
             } else if (actionType === 'vote') {
                 const { systemPrompt, userPrompt } = PromptBuilder.buildVotePrompt({ player, gameState: gs, validTargets, memory: null, themePrompt: parsedBody.themePrompt });
                 const response = await llmService.call(systemPrompt, userPrompt, { maxTokens: 300, temperature: 0.5 });

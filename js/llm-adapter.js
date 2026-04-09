@@ -120,7 +120,7 @@ class LLMAdapter {
         // 发言类返回包含 emotion 的对象，决策类返回玩家对象
         if (actionType === 'speak' || actionType === 'last_words') {
             return {
-                text: data.content || '让我想想...',
+                text: data.content || data.speech || data.text || (typeof data === 'string' ? data : '让我想想...'),
                 emotion: data.emotion || 'normal'
             };
         }

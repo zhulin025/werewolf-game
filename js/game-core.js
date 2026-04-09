@@ -850,6 +850,17 @@ async function resolveNightDeaths() {
             VoiceSystem.announce(`昨晚${death.player.name}${causeText}了`);
             showDeathAnimation(death.player.id);
             addDeathRecord(death.player.name, death.cause, gameState.day);
+            
+            // 首日死者揭晓，抓取最高光瞬间（仅抓取一次）
+            if (gameState.day === 1 && !window._gameHighlight) {
+                console.log('[Highlight] Scheduling first death capture (1s delay)...');
+                setTimeout(() => {
+                    if (typeof captureGameHighlight === 'function') {
+                        captureGameHighlight('First Night Death - Victim: ' + death.player.name);
+                    }
+                }, 1000); 
+            }
+            
             await sleep(1000);
         }
 
@@ -999,7 +1010,7 @@ async function simulateAISpeaking() {
             
         // 关键逻辑：在进行长时间播报前，先把当前发言打入系统的游戏日志中。
         // 这样紧接着触发的 nextPlayer 预生成大模型请求时，就能在上下文语境里看到这句发言了。
-        addLog(`💬 ${speakerLabel}：${speechText}`, 'speak');
+        addLog(`💬 ${speakerLabel}：${speechText}`, 'speak', speechEmotion);
         if (typeof gameAnalytics !== 'undefined') gameAnalytics.recordSpeech(gameState.day, player, speechText);
         SoundSystem.play('speak');
 
