@@ -159,6 +159,26 @@ function _makeWoodTexture(size = 512) {
     return new THREE.CanvasTexture(c);
 }
 
+function _makeGrassTexture(size = 512) {
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    const ctx = c.getContext('2d');
+    
+    ctx.fillStyle = '#2d5a27'; // base green
+    ctx.fillRect(0, 0, size, size);
+    
+    const id = ctx.getImageData(0, 0, size, size);
+    const d = id.data;
+    for (let i = 0; i < d.length; i += 4) {
+        const n = (Math.random() - 0.5) * 40;
+        d[i] = Math.max(0, Math.min(255, d[i] + n - 10));     // R
+        d[i + 1] = Math.max(0, Math.min(255, d[i + 1] + n));  // G
+        d[i + 2] = Math.max(0, Math.min(255, d[i + 2] + n - 20)); // B
+    }
+    ctx.putImageData(id, 0, 0);
+    return new THREE.CanvasTexture(c);
+}
+
 // ============================================================
 // SCENE BUILDING
 // ============================================================
@@ -166,7 +186,7 @@ function _buildLighting() {
     S.ambientLight = new THREE.AmbientLight(0xfff0e0, 2.8);  // day default — warm bright
     S.scene.add(S.ambientLight);
 
-    S.hemiLight = new THREE.HemisphereLight(0x8090c0, 0x3a2810, 1.2);
+    S.hemiLight = new THREE.HemisphereLight(0x8090c0, 0x3a4810, 1.2); // slight green bounce
     S.scene.add(S.hemiLight);
 
     // Moon/sun directional — default DAY
@@ -176,15 +196,15 @@ function _buildLighting() {
     S.mainLight.shadow.mapSize.set(2048, 2048);
     S.mainLight.shadow.camera.near = 0.5;
     S.mainLight.shadow.camera.far = 55;
-    S.mainLight.shadow.camera.left = -13;
-    S.mainLight.shadow.camera.right = 13;
-    S.mainLight.shadow.camera.top = 13;
-    S.mainLight.shadow.camera.bottom = -13;
+    S.mainLight.shadow.camera.left = -15;
+    S.mainLight.shadow.camera.right = 15;
+    S.mainLight.shadow.camera.top = 15;
+    S.mainLight.shadow.camera.bottom = -15;
     S.mainLight.shadow.bias = -0.0008;
     S.mainLight.shadow.normalBias = 0.02;
     S.scene.add(S.mainLight);
 
-    // 天窗阳光束（从顶部开口直射圆桌）
+    // 天窗阳光束（从顶部开口直射，保留作为中心高光点缀）
     S.sunBeam = new THREE.SpotLight(0xfff0cc, 4.0, 18, Math.PI / 5, 0.35, 1.5);
     S.sunBeam.position.set(0, 12, 0);
     S.sunBeam.target.position.set(0, 0, 0);
@@ -192,123 +212,27 @@ function _buildLighting() {
     S.scene.add(S.sunBeam);
     S.scene.add(S.sunBeam.target);
 
-    // Torch point lights (6)
-    const WALL_R = 9.2;
-    for (let i = 0; i < 6; i++) {
-        const a = (i / 6) * Math.PI * 2;
-        const light = new THREE.PointLight(0xff5010, 1.3, 13, 2);
-        light.position.set(WALL_R * Math.cos(a), 2.6, WALL_R * Math.sin(a));
-        S.scene.add(light);
-        S.torchLights.push({ light, baseIntensity: 1.3, phase: i * 0.85 });
-        _buildTorchMesh(light.position.clone());
-    }
-
-    // Candle point lights on table (3)
-    const candlePos = [
-        new THREE.Vector3(0, 1.2, 0),
-        new THREE.Vector3(1.1, 1.2, 0.7),
-        new THREE.Vector3(-0.9, 1.2, -1.0),
-    ];
-    candlePos.forEach((p, i) => {
-        const cl = new THREE.PointLight(0xffaa30, 0.6, 5, 2);
-        cl.position.copy(p);
-        S.scene.add(cl);
-        S.torchLights.push({ light: cl, baseIntensity: 0.6, phase: i * 1.4 });
-    });
-}
-
-function _buildTorchMesh(pos) {
-    const g = new THREE.Group();
-    const metalMat = new THREE.MeshStandardMaterial({ color: 0x4a4a4a, roughness: 0.55, metalness: 0.85 });
-    const woodMat  = new THREE.MeshStandardMaterial({ color: 0x3a1c08, roughness: 0.95 });
-    const flameMat = new THREE.MeshStandardMaterial({
-        color: 0xff7700, emissive: 0xff3300, emissiveIntensity: 2.5,
-        transparent: true, opacity: 0.92,
-    });
-
-    // Wall bracket
-    const brkt = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.32, 6), metalMat);
-    brkt.rotation.z = Math.PI / 3.5;
-    brkt.position.set(-0.12, 0.0, 0);
-    g.add(brkt);
-
-    // Torch stick
-    const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.022, 0.32, 8), woodMat);
-    stick.position.set(0, 0.18, 0);
-    g.add(stick);
-
-    // Flame
-    const flame = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), flameMat);
-    flame.position.set(0, 0.38, 0);
-    g.add(flame);
-    S.torchFlames.push(flame);
-
-    // Orient toward center
-    g.position.copy(pos);
-    const dir = new THREE.Vector3(-pos.x, 0, -pos.z).normalize();
-    g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
-    g.position.copy(pos); // restore after quaternion
-    S.scene.add(g);
+    // No torches on grass field
+    S.torchLights = [];
+    S.torchFlames = [];
 }
 
 function _buildArena() {
-    const stoneTex = _makeStoneTexture(1024, false);
-    stoneTex.repeat.set(10, 1.8);
-    stoneTex.wrapS = stoneTex.wrapT = THREE.RepeatWrapping;
+    const grassTex = _makeGrassTexture(1024);
+    grassTex.repeat.set(16, 16);
+    grassTex.wrapS = grassTex.wrapT = THREE.RepeatWrapping;
 
-    const floorTex = _makeStoneTexture(1024, true);
-    floorTex.repeat.set(7, 7);
-    floorTex.wrapS = floorTex.wrapT = THREE.RepeatWrapping;
-
-    // Floor
-    const floorMat = new THREE.MeshStandardMaterial({ map: floorTex, color: 0x2a2a2a, roughness: 0.92 });
-    const floor = new THREE.Mesh(new THREE.CircleGeometry(12, 60), floorMat);
+    // Grass Floor
+    const floorMat = new THREE.MeshStandardMaterial({ map: grassTex, color: 0xcccccc, roughness: 1.0, metalness: 0.0 });
+    const floor = new THREE.Mesh(new THREE.CircleGeometry(30, 60), floorMat);
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
     S.scene.add(floor);
 
-    // Walls (inner face)
-    const wallMat = new THREE.MeshStandardMaterial({ map: stoneTex, color: 0x222222, roughness: 0.96, side: THREE.BackSide });
-    const walls = new THREE.Mesh(new THREE.CylinderGeometry(11, 11, 7, 40, 1, true), wallMat);
-    walls.position.y = 3.5;
-    walls.receiveShadow = true;
-    S.scene.add(walls);
-
-    // Ceiling ring (with central opening for sky/moon)
-    const ceilMat = new THREE.MeshStandardMaterial({ map: stoneTex, color: 0x1a1a1a, roughness: 0.98, side: THREE.BackSide });
-    const ceil = new THREE.Mesh(new THREE.RingGeometry(3.5, 11, 40), ceilMat);
-    ceil.rotation.x = Math.PI / 2;
-    ceil.position.y = 7.0;
-    S.scene.add(ceil);
-
-    // Pillars (6)
-    const pillarTex = _makeStoneTexture(512, false);
-    const pillarMat = new THREE.MeshStandardMaterial({ map: pillarTex, color: 0x2e2e2e, roughness: 0.92 });
-    const capMat    = new THREE.MeshStandardMaterial({ color: 0x383838, roughness: 0.88 });
-    for (let i = 0; i < 6; i++) {
-        const a = (i / 6) * Math.PI * 2;
-        const px = 9.2 * Math.cos(a), pz = 9.2 * Math.sin(a);
-
-        const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.55, 7.2, 14), pillarMat);
-        shaft.position.set(px, 3.6, pz);
-        shaft.castShadow = shaft.receiveShadow = true;
-        S.scene.add(shaft);
-
-        // Capital
-        const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.45, 0.35, 14), capMat);
-        cap.position.set(px, 7.25, pz);
-        S.scene.add(cap);
-
-        // Base
-        const base = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.65, 0.2, 14), capMat);
-        base.position.set(px, 0.1, pz);
-        S.scene.add(base);
-    }
-
     // Sky dome
     S.skyMesh = new THREE.Mesh(
         new THREE.SphereGeometry(55, 32, 16),
-        new THREE.MeshBasicMaterial({ color: 0x04010d, side: THREE.BackSide })
+        new THREE.MeshBasicMaterial({ color: 0x0a1622, side: THREE.BackSide })
     );
     S.scene.add(S.skyMesh);
 
@@ -346,49 +270,7 @@ function _buildArena() {
 }
 
 function _buildTable() {
-    const woodTex = _makeWoodTexture(512);
-    const tableMat = new THREE.MeshStandardMaterial({ map: woodTex, color: 0x1e0d04, roughness: 0.72 });
-    const stoneMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9 });
-
-    // Table top
-    const top = new THREE.Mesh(new THREE.CylinderGeometry(2.9, 2.9, 0.14, 56), tableMat);
-    top.position.y = 0.8;
-    top.receiveShadow = top.castShadow = true;
-    S.scene.add(top);
-
-    // Table edge trim
-    const trim = new THREE.Mesh(new THREE.TorusGeometry(2.9, 0.05, 8, 56), stoneMat);
-    trim.rotation.x = Math.PI / 2;
-    trim.position.y = 0.8;
-    S.scene.add(trim);
-
-    // Table base
-    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.9, 0.78, 14), stoneMat);
-    base.position.y = 0.39;
-    base.castShadow = base.receiveShadow = true;
-    S.scene.add(base);
-
-    // Candles
-    const cPos = [
-        { x: 0,    z: 0    },
-        { x: 1.1,  z: 0.7  },
-        { x: -0.9, z: -1.0 },
-    ];
-    const candleMat = new THREE.MeshStandardMaterial({ color: 0xf0e0c0, roughness: 0.9 });
-    const flameMat  = new THREE.MeshStandardMaterial({
-        color: 0xffcc00, emissive: 0xff8800, emissiveIntensity: 3.5,
-        transparent: true, opacity: 0.95,
-    });
-    cPos.forEach((cp, i) => {
-        const cd = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.22, 8), candleMat);
-        cd.position.set(cp.x, 0.97, cp.z);
-        S.scene.add(cd);
-
-        const fl = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 8), flameMat);
-        fl.position.set(cp.x, 1.12, cp.z);
-        S.scene.add(fl);
-        S.torchFlames.push(fl);
-    });
+    // Left completely empty because animals sit directly on the grass.
 }
 
 function _buildDustParticles() {
@@ -713,10 +595,6 @@ function _nightTransition() {
         if (S.sunMesh) addTween(S.sunMesh.position, { y: -20 }, 2.0);
         if (S.moonMesh) addTween(S.moonMesh.position, { y: 38 }, 2.0);
 
-        // Keep torches off to match bright day theme
-        S.torchLights.forEach(tl => {
-            addTween(tl.light, { intensity: 0 }, 1.8);
-        });
         _showPhaseOverlay('🌙', '天黑请闭眼', '#4466ff');
         setTimeout(resolve, 3200);
     });
@@ -735,10 +613,6 @@ function _dayTransition() {
         if (S.sunMesh) addTween(S.sunMesh.position, { y: 38 }, 2.0);
         if (S.moonMesh) addTween(S.moonMesh.position, { y: -20 }, 2.0);
         
-        // 熄灭火把/蜡烛
-        S.torchLights.forEach(tl => {
-            addTween(tl.light, { intensity: 0 }, 2.0);
-        });
         _showPhaseOverlay('☀️', '天亮了', '#ffcc00');
         setTimeout(resolve, 3200);
     });

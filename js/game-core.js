@@ -917,46 +917,57 @@ async function simulateAISpeaking() {
     const alivePlayers = gameState.players.filter(p => p.isAlive);
     console.log('simulateAISpeaking: starting with', alivePlayers.length, 'players');
 
+    // 用于预加载下一个玩家的发言，消除"思考中..."导致的停顿空隙
+    let prefetchedSpeechText = null;
+
     for (let i = 0; i < alivePlayers.length; i++) {
         if (gameState.phase === 'end') return;
         const player = alivePlayers[i];
         console.log('Speaking:', player.name, player.role);
 
-        // Highlight current AI speaker
+        // Highlight current speaker
         const speakerCard = document.getElementById(`player-${player.id}`);
         if (speakerCard) speakerCard.classList.add('speaking');
 
         // Generate speech — human or AI
         let speechText;
-        if (player.isHuman && typeof showHumanSpeechInput === 'function') {
-            // 人类发言：显示输入框并等待确认
-            // 注意：不能用 try/catch 包裹 waitForHumanAction，否则任何错误都会导致误判断为"跳过"
-            console.log(`[Human] 轮到 ${player.name} 发言...`);
-            showHumanSpeechInput();
-            speechText = await waitForHumanAction();
-            if (!speechText || !speechText.trim()) speechText = '过';
-            console.log(`[Human] 获得发言: ${speechText}`);
+
+        // 如果有预加载的发言内容，直接使用，秒出内容
+        if (prefetchedSpeechText !== null) {
+            speechText = prefetchedSpeechText;
+            prefetchedSpeechText = null;
         } else {
-            // AI 发言：显示思考动画
-            try {
-                if (speakerCard) {
-                    showSpeechBubble(speakerCard, player, '正在思考...', false, true);
+            if (player.isHuman && typeof showHumanSpeechInput === 'function') {
+                console.log(`[Human] 轮到 ${player.name} 发言...`);
+                showHumanSpeechInput();
+                speechText = await waitForHumanAction();
+                if (!speechText || !speechText.trim()) speechText = '过';
+                console.log(`[Human] 获得发言: ${speechText}`);
+            } else {
+                try {
+                    if (speakerCard) {
+                        showSpeechBubble(speakerCard, player, '正在思考...', false, true);
+                    }
+                    console.log(`[AI] ${player.name} 思考中...`);
+                    speechText = await generateSmartSpeech(player);
+                    hideSpeechBubble();
+                } catch (speechErr) {
+                    console.error(`[AI] ${player.name} 发言失败:`, speechErr);
+                    speechText = generateAISpeak(player); // 失败直接用模板库
+                    hideSpeechBubble();
                 }
-                console.log(`[AI] ${player.name} 思考中...`);
-                speechText = await generateSmartSpeech(player);
-                hideSpeechBubble();
-            } catch (speechErr) {
-                console.error(`[AI] ${player.name} 发言失败:`, speechErr);
-                speechText = generateAISpeak(player); // 直接用模板库
-                hideSpeechBubble();
             }
         }
+
         console.log(`[Game] Got speech for ${player.name}: "${(speechText || '').substring(0, 50)}..."`);
 
-        // 人类参战时隐藏其他玩家的角色（防止推身份作弊），自己发言显示完整信息
+        // 人类参战时隐藏其他玩家的角色（防止推身份作弊）
         const speakerLabel = isHumanPlaying() && !player.isHuman
             ? player.name
             : `${player.name}（${player.roleName}）`;
+            
+        // 关键逻辑：在进行长时间播报前，先把当前发言打入系统的游戏日志中。
+        // 这样紧接着触发的 nextPlayer 预生成大模型请求时，就能在上下文语境里看到这句发言了。
         addLog(`💬 ${speakerLabel}：${speechText}`, 'speak');
         if (typeof gameAnalytics !== 'undefined') gameAnalytics.recordSpeech(gameState.day, player, speechText);
         SoundSystem.play('speak');
@@ -964,7 +975,35 @@ async function simulateAISpeaking() {
         showSpeechBubble(speakerCard, player, speechText);
         VoiceSystem.speakAs(`${player.name}说：${speechText}`, player.role.toLowerCase());
 
-        await pausedSleep(3000);
+        // 动态计算气泡显示时间以匹配语音时长 (约250ms/字，并考虑VoiceSystem的全局语速设置)
+        const voiceRate = (typeof VoiceSystem !== 'undefined' && VoiceSystem.speechRate) ? VoiceSystem.speechRate : 1.0;
+        const totalTextLength = player.name.length + 2 + speechText.length; // 包含"XX说："的长度
+        const displayDuration = Math.max(3000, (totalTextLength * 260) / voiceRate);
+
+        // 核心优化：在等待当前语音播报（pausedSleep）的过程中，【并行】去预生成下一个玩家的发言
+        let prefetchPromise = null;
+        const nextPlayer = alivePlayers[i + 1];
+        if (nextPlayer && gameState.phase !== 'end') {
+            if (nextPlayer.isHuman && typeof showHumanSpeechInput === 'function') {
+                // 人类不预加载弹窗，避免打断人类玩家听当前人的发言
+                prefetchPromise = Promise.resolve(null);
+            } else {
+                prefetchPromise = generateSmartSpeech(nextPlayer).catch(e => {
+                    console.error(`[AI] ${nextPlayer.name} 预生成发言失败:`, e);
+                    return generateAISpeak(nextPlayer);
+                });
+            }
+        }
+
+        // 等待当前语音气泡展示及播报结束
+        await pausedSleep(displayDuration);
+        
+        // 只有到了这里，才去收取之前并行的请求结果。
+        // 如果 API 返回很快（小于语音播报时间），这里的 await 瞬间就通过了。
+        // 如果 API 返回较慢（大于语音播报时间），则自然等待它拿到结果即可。不会出错。
+        if (prefetchPromise) {
+            prefetchedSpeechText = await prefetchPromise;
+        }
 
         hideSpeechBubble();
         if (speakerCard) speakerCard.classList.remove('speaking');
