@@ -287,22 +287,50 @@ const server = http.createServer(async (req, res) => {
             // 用 LLM 生成
             let result;
             if (actionType === 'speak') {
-                const { systemPrompt, userPrompt } = PromptBuilder.buildSpeechPrompt({ player, gameState: gs, memory: null });
-                const content = await llmService.call(systemPrompt, userPrompt, { maxTokens: 800 });
-                result = { content };
+                const { systemPrompt, userPrompt } = PromptBuilder.buildSpeechPrompt({ player, gameState: gs, memory: null, themePrompt: parsedBody.themePrompt });
+                const rawContent = await llmService.call(systemPrompt, userPrompt, { maxTokens: 800 });
+                let content = rawContent;
+                let emotion = 'normal';
+                
+                try {
+                    const cleaned = rawContent.replace(/```json/g, '').replace(/```/g, '').trim();
+                    const parsed = JSON.parse(cleaned);
+                    if (parsed.speech) {
+                        content = parsed.speech;
+                        emotion = parsed.emotion || 'normal';
+                    }
+                } catch (e) {
+                    const match = rawContent.match(/"speech"\s*:\s*"([^"]+)"/);
+                    if (match) content = match[1];
+                }
+                result = { content, emotion };
             } else if (actionType === 'last_words') {
-                const { systemPrompt, userPrompt } = PromptBuilder.buildSpeechPrompt({ player, gameState: gs, memory: null });
-                const content = await llmService.call(systemPrompt, userPrompt + '\n\n你即将被出局，请发表遗言。30-60字。', { maxTokens: 600 });
-                result = { content };
+                const { systemPrompt, userPrompt } = PromptBuilder.buildSpeechPrompt({ player, gameState: gs, memory: null, themePrompt: parsedBody.themePrompt });
+                const rawContent = await llmService.call(systemPrompt, userPrompt + '\n\n你即将被出局，请发表遗言。30-60字。', { maxTokens: 600 });
+                let content = rawContent;
+                let emotion = 'fear';
+                
+                try {
+                    const cleaned = rawContent.replace(/```json/g, '').replace(/```/g, '').trim();
+                    const parsed = JSON.parse(cleaned);
+                    if (parsed.speech) {
+                        content = parsed.speech;
+                        emotion = parsed.emotion || 'normal';
+                    }
+                } catch (e) {
+                    const match = rawContent.match(/"speech"\s*:\s*"([^"]+)"/);
+                    if (match) content = match[1];
+                }
+                result = { content, emotion };
             } else if (actionType === 'vote') {
-                const { systemPrompt, userPrompt } = PromptBuilder.buildVotePrompt({ player, gameState: gs, validTargets, memory: null });
+                const { systemPrompt, userPrompt } = PromptBuilder.buildVotePrompt({ player, gameState: gs, validTargets, memory: null, themePrompt: parsedBody.themePrompt });
                 const response = await llmService.call(systemPrompt, userPrompt, { maxTokens: 300, temperature: 0.5 });
                 const match = response.match(/(\d+)/);
                 result = { target_id: match ? parseInt(match[1]) : validTargets?.[0] };
             } else {
                 // 夜间行动
                 const { systemPrompt, userPrompt } = PromptBuilder.buildNightActionPrompt({
-                    player, gameState: gs, actionType, validTargets: validTargets || [], context: context || {}, memory: null,
+                    player, gameState: gs, actionType, validTargets: validTargets || [], context: context || {}, memory: null, themePrompt: parsedBody.themePrompt
                 });
                 const response = await llmService.call(systemPrompt, userPrompt, { maxTokens: 300, temperature: 0.5 });
                 const match = response.match(/-?\d+/);

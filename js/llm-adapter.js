@@ -101,6 +101,7 @@ class LLMAdapter {
             actionType,
             validTargets: context.validTargets || alivePlayers.filter(p => p.id !== player.id).map(p => p.id),
             context: context.actionContext || {},
+            themePrompt: context.themePrompt || '',
         };
 
         const resp = await fetch(`${this.serverApiBase}/api/ai/generate`, {
@@ -116,9 +117,12 @@ class LLMAdapter {
         }
         const data = await resp.json();
 
-        // 发言类返回 content，决策类返回玩家对象（与本地 fallback 保持一致）
+        // 发言类返回包含 emotion 的对象，决策类返回玩家对象
         if (actionType === 'speak' || actionType === 'last_words') {
-            return data.content || '让我想想...';
+            return {
+                text: data.content || '让我想想...',
+                emotion: data.emotion || 'normal'
+            };
         }
 
         // LLM 返回 target_id（数字），需要转换为玩家对象
@@ -155,7 +159,10 @@ class LLMAdapter {
         };
 
         const pool = roleResponses[player.role] || roleResponses.VILLAGER;
-        return pool[Math.floor(Math.random() * pool.length)];
+        return {
+            text: pool[Math.floor(Math.random() * pool.length)],
+            emotion: 'normal'
+        };
     }
 
     /**

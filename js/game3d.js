@@ -522,13 +522,23 @@ function _updateNameplates() {
 // ============================================================
 // SPEECH BUBBLE
 // ============================================================
-function _showSpeech(player, text, isThinking = false) {
+function _showSpeech(player, text, isThinking = false, emotion = 'normal') {
     _hideSpeech();
 
     const el = document.createElement('div');
     el.className = 'speech-bubble-3d' + (isThinking ? ' thinking-3d' : '');
+    
+    const emotionMap = {
+        'normal': '',
+        'angry': '💢 ',
+        'doubt': '🤔 ',
+        'fear': '😰 ',
+        'happy': '😆 '
+    };
+    const emoIcon = emotionMap[emotion] || '';
+
     el.innerHTML = `
-        <div class="sb-name">${player.icon || '👤'} ${player.name}</div>
+        <div class="sb-name">${emoIcon}${player.icon || '👤'} ${player.name}</div>
         <div class="sb-text">${isThinking ? '正在思考' : `"${text}"`}</div>
     `;
     S.nameplateLayer.appendChild(el);

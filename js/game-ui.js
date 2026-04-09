@@ -293,9 +293,9 @@ function getOrCreateBubbleLayer() {
     return layer;
 }
 
-function showSpeechBubble(card, player, text, isAuto = false, isThinking = false) {
+function showSpeechBubble(card, player, text, isAuto = false, isThinking = false, emotion = 'normal') {
     if (is3D()) {
-        window.Scene3D.showSpeechBubble(player, text, isThinking);
+        window.Scene3D.showSpeechBubble(player, text, isThinking, emotion);
         return;
     }
     hideSpeechBubble(); // Remove any existing bubble
@@ -307,8 +307,18 @@ function showSpeechBubble(card, player, text, isAuto = false, isThinking = false
     const autoLabel = isAuto ? '<div class="speech-bubble-auto">🤖 系统代发（Agent超时）</div>' : '';
     const thinkingLabel = isThinking ? '<div class="thinking-dots"><span>.</span><span>.</span><span>.</span></div>' : '';
     
+    // Emotion mapping
+    const emotionMap = {
+        'normal': '',
+        'angry': '💢 ',
+        'doubt': '🤔 ',
+        'fear': '😰 ',
+        'happy': '😆 '
+    };
+    const emoIcon = emotionMap[emotion] || '';
+
     bubble.innerHTML = `
-        <div class="speech-bubble-role">${player.icon} ${player.name}（${player.roleName}）</div>
+        <div class="speech-bubble-role">${emoIcon}${player.icon} ${player.name}（${player.roleName}）</div>
         <div class="speech-bubble-text">${isThinking ? '正在思考...' : `"${text}"`}</div>
         ${autoLabel}
         ${thinkingLabel}

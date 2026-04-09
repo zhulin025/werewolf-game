@@ -1,7 +1,14 @@
 async function generateSmartSpeech(player) {
     try {
+        const themeId = window.currentGameTheme || 'standard';
+        let themePrompt = "";
+        if (typeof getThemePrompt === 'function') {
+            themePrompt = getThemePrompt(themeId, player.id, player.camp, player.roleName);
+        }
+
         const context = {
             player: player,
+            themePrompt: themePrompt, // newly added
             gameState: {
                 day: gameState.day,
                 players: gameState.players,
@@ -27,7 +34,10 @@ async function generateSmartSpeech(player) {
     }
 
     // Fallback to basic speech
-    return generateAISpeak(player);
+    return {
+        text: generateAISpeak(player),
+        emotion: 'normal'
+    };
 }
 
 function getRecentSpeeches() {

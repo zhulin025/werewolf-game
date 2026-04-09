@@ -116,8 +116,23 @@
             </div>
         </div>
 
-        <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">选择模式</div>
+        <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 10px;">选择剧本主题</div>
+        <div class="game-mode-selector" id="gameThemeSelector" style="margin-bottom: 16px;">
+            <div class="mode-btn active" onclick="selectGameTheme('standard', this)">
+                <div class="mode-name">基础动物营</div>
+                <div class="mode-desc">带有各自小脾气</div>
+            </div>
+            <div class="mode-btn" onclick="selectGameTheme('journey_to_west', this)">
+                <div class="mode-name">西游疑云</div>
+                <div class="mode-desc">神仙妖怪乱入</div>
+            </div>
+            <div class="mode-btn" onclick="selectGameTheme('zhen_huan', this)">
+                <div class="mode-name">后宫风云</div>
+                <div class="mode-desc">全员娘娘腹黑局</div>
+            </div>
+        </div>
 
+        <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 10px;">选择模式规则</div>
         <div class="game-mode-selector" id="gameModeSelector">
             <div class="mode-btn active" onclick="selectGameMode('standard', this)">
                 <div class="mode-name">12人标准局</div>
@@ -417,8 +432,9 @@
                 </div>
 
                 <div style="display:flex;gap:10px;margin-top:8px;">
-                    <button class="btn btn-secondary" onclick="showAnalysis()" style="flex:1;">📊 对局分析</button>
-                    <button class="btn btn-primary" onclick="playAgain()" style="flex:1;">再来一局</button>
+                    <button class="btn btn-secondary" onclick="showAnalysis()" style="flex:1; padding: 10px 5px; font-size: 13px;">📊 对局分析</button>
+                    <button class="btn btn-secondary" onclick="generateSharePoster()" style="flex:1; padding: 10px 5px; font-size: 13px; background: linear-gradient(135deg, #8e44ad, #9b59b6); color: white;">📸 生成战报</button>
+                    <button class="btn btn-primary" onclick="playAgain()" style="flex:1; padding: 10px 5px; font-size: 13px;">🔄 再来一局</button>
                 </div>
             </div>
         </div>
@@ -640,6 +656,8 @@
     </div>
 
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="js/themes.js"></script>
     <script src="js/systems.js"></script>
     <script src="js/sound-voice.js"></script>
     <script src="js/achievements.js"></script>
@@ -653,6 +671,7 @@
     <script src="js/human-agent.js"></script>
     <script src="js/llm-adapter.js"></script>
     <script src="js/analysis.js"></script>
+    <script src="js/share.js"></script>
     <script type="module" src="js/game3d.js"></script>
     <script>
         // ============ GLOBAL ERROR HANDLER ============

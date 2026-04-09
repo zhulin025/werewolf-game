@@ -169,19 +169,28 @@ function initGame() {
         [rolePool[i], rolePool[j]] = [rolePool[j], rolePool[i]];
     }
 
+    // 获取选定主题
+    const themeName = window.currentGameTheme || 'standard';
+    let themeConfig = { players: [] };
+    if (typeof GameThemes !== 'undefined' && GameThemes[themeName]) {
+        themeConfig = GameThemes[themeName];
+    }
+    
     // Create players
     gameState.players = [];
     for (let i = 0; i < playerCount; i++) {
         const roleKey = rolePool[i];
         const role = ROLES[roleKey];
+        const themePlayer = themeConfig.players && themeConfig.players[i] ? themeConfig.players[i] : null;
+        
         gameState.players.push({
             id: i,
             number: i + 1,
-            name: PLAYER_NAMES[i % PLAYER_NAMES.length],
+            name: themePlayer ? themePlayer.name : PLAYER_NAMES[i % PLAYER_NAMES.length],
             role: roleKey,
             roleName: role.name,
             camp: role.camp,
-            icon: role.icon,
+            icon: themePlayer ? themePlayer.icon : role.icon,
             isAlive: true,
             isAI: true,
             isHuman: false // All AI, human is just observer
@@ -761,10 +770,18 @@ function setGameMode(mode) {
     addLog(`🎮 游戏模式：${modeInfo.name}`, 'system');
 }
 
+window.currentGameTheme = 'standard';
+
+function selectGameTheme(theme, btn) {
+    document.querySelectorAll('#gameThemeSelector .mode-btn').forEach(b => b.classList.remove('active'));
+    if(btn) btn.classList.add('active');
+    window.currentGameTheme = theme;
+}
+
 function selectGameMode(mode, btn) {
     // Update UI
-    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
+    document.querySelectorAll('#gameModeSelector .mode-btn').forEach(b => b.classList.remove('active'));
+    if(btn) btn.classList.add('active');
 
     // Set mode
     currentGameMode = mode;
@@ -772,7 +789,7 @@ function selectGameMode(mode, btn) {
     // Update button text to show selected mode
     const modeInfo = GameModes[mode];
     const startBtn = document.querySelector('.start-btn');
-    startBtn.textContent = `开始 ${modeInfo.name}`;
+    if(startBtn) startBtn.textContent = `开始 ${modeInfo.name}`;
 }
 
 async function simulateAIAction(player, roleKey, actionFn) {
@@ -938,11 +955,14 @@ async function simulateAISpeaking() {
         if (speakerCard) speakerCard.classList.add('speaking');
 
         // Generate speech — human or AI
-        let speechText;
+
+        let speechText = '';
+        let speechEmotion = 'normal';
 
         // 如果有预加载的发言内容，直接使用，秒出内容
         if (prefetchedSpeechText !== null) {
-            speechText = prefetchedSpeechText;
+            speechText = prefetchedSpeechText.text || prefetchedSpeechText;
+            speechEmotion = prefetchedSpeechText.emotion || 'normal';
             prefetchedSpeechText = null;
         } else {
             if (player.isHuman && typeof showHumanSpeechInput === 'function') {
@@ -957,17 +977,20 @@ async function simulateAISpeaking() {
                         showSpeechBubble(speakerCard, player, '正在思考...', false, true);
                     }
                     console.log(`[AI] ${player.name} 思考中...`);
-                    speechText = await generateSmartSpeech(player);
+                    const result = await generateSmartSpeech(player);
+                    speechText = typeof result === 'string' ? result : result.text;
+                    if(result.emotion) speechEmotion = result.emotion;
                     hideSpeechBubble();
                 } catch (speechErr) {
                     console.error(`[AI] ${player.name} 发言失败:`, speechErr);
-                    speechText = generateAISpeak(player); // 失败直接用模板库
+                    const result = generateAISpeak(player); // 失败直接用模板库
+                    speechText = typeof result === 'string' ? result : (result.text || result);
                     hideSpeechBubble();
                 }
             }
         }
 
-        console.log(`[Game] Got speech for ${player.name}: "${(speechText || '').substring(0, 50)}..."`);
+        console.log(`[Game] Got speech for ${player.name}: "${(speechText || '').substring(0, 50)}..." [Emotion: ${speechEmotion}]`);
 
         // 人类参战时隐藏其他玩家的角色（防止推身份作弊）
         const speakerLabel = isHumanPlaying() && !player.isHuman
@@ -980,7 +1003,8 @@ async function simulateAISpeaking() {
         if (typeof gameAnalytics !== 'undefined') gameAnalytics.recordSpeech(gameState.day, player, speechText);
         SoundSystem.play('speak');
 
-        showSpeechBubble(speakerCard, player, speechText);
+        // 将情绪传递给显示气泡的方法
+        showSpeechBubble(speakerCard, player, speechText, false, false, speechEmotion);
         VoiceSystem.speakAs(`${player.name}说：${speechText}`, player.role.toLowerCase());
 
         // 动态计算气泡显示时间的最短保障 (以防语音引擎没开启时过快刷屏)
@@ -998,7 +1022,8 @@ async function simulateAISpeaking() {
             } else {
                 prefetchPromise = generateSmartSpeech(nextPlayer).catch(e => {
                     console.error(`[AI] ${nextPlayer.name} 预生成发言失败:`, e);
-                    return generateAISpeak(nextPlayer);
+                    const retryResult = generateAISpeak(nextPlayer);
+                    return { text: typeof retryResult === 'string' ? retryResult : retryResult.text, emotion: 'normal' };
                 });
             }
         }
