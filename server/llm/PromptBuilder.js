@@ -78,7 +78,7 @@ ${buildPersonalityPrompt(player.name)}
 【发言要求】
 - 字数：30-60字左右，简洁有力但有内容
 - 必须符合你的性格和说话风格
-- **必须返回严格的JSON格式**，不要包含任何markdown标记（如```json）！
+- **必须返回严格的JSON格式**，不要包含任何markdown标记（如\`\`\`json）！
 - JSON格式：{"emotion": "当前情绪", "speech": "你的发言内容"}
 - emotion 选项必须是：normal(平静), angry(愤怒/反击), doubt(怀疑), fear(害怕/心虚), happy(得意)
 - 示例：{"emotion": "angry", "speech": "那我就直说了，3号金水你接得太顺理成章，我严重怀疑你的身份！"}
