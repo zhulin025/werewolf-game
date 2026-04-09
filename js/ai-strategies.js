@@ -318,7 +318,11 @@ function makeAISmartDecision(player, action, gameContext = {}) {
 
         case 'vote':
             // 不能投自己
-            const otherPlayers = alivePlayers.filter(p => p.id !== player.id);
+            let otherPlayers = alivePlayers.filter(p => p.id !== player.id);
+            if (gameContext.allowedTargets) {
+                otherPlayers = gameContext.allowedTargets.filter(p => p.id !== player.id);
+            }
+            if (otherPlayers.length === 0) return null;
 
             // 1. 优先投已确认的狼人
             const knownWolves = otherPlayers.filter(p =>
@@ -479,13 +483,142 @@ async function startVotingPhase() {
 
         if (isTie) {
             addLog(`⚖️ 平票，进入平票辩护环节`, 'system');
+            VoiceSystem.announce('投票出现平局，请平票玩家进行一轮辩护发言');
             await sleep(2000);
-            // Simple: random from tied
+
             const tiedPlayers = Object.entries(voteCount)
                 .filter(([_, count]) => count === maxVotes)
                 .map(([id]) => gameState.players.find(p => p.id === parseInt(id)));
-            mostVoted = tiedPlayers[Math.floor(Math.random() * tiedPlayers.length)];
-            addLog(`⚖️ 随机选择 ${mostVoted.name} 出局`, 'death');
+
+            // 1. PK发言
+            let prefetchedSpeechText = null;
+            for (let i = 0; i < tiedPlayers.length; i++) {
+                if (gameState.phase === 'end') return;
+                const player = tiedPlayers[i];
+                const speakerCard = document.getElementById(`player-${player.id}`);
+                if (speakerCard) speakerCard.classList.add('speaking');
+
+                let speechText;
+                if (prefetchedSpeechText !== null) {
+                    speechText = prefetchedSpeechText;
+                    prefetchedSpeechText = null;
+                } else {
+                    if (player.isHuman && typeof showHumanSpeechInput === 'function') {
+                        showHumanSpeechInput();
+                        speechText = await waitForHumanAction();
+                        if (!speechText || !speechText.trim()) speechText = '我是好人，不要投我';
+                    } else {
+                        try {
+                            if (speakerCard) showSpeechBubble(speakerCard, player, '正在思考...', false, true);
+                            speechText = await generateSmartSpeech(player);
+                            hideSpeechBubble();
+                        } catch (e) {
+                            speechText = generateAISpeak(player);
+                            hideSpeechBubble();
+                        }
+                    }
+                }
+
+                const speakerLabel = (typeof isHumanPlaying !== 'undefined' && isHumanPlaying()) && !player.isHuman ? player.name : `${player.name}（${player.roleName}）`;
+                addLog(`💬 ${speakerLabel} (PK辩护)：${speechText}`, 'speak');
+                SoundSystem.play('speak');
+                showSpeechBubble(speakerCard, player, speechText);
+                VoiceSystem.speakAs(`${player.name}辩护说：${speechText}`, player.role.toLowerCase());
+
+                const voiceRate = (typeof VoiceSystem !== 'undefined' && VoiceSystem.speechRate) ? VoiceSystem.speechRate : 1.0;
+                const totalTextLength = player.name.length + 5 + speechText.length;
+                const minDisplayDuration = Math.max(3000, (totalTextLength * 260) / voiceRate);
+
+                let prefetchPromise = null;
+                const nextPlayer = tiedPlayers[i+1];
+                if (nextPlayer && gameState.phase !== 'end') {
+                    if (nextPlayer.isHuman && typeof showHumanSpeechInput === 'function') {
+                        prefetchPromise = Promise.resolve(null);
+                    } else {
+                        prefetchPromise = generateSmartSpeech(nextPlayer).catch(e => generateAISpeak(nextPlayer));
+                    }
+                }
+
+                let elapsed = 0;
+                const pollInterval = 100;
+                const maxWait = Math.max(25000, minDisplayDuration * 2.5);
+                while (elapsed < minDisplayDuration || (typeof VoiceSystem !== 'undefined' && VoiceSystem.isSpeaking && elapsed < maxWait)) {
+                    await sleep(pollInterval);
+                    elapsed += pollInterval;
+                }
+                if (prefetchPromise) prefetchedSpeechText = await prefetchPromise;
+                hideSpeechBubble();
+                if (speakerCard) speakerCard.classList.remove('speaking');
+            }
+
+            // 2. PK再投票
+            addLog(`🗳️ PK辩护结束，请参与平票之外的存活玩家再次投票`, 'vote');
+            VoiceSystem.announce('辩护结束，请非平票玩家从平票玩家中进行再次投票');
+            await sleep(2000);
+
+            // 参与过平票的玩家不参与投票
+            const pkVoters = alivePlayers.filter(p => !tiedPlayers.find(t => t.id === p.id));
+            const pkVotes = {};
+
+            for (let i = 0; i < pkVoters.length; i++) {
+                if (gameState.phase === 'end') return;
+                const player = pkVoters[i];
+                const voterCard = document.getElementById(`player-${player.id}`);
+                if (voterCard) voterCard.classList.add('voting-target');
+                await sleep(1500);
+
+                let voteTarget;
+                if (player.isHuman && typeof showHumanVoteTargets === 'function') {
+                    // 让前端通过 showHumanVoteTargets 支持限制目标
+                    showHumanVoteTargets(tiedPlayers);
+                    voteTarget = await waitForHumanAction();
+                } else {
+                    voteTarget = await makeAIDecisionAsync(player, 'vote', { allowedTargets: tiedPlayers });
+                    // 如果 AI 返回不合规，强制随机选一个
+                    if (!voteTarget || !tiedPlayers.find(t => t.id === voteTarget.id)) {
+                        voteTarget = tiedPlayers[Math.floor(Math.random() * tiedPlayers.length)];
+                    }
+                }
+
+                if (voteTarget) {
+                    pkVotes[player.id] = voteTarget.id;
+                    if (voterCard) { voterCard.classList.remove('voting-target'); drawVoteLine(voterCard, voteTarget.id); }
+                    const votedCard = document.getElementById(`player-${voteTarget.id}`);
+                    if (votedCard) votedCard.classList.add('voted');
+                    addLog(`🗳️ ${player.name} 投了 ${voteTarget.name}`, 'vote');
+                    SoundSystem.play('click');
+                }
+                if (voterCard) voterCard.classList.remove('voting-target');
+                await sleep(500);
+            }
+
+            // 3. PK结算
+            document.querySelectorAll('.player-card').forEach(card => card.classList.remove('voted'));
+            const pkVoteCount = {};
+            Object.values(pkVotes).forEach(vId => { pkVoteCount[vId] = (pkVoteCount[vId] || 0) + 1; });
+
+            let pkMaxVotes = 0;
+            let finalVoted = null;
+            let pkTie = false;
+
+            for (const [pId, count] of Object.entries(pkVoteCount)) {
+                if (count > pkMaxVotes) {
+                    pkMaxVotes = count;
+                    finalVoted = gameState.players.find(p => p.id === parseInt(pId));
+                    pkTie = false;
+                } else if (count === pkMaxVotes) {
+                    pkTie = true;
+                }
+            }
+
+            if (pkTie || pkMaxVotes === 0) {
+                addLog(`🕊️ 再次平票或无人投票，今天是平安日！无人出局！`, 'system');
+                VoiceSystem.announce('再次出现平票情况，今天是平安日，无人出局');
+                mostVoted = null; // 平安日：不执行任何人死亡
+            } else {
+                mostVoted = finalVoted;
+                maxVotes = pkMaxVotes;
+            }
         }
 
         if (mostVoted) {

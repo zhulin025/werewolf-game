@@ -539,8 +539,16 @@ async function startNight() {
 }
 
 async function nightPhase(roleKey, roleName, actionFn) {
-    const player = gameState.players.find(p => p.role === roleKey && p.isAlive);
-
+    let players;
+    if (roleKey === 'WOLF' || roleKey === 'WOLF_KING') {
+        players = gameState.players.filter(p => p.camp === 'wolf' && p.isAlive);
+    } else {
+        players = gameState.players.filter(p => p.role === roleKey && p.isAlive);
+    }
+    
+    // 优先寻找人类玩家作为行动代表
+    const player = players.find(p => p.isHuman) || players[0];
+    
     if (!player) {
         addLog(`⚠️ 没有找到存活的 ${roleName}`, 'system');
         return null;
@@ -975,12 +983,12 @@ async function simulateAISpeaking() {
         showSpeechBubble(speakerCard, player, speechText);
         VoiceSystem.speakAs(`${player.name}说：${speechText}`, player.role.toLowerCase());
 
-        // 动态计算气泡显示时间以匹配语音时长 (约250ms/字，并考虑VoiceSystem的全局语速设置)
+        // 动态计算气泡显示时间的最短保障 (以防语音引擎没开启时过快刷屏)
         const voiceRate = (typeof VoiceSystem !== 'undefined' && VoiceSystem.speechRate) ? VoiceSystem.speechRate : 1.0;
         const totalTextLength = player.name.length + 2 + speechText.length; // 包含"XX说："的长度
-        const displayDuration = Math.max(3000, (totalTextLength * 260) / voiceRate);
+        const minDisplayDuration = Math.max(3000, (totalTextLength * 260) / voiceRate);
 
-        // 核心优化：在等待当前语音播报（pausedSleep）的过程中，【并行】去预生成下一个玩家的发言
+        // 核心优化：在等待当前语音播报的过程中，【并行】去预生成下一个玩家的发言
         let prefetchPromise = null;
         const nextPlayer = alivePlayers[i + 1];
         if (nextPlayer && gameState.phase !== 'end') {
@@ -995,12 +1003,17 @@ async function simulateAISpeaking() {
             }
         }
 
-        // 等待当前语音气泡展示及播报结束
-        await pausedSleep(displayDuration);
+        // 终极防溢出：等待当前语音气泡展示及播报完全结束！
+        // 既要满足最短的气泡阅读时间，又要确保 VoiceSystem 的语音队列确实已经念完了这一句。
+        let elapsed = 0;
+        const pollInterval = 100;
+        const maxWaitLimit = Math.max(25000, minDisplayDuration * 2.5); // 防止个别浏览器TTS卡死无限等待
+        while (elapsed < minDisplayDuration || (typeof VoiceSystem !== 'undefined' && VoiceSystem.isSpeaking && elapsed < maxWaitLimit)) {
+            await pausedSleep(pollInterval);
+            elapsed += pollInterval;
+        }
         
         // 只有到了这里，才去收取之前并行的请求结果。
-        // 如果 API 返回很快（小于语音播报时间），这里的 await 瞬间就通过了。
-        // 如果 API 返回较慢（大于语音播报时间），则自然等待它拿到结果即可。不会出错。
         if (prefetchPromise) {
             prefetchedSpeechText = await prefetchPromise;
         }
